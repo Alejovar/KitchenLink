@@ -1,8 +1,8 @@
 <?php
-$servername = "localhost";
+$servername = "127.0.0.1";
 $username_db = "root";
-$password_db = "Avm050802Avm?"; // Asegúrate de que esta sea la contraseña de tu base de datos
-$dbname = "kitchenlink";
+$password_db = "Avm050802Avm?"; // Tu contraseña
+$dbname = "KitchenLink";
 
 // Crea la conexión
 $conn = new mysqli($servername, $username_db, $password_db, $dbname);

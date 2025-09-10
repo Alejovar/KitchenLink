@@ -7,12 +7,12 @@ session_start();
 
 // Verifica si el formulario fue enviado
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $_POST['username'];
+    $user = $_POST['user'];
     $password = $_POST['password'];
 
     // Prepara la consulta SQL
     $stmt = $conn->prepare("SELECT password, rol_id FROM users WHERE user = ?");
-    $stmt->bind_param("s", $username);
+    $stmt->bind_param("s", $user);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -24,11 +24,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (password_verify($password, $hashed_password)) {
             // Contraseña correcta: inicia sesión
             $_SESSION['loggedin'] = true;
-            $_SESSION['username'] = $username;
+            $_SESSION['user'] = $user;
             $_SESSION['rol_id'] = $row['rol_id'];
             
             // Redirige al dashboard.
-            header("Location: ../dashboard.php");
+            header("Location: /KitchenLink/dashboard.php");
             exit();
         } else {
             echo "Contraseña incorrecta. Intenta de nuevo.";
