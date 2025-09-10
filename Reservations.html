@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservaciones</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      display: flex;
+      background: #f9f9f9;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      background: #f3f1fb;
+      height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar ul li {
+      margin: 12px 0;
+    }
+    .sidebar ul li a {
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      display: block;
+      padding: 8px;
+      border-radius: 8px;
+    }
+    .sidebar ul li a.active {
+      background: #ece7ff;
+      color: #5a2dfc;
+    }
+    .sidebar .user-info {
+      font-size: 14px;
+      color: #444;
+    }
+
+    /* Contenido principal */
+    .content {
+      flex: 1;
+      padding: 30px;
+    }
+    h1 {
+      margin: 0 0 20px 0;
+    }
+
+    /* Formulario */
+    .form-section {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .form-section h3 {
+      margin-bottom: 15px;
+    }
+    .form-row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    .form-row input, 
+    .form-row select, 
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    textarea {
+      resize: none;
+      height: 80px;
+    }
+    button {
+      background: #6a36fc;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #5829d8;
+    }
+
+    /* Estado mesas */
+    .table-status {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .table-status h3 {
+      margin-bottom: 15px;
+    }
+    .table-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .table-row:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div>
+      <h2>Restaurante</h2>
+      <ul>
+        <li><a href="#" class="active">Reservaciones</a></li>
+        <li><a href="#">Lista de espera</a></li>
+      </ul>
+    </div>
+    <div class="user-info">
+      <strong>Hostess</strong><br>
+      Sesión activa
+    </div>
+  </aside>
+
+  <!-- Contenido principal -->
+  <main class="content">
+    <h1>Reservaciones</h1>
+
+    <!-- Formulario -->
+    <section class="form-section">
+      <h3>Nueva reservación</h3>
+      <form id="reservaForm">
+        <div class="form-row">
+          <input type="date" name="fecha" required>
+          <input type="time" name="hora" required>
+          <input type="number" name="personas" placeholder="Número de personas" required>
+        </div>
+        <div class="form-row">
+          <input type="text" name="nombre" placeholder="Nombre del cliente" required>
+          <input type="tel" name="telefono" placeholder="Teléfono de contacto" required>
+        </div>
+        <textarea name="solicitudes" placeholder="Solicitudes especiales"></textarea>
+        <br><br>
+        <button type="submit">Registrar reservación</button>
+      </form>
+    </section>
+
+    <!-- Estado de mesas -->
+    <section class="table-status">
+      <h3>Estado de mesas</h3>
+      <!-- Aquí tu backend inyectará las mesas -->
+      <div id="estadoMesas">
+        <!-- Ejemplo dinámico (remover cuando uses PHP/MySQL) -->
+        <!-- <div class="table-row"><span>Mesa 1</span><span>Disponible - 4 personas</span></div> -->
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>
