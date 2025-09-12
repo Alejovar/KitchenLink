@@ -237,3 +237,212 @@ body{
   display: block;
   clear: both;
 }
+
+/* ---------------------------------- */
+/* Estilos Generales         */
+/* ---------------------------------- */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  display: flex;
+  background: #f8f9fa;
+  color: #333;
+}
+
+/* ---------------------------------- */
+/* Barra Lateral            */
+/* ---------------------------------- */
+.sidebar {
+  width: 240px;
+  background: #ffffff;
+  height: 100vh;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid #e9ecef;
+  box-sizing: border-box; /* Asegura que el padding no aumente el ancho */
+}
+
+.sidebar h2 {
+  font-size: 22px;
+  margin-bottom: 25px;
+  color: #6a36fc;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar ul li {
+  margin: 15px 0;
+}
+
+.sidebar ul li a {
+  text-decoration: none;
+  color: #495057;
+  font-weight: 500;
+  display: block;
+  padding: 10px 15px;
+  border-radius: 8px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar ul li a:hover {
+  background: #f1f3f5;
+}
+
+.sidebar ul li a.active {
+  background: #ece7ff;
+  color: #6a36fc;
+  font-weight: bold;
+}
+
+.sidebar .user-info {
+  font-size: 14px;
+  color: #6c757d;
+  border-top: 1px solid #e9ecef;
+  padding-top: 15px;
+}
+
+.sidebar .user-info strong {
+    color: #343a40;
+}
+
+/* ---------------------------------- */
+/* Contenido Principal        */
+/* ---------------------------------- */
+.content {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto; /* Permite scroll si el contenido es muy largo */
+}
+
+h1 {
+  margin: 0 0 25px 0;
+  font-size: 28px;
+  color: #212529;
+}
+
+/* Estilo de las tarjetas (cards) */
+.card {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e9ecef;
+}
+
+/* ---------------------------------- */
+/* Formulario             */
+/* ---------------------------------- */
+.form-section h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-row input,
+.form-row select,
+textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-row input:focus,
+textarea:focus {
+    outline: none;
+    border-color: #8b61ff;
+    box-shadow: 0 0 0 3px rgba(106, 54, 252, 0.15);
+}
+
+textarea {
+  resize: vertical;
+  height: 80px;
+}
+
+button[type="submit"] {
+  background: #6a36fc;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 15px;
+  transition: background-color 0.2s;
+}
+
+button[type="submit"]:hover {
+  background: #5829d8;
+}
+
+/* ---------------------------------- */
+/* Secciones Inferiores        */
+/* ---------------------------------- */
+.main-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Dos columnas de igual tamaño */
+  gap: 25px;
+}
+
+.reservations-list .date-filter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.reservations-list .date-filter label {
+  font-weight: bold;
+}
+
+.reservations-list .date-filter input[type="date"] {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+/* Estilos para cada item de reservación */
+.reservation-item {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.reservation-item h4 {
+  margin: 0 0 5px 0;
+  color: #6a36fc;
+}
+
+.reservation-item p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #495057;
+}
+
+.reservation-item p strong {
+    color: #212529;
+}
+
+/* Mensaje de placeholder */
+.placeholder-text {
+    color: #6c757d;
+    text-align: center;
+    padding: 20px;
+}
+
