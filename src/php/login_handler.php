@@ -1,44 +1,59 @@
 <?php
-// Incluye el archivo de conexión
-require_once 'db_connection.php';
-
-// Inicia la sesión para guardar datos del usuario
+// Es crucial iniciar la sesión al principio de todo.
 session_start();
 
-// Verifica si el formulario fue enviado
+// Incluimos el archivo que contiene la conexión a la base de datos.
+// Asegúrate de que la ruta a tu archivo de conexión sea correcta.
+require 'db_connection.php';
+
+// Verificamos que los datos se hayan enviado mediante el método POST.
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    
+    // Obtenemos el usuario y la contraseña del formulario.
     $user = $_POST['user'];
     $password = $_POST['password'];
 
-    // Prepara la consulta SQL para obtener todos los datos necesarios del usuario
-    $stmt = $conn->prepare("SELECT id, name, password, rol_id FROM users WHERE user = ?");
+    // Preparamos una consulta SQL para evitar inyecciones SQL.
+    $stmt = $conn->prepare("SELECT id, password, name, rol_id FROM users WHERE user = ?");
     $stmt->bind_param("s", $user);
     $stmt->execute();
     $result = $stmt->get_result();
 
+    // Verificamos si la consulta devolvió algún resultado (si el usuario existe).
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         $hashed_password = $row['password'];
 
-        // Verifica si la contraseña es correcta
+        // Verificamos si la contraseña enviada coincide con la guardada en la base de datos.
         if (password_verify($password, $hashed_password)) {
-            // Contraseña correcta: inicia sesión y guarda todos los datos necesarios
+            
+            // ¡La contraseña es correcta! Guardamos los datos del usuario en la sesión.
             $_SESSION['loggedin'] = true;
-            $_SESSION['user_id'] = $row['id']; // ID del usuario (MUY IMPORTANTE)
-            $_SESSION['user_name'] = $row['name']; // Nombre del usuario (MUY IMPORTANTE)
+            $_SESSION['user_id'] = $row['id'];
+            $_SESSION['user_name'] = $row['name'];
             $_SESSION['rol_id'] = $row['rol_id'];
             
-            // Redirige a la página de reservaciones.
-            // Asegúrate de que la ruta sea correcta para tu proyecto.
-            header("Location: /reservaciones.php"); 
-            exit();
+            // --- AQUÍ ESTÁ LA CONDICIÓN QUE PEDISTE ---
+            // Verificamos si el rol_id del usuario es 4 (Hostess).
+            if ($row['rol_id'] == 4) {
+                // Si es Hostess, lo redirigimos a la página de reservaciones.
+                header("Location: /KitchenLink/src/php/Reservations.php");
+                exit(); // Detenemos la ejecución del script después de redirigir.
+            } else {
+                // Si tiene cualquier otro rol, lo mandamos a un "dashboard" general.
+                // Puedes cambiar "dashboard.php" por la página que corresponda para los demás roles.
+                header("Location: /KitchenLink/dashboard.php");
+                exit();
+            }
+
         } else {
-            // Manejo de error: contraseña incorrecta
-            echo "Contraseña incorrecta. Intenta de nuevo.";
+            // La contraseña es incorrecta.
+            // En un futuro, podrías redirigir de vuelta al login con un mensaje de error.
+            echo "Error: Contraseña incorrecta.";
         }
     } else {
-        // Manejo de error: usuario no encontrado
-        echo "Usuario no encontrado. Intenta de nuevo.";
+        // El usuario no fue encontrado en la base de datos.
+        echo "Error: Usuario no encontrado.";
     }
 
     $stmt->close();

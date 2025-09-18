@@ -237,212 +237,146 @@ body{
   display: block;
   clear: both;
 }
+/*Reservations*/
+ /* Reset básico y box-sizing */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
 
-/* ---------------------------------- */
-/* Estilos Generales         */
-/* ---------------------------------- */
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  margin: 0;
-  display: flex;
-  background: #f8f9fa;
-  color: #333;
-}
 
-/* ---------------------------------- */
-/* Barra Lateral            */
-/* ---------------------------------- */
-.sidebar {
-  width: 240px;
-  background: #ffffff;
-  height: 100vh;
-  padding: 25px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  border-right: 1px solid #e9ecef;
-  box-sizing: border-box; /* Asegura que el padding no aumente el ancho */
-}
 
-.sidebar h2 {
-  font-size: 22px;
-  margin-bottom: 25px;
-  color: #6a36fc;
-}
+  
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      /* Evita que el sidebar se encoja */
+      background: #f3f1fb;
+      height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
 
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+    .sidebar h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
 
-.sidebar ul li {
-  margin: 15px 0;
-}
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
 
-.sidebar ul li a {
-  text-decoration: none;
-  color: #495057;
-  font-weight: 500;
-  display: block;
-  padding: 10px 15px;
-  border-radius: 8px;
-  transition: background-color 0.2s, color 0.2s;
-}
+    .sidebar ul li {
+      margin: 12px 0;
+    }
 
-.sidebar ul li a:hover {
-  background: #f1f3f5;
-}
+    .sidebar ul li a {
+      text-decoration: none;
+      color: #333;
+      font-weight: 500;
+      display: block;
+      padding: 8px;
+      border-radius: 8px;
+    }
 
-.sidebar ul li a.active {
-  background: #ece7ff;
-  color: #6a36fc;
-  font-weight: bold;
-}
+    .sidebar ul li a.active {
+      background: #ece7ff;
+      color: #5a2dfc;
+    }
 
-.sidebar .user-info {
-  font-size: 14px;
-  color: #6c757d;
-  border-top: 1px solid #e9ecef;
-  padding-top: 15px;
-}
+    .sidebar .user-info {
+      font-size: 14px;
+      color: #444;
+    }
 
-.sidebar .user-info strong {
-    color: #343a40;
-}
+    /* Contenido principal */
+    .contentres {
+      flex-grow: 1;
+      /* Hace que el contenido ocupe el espacio restante */
+      padding: 30px;
+      overflow-y: auto;
+      /* Añade un scrollbar solo al contenido si es necesario */
+    }
 
-/* ---------------------------------- */
-/* Contenido Principal        */
-/* ---------------------------------- */
-.content {
-  flex: 1;
-  padding: 30px;
-  overflow-y: auto; /* Permite scroll si el contenido es muy largo */
-}
+    h1 {
+      margin: 0 0 20px 0;
+    }
 
-h1 {
-  margin: 0 0 25px 0;
-  font-size: 28px;
-  color: #212529;
-}
+    /* Estilos comunes para los paneles */
+    .form-section,
+    .table-status,
+    .reservations-list {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
 
-/* Estilo de las tarjetas (cards) */
-.card {
-    background: #fff;
-    padding: 25px;
-    border-radius: 12px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid #e9ecef;
-}
+    .form-section h3,
+    .table-status h3 {
+      margin-bottom: 15px;
+    }
 
-/* ---------------------------------- */
-/* Formulario             */
-/* ---------------------------------- */
-.form-section h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-}
+    /* Estilos del Formulario */
+    .form-row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
 
-.form-row {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 15px;
-}
+    .form-row input,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
 
-.form-row input,
-.form-row select,
-textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 15px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
+    textarea {
+      resize: none;
+      height: 80px;
+    }
 
-.form-row input:focus,
-textarea:focus {
-    outline: none;
-    border-color: #8b61ff;
-    box-shadow: 0 0 0 3px rgba(106, 54, 252, 0.15);
-}
+    button {
+      background: #6a36fc;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
 
-textarea {
-  resize: vertical;
-  height: 80px;
-}
+    button:hover {
+      background: #5829d8;
+    }
 
-button[type="submit"] {
-  background: #6a36fc;
-  color: #fff;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 15px;
-  transition: background-color 0.2s;
-}
+    /* Contenedor para poner paneles lado a lado */
+    .main-view {
+      display: flex;
+      gap: 20px;
+    }
 
-button[type="submit"]:hover {
-  background: #5829d8;
-}
+    .main-view>.table-status,
+    .main-view>.reservations-list {
+      flex: 1;
+      margin-bottom: 0;
+    }
 
-/* ---------------------------------- */
-/* Secciones Inferiores        */
-/* ---------------------------------- */
-.main-view {
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* Dos columnas de igual tamaño */
-  gap: 25px;
-}
+    /* Filas de la tabla de estado */
+    .table-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
 
-.reservations-list .date-filter {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.reservations-list .date-filter label {
-  font-weight: bold;
-}
-
-.reservations-list .date-filter input[type="date"] {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-}
-
-/* Estilos para cada item de reservación */
-.reservation-item {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 10px;
-}
-
-.reservation-item h4 {
-  margin: 0 0 5px 0;
-  color: #6a36fc;
-}
-
-.reservation-item p {
-  margin: 4px 0;
-  font-size: 14px;
-  color: #495057;
-}
-
-.reservation-item p strong {
-    color: #212529;
-}
-
-/* Mensaje de placeholder */
-.placeholder-text {
-    color: #6c757d;
-    text-align: center;
-    padding: 20px;
-}
-
+    .table-row:last-child {
+      border-bottom: none;
+    }

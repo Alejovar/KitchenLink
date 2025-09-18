@@ -1,10 +1,14 @@
 <?php
+// Iniciar la sesión para poder acceder a ella.
 session_start();
 
-// Destruye todas las variables de sesión
+// Eliminar todas las variables de sesión.
+$_SESSION = array();
+
+// Destruir la sesión por completo.
 session_destroy();
 
-// Redirige al usuario a la página de login
-header("Location: ../index.html");
-exit;
+// Redirigir al usuario a la página de inicio de sesión.
+header("Location: /KitchenLink/login.html"); // Asegúrate de que esta ruta sea correcta
+exit();
 ?>
