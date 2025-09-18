@@ -1,0 +1,101 @@
+-- ========= TABLA DE ROLES =========
+-- Almacena los diferentes tipos de empleados.
+CREATE TABLE roles (
+    id INT AUTO_INCREMENT,
+    rol_name VARCHAR(50) NOT NULL,
+    CONSTRAINT pk_roles PRIMARY KEY (id),
+    CONSTRAINT uq_rol_name UNIQUE (rol_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Insertamos los roles iniciales
+INSERT INTO roles (id, rol_name) VALUES
+(1, 'gerente'),
+(2, 'mesero'),
+(3, 'jefe de cocina'),
+(4, 'hostess'),
+(5, 'encargado de barra'),
+(6, 'cajero');
+
+
+-- ========= TABLA DE USUARIOS =========
+-- Guarda la información de los empleados para el inicio de sesión.
+CREATE TABLE users (
+    id INT AUTO_INCREMENT,
+    user VARCHAR(25) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    rol_id INT,
+    CONSTRAINT pk_users PRIMARY KEY (id),
+    CONSTRAINT uq_user UNIQUE (user),
+    CONSTRAINT fk_users_roles FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ========= TABLA DE MESAS =========
+-- Contiene las mesas físicas del restaurante y su estado actual.
+CREATE TABLE tables (
+    id INT AUTO_INCREMENT,
+    table_name VARCHAR(50) NOT NULL,
+    status ENUM('disponible', 'ocupado') NOT NULL DEFAULT 'disponible',
+    status_changed_at TIMESTAMP NULL DEFAULT NULL,
+    CONSTRAINT pk_tables PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Insertamos las mesas del restaurante
+INSERT INTO tables (table_name) VALUES
+('Mesa 10'), ('Mesa 11'), ('Mesa 12'), ('Mesa 13'),
+('Mesa 20'), ('Mesa 21'), ('Mesa 22'), ('Mesa 23'),
+('Mesa 30'), ('Mesa 40'), ('Mesa 41'), ('Mesa 42'),
+('Mesa 50'), ('Mesa 51'), ('Mesa 52'),
+('Mesa 60'), ('Mesa 61'), ('Mesa 62'),
+('Mesa 70'), ('Mesa 71'), ('Mesa 72'),
+('Mesa 80'), ('Mesa 81');
+
+
+-- ========= TABLA DE RESERVACIONES (ACTIVAS) =========
+-- Guarda los datos de las reservaciones pendientes o futuras.
+CREATE TABLE reservations (
+    id INT AUTO_INCREMENT,
+    hostess_id INT,
+    customer_name VARCHAR(150) NOT NULL,
+    customer_phone VARCHAR(20),
+    reservation_date DATE NOT NULL,
+    reservation_time TIME NOT NULL,
+    number_of_people INT NOT NULL,
+    special_requests TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT pk_reservations PRIMARY KEY (id),
+    CONSTRAINT fk_reservations_users FOREIGN KEY (hostess_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_reservation_date (reservation_date) -- Índice para búsquedas rápidas por fecha
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ========= TABLA DE UNIÓN RESERVATION_TABLES =========
+-- Conecta una reservación con una o más mesas.
+CREATE TABLE reservation_tables (
+    reservation_id INT NOT NULL,
+    table_id INT NOT NULL,
+    CONSTRAINT pk_reservation_tables PRIMARY KEY (reservation_id, table_id),
+    CONSTRAINT fk_rt_reservations FOREIGN KEY (reservation_id) REFERENCES reservations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_rt_tables FOREIGN KEY (table_id) REFERENCES tables(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ========= TABLA DE HISTORIAL DE RESERVACIONES =========
+-- Guarda un registro permanente de todas las reservaciones procesadas.
+CREATE TABLE reservations_history (
+    id INT AUTO_INCREMENT,
+    original_reservation_id INT NOT NULL,
+    hostess_id INT,
+    table_id INT, -- Permite nulos, ya que una reservación puede tener varias mesas
+    customer_name VARCHAR(150) NOT NULL,
+    customer_phone VARCHAR(20),
+    reservation_date DATE NOT NULL,
+    reservation_time TIME NOT NULL,
+    number_of_people INT NOT NULL,
+    special_requests TEXT,
+    created_at TIMESTAMP NULL,
+    archived_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    final_status ENUM('completada','cancelada','no-show') NOT NULL,
+    CONSTRAINT pk_reservations_history PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
