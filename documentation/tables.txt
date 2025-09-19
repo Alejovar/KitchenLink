@@ -99,3 +99,27 @@ CREATE TABLE reservations_history (
     final_status ENUM('completada','cancelada','no-show') NOT NULL,
     CONSTRAINT pk_reservations_history PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ========= TABLA DE LISTA DE ESPERA =========
+-- Guarda los datos de las personas en la lista de espera
+CREATE TABLE `waiting_list` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `customer_name` VARCHAR(150) NOT NULL,
+  `number_of_people` INT NOT NULL,
+  `customer_phone` VARCHAR(20) DEFAULT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ========= TABLA DE HISTORIAL DE LISTA DE ESPERA =========
+-- Guarda un registro permanente de todas las personas que estuvieron en lista de espera y ya fueron procesadas.
+CREATE TABLE `waiting_list_history` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `original_id` INT NOT NULL,
+  `customer_name` VARCHAR(150) NOT NULL,
+  `number_of_people` INT NOT NULL,
+  `customer_phone` VARCHAR(20) DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL,
+  `archived_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `status` ENUM('seated', 'cancelled') NOT NULL COMMENT 'Indica si el cliente fue sentado o canceló.',
+  `tables_assigned` VARCHAR(255) DEFAULT NULL COMMENT 'Nombres de las mesas asignadas, separados por comas'
+);

@@ -13,7 +13,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewDateInput = document.getElementById('viewDate');
     const reservationsList = document.getElementById('reservationsList');
 
-    // --- 2. FUNCIONES ASÍNCRONAS ---
+    // --- 2. FUNCIONES DE VALIDACIÓN Y ASÍNCRONAS ---
+
+    /**
+     * Valida la lógica de la reservación antes de enviarla.
+     * @returns {boolean} - Devuelve true si la validación es exitosa, de lo contrario false.
+     */
+    function validateReservationLogic() {
+        const selectedDate = dateInput.value;
+        const selectedTime = timeInput.value;
+        
+        // Combinamos fecha y hora para una comparación precisa
+        const reservationDateTime = new Date(`${selectedDate}T${selectedTime}`);
+        const now = new Date();
+
+        // Evita que la fecha/hora sea anterior al momento actual con un margen de 1 minuto
+        if (reservationDateTime < (now - 60000)) {
+            alert('Error: No se puede reservar en una fecha u hora que ya ha pasado.');
+            return false;
+        }
+
+        // Valida que la hora esté en el rango permitido (8 AM a 10 PM)
+        const hour = parseInt(selectedTime.split(':')[0]);
+        if (hour < 8 || hour > 22) { // > 22 para permitir hasta las 22:59
+            alert('Error: Las reservaciones solo están disponibles de 8:00 AM a 10:00 PM.');
+            return false;
+        }
+
+        return true; // Si todas las validaciones son correctas
+    }
 
     async function loadTableStatuses() {
         try {
@@ -105,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // Esta función ahora solo hace la llamada a la API y devuelve true (éxito) o false (fallo)
     async function archiveReservationAPI(reservationId, status) {
         try {
             const response = await fetch('/KitchenLink/src/api/archive_reservation.php', {
@@ -133,6 +160,14 @@ document.addEventListener('DOMContentLoaded', () => {
     numPersonasInput.addEventListener('input', allowOnlyNumbers);
     telClienteInput.addEventListener('input', allowOnlyNumbers);
     nombreClienteInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); });
+    
+    // **NUEVO: Límites de longitud en tiempo real**
+    telClienteInput.addEventListener('input', (e) => {
+        if (e.target.value.length > 10) e.target.value = e.target.value.slice(0, 10);
+    });
+    numPersonasInput.addEventListener('input', (e) => {
+        if (e.target.value.length > 2) e.target.value = e.target.value.slice(0, 2);
+    });
 
     dateInput.addEventListener('change', fetchAvailableTablesForForm);
     timeInput.addEventListener('change', fetchAvailableTablesForForm);
@@ -158,6 +193,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     reservaForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // **NUEVO: Se llama a la función de validación antes de enviar**
+        if (!validateReservationLogic()) {
+            return; // Detiene el envío si la validación falla
+        }
+
         const formData = new FormData(reservaForm);
         if (!formData.has('table_ids[]')) {
             alert('Por favor, seleccione al menos una mesa.');
@@ -212,7 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
             icon.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
         }
 
-        // Lógica mejorada para los botones de acción
         const confirmButton = e.target.closest('.btn-confirm');
         const cancelButton = e.target.closest('.btn-cancel');
 
@@ -226,7 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let status = confirmButton ? 'completada' : 'cancelada';
 
             if (confirm(`¿Está seguro de que desea ${action}?`)) {
-                // Deshabilitar ambos botones y mostrar estado "procesando"
                 btnConfirm.classList.add('processing');
                 btnCancel.classList.add('processing');
                 btnConfirm.disabled = true;
@@ -235,12 +274,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const success = await archiveReservationAPI(reservationId, status);
 
                 if (success) {
-                    // Si tuvo éxito, recargar todo para que la tarjeta desaparezca.
                     loadReservations(viewDateInput.value);
                     loadTableStatuses();
                     fetchAvailableTablesForForm();
                 } else {
-                    // Si falló, la alerta ya se mostró. Volvemos a habilitar los botones.
                     btnConfirm.classList.remove('processing');
                     btnCancel.classList.remove('processing');
                     btnConfirm.disabled = false;

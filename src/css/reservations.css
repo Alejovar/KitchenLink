@@ -126,7 +126,7 @@ textarea {
 }
 
 button {
-  background: #6a36fc;
+  background: #34c8d3;
   color: #fff;
   border: none;
   padding: 10px 16px;
@@ -136,7 +136,7 @@ button {
 }
 
 button:hover {
-  background: #5829d8;
+  background: #34c8d3;
 }
 
 /* Contenedor para poner paneles lado a lado */
@@ -324,4 +324,23 @@ select[multiple] option {
 .btn-cancel.processing {
     background-color: #ffebee !important;
     border-color: #ef9a9a !important;
+}
+
+.logout-btn {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 6px 12px;
+    background-color: #f1f3f4;
+    color: #c62828; /* Color rojo para indicar una acción de salida */
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    border-radius: 16px; /* Forma de píldora */
+    transition: all 0.2s ease-in-out;
+}
+
+.logout-btn:hover {
+    background-color: #ffebee; /* Rojo pálido al pasar el mouse */
+    border-color: #ef9a9a;
 }
