@@ -1,7 +1,7 @@
 # KitchenLink 🍽️
 
 **KitchenLink** es un sistema de gestión web para restaurantes, diseñado para optimizar el manejo de reservaciones y la administración de listas de espera en tiempo real.  
-Actualmente cuenta con funciones básicas, y se planea que en los próximos meses se incorporen las interfaces restantes.
+Actualmente solo se han desarrollado las primeras funciones, pero se planea que en los próximos meses se incorporen las interfaces restantes.
 
 La aplicación permite al personal de recepción (hostess) tener un control visual e intuitivo del estado de las mesas, agilizando el servicio y mejorando la experiencia de los clientes.
 
