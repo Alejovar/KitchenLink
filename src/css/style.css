@@ -380,3 +380,11 @@ body{
     .table-row:last-child {
       border-bottom: none;
     }
+
+    /* Estilos para los mensajes de error del formulario */
+.login-error {
+  color: red;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  min-height: 16px; /* deja espacio aunque no haya error */
+}

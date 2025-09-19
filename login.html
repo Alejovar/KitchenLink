@@ -12,11 +12,17 @@
 <body>
   <div class="container" id="container">
     <div class="form-container sign-in">
-      <form action="/KitchenLink/src/php/login_handler.php" method="POST">
+      <form id="loginForm" action="/KitchenLink/src/php/login_handler.php" method="POST">
         <h1>Iniciar Sesión</h1>
         <span>Ingresa tu nombre de usuario y contraseña</span>
-        <input type="text" placeholder="Nombre de usuario" name="user" required />
-        <input type="password" placeholder="Contraseña" name="password" required />
+
+        <input type="text" placeholder="Nombre de usuario" name="user" id="user" />
+        <input type="password" placeholder="Contraseña" name="password" id="password" />
+
+
+        <!-- Contenedor de error (estilízalo en tu CSS) -->
+        <div id="loginError" class="login-error"></div>
+
         <button type="submit">Iniciar Sesión</button>
       </form>
     </div>
@@ -26,7 +32,7 @@
           <h1>¡Hola, Bienvenido!</h1>
           <img src="src/images/logos/La Mare Mestiza.png" alt="Logo de La Mare Metiza"
             style="max-width: 80%; margin-top: 20px;" />
-         <!-- <p>¿Eres nuevo? habla al gerente para que te apoye en el proceso de registro.</p>
+          <!-- <p>¿Eres nuevo? habla al gerente para que te apoye en el proceso de registro.</p>
           <a href="register.html">
             <button class="hidden">Regístrate</button> -->
           </a>
@@ -34,6 +40,8 @@
       </div>
     </div>
   </div>
+
+  <script src="src/js/script.js"></script>
 </body>
 
 </html>
