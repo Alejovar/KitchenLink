@@ -1,17 +1,13 @@
 <?php
-// Inicia o reanuda la sesión del navegador.
 session_start(); 
-
-// PREGUNTA: ¿Existe un 'user_id' guardado en la sesión?
-// Si no existe, significa que nadie ha iniciado sesión.
+// Redirige al login si no hay una sesión activa
 if (!isset($_SESSION['user_id'])) {
-    // RESPUESTA "NO": Redirige inmediatamente al login.
     header("Location: /KitchenLink/login.html");
-    // Detiene por completo la carga del resto de la página.
     exit(); 
 }
-
-// Si el código llega hasta aquí, significa que SÍ hay una sesión activa.
+// Menu principal de la hostess, en este se pueden realizar reservaciones, cancelarlas y aceptarlas, en cualquier 
+// caso se elimina de la tabla principal y se mandan a la tabla de historial para futuros reportes
+// Tambien permite la asignacion de mesas a clientes que vayan llegando sin reservacion, 
 $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
 ?>
 <!DOCTYPE html>
@@ -49,7 +45,7 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
 
     <main class="content">
         <h1>Gestión de Mesas y Reservaciones</h1>
-
+        <!--Formulario principal de reservaciones--->
         <section class="form-section">
             <h3>Nueva reservación</h3>
             <form id="reservaForm">
@@ -61,6 +57,7 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
                         <span style="color: #999; font-size: 14px; align-self: center;">Seleccione fecha y hora...</span>
                     </div>
                 </div>
+                <!--Validaciones para evitar que el usuario ingrese datos no deseados-->
                 <div class="form-row">
                     <input type="text" name="number_of_people" placeholder="N° de personas" required pattern="[0-9]+">
                     <input type="text" name="customer_name" placeholder="Nombre del cliente" required pattern="[a-zA-Z\s]+">
@@ -74,7 +71,7 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
                 <button type="submit">Registrar reservación</button>
             </form>
         </section>
-
+        <!--muestra las mesas disponibles-->
         <div class="main-view">
             <section class="table-status-container">
                 <h3>Estado Actual de Mesas</h3>
