@@ -1,8 +1,5 @@
-Claro, aquí tienes el mismo código con comentarios detallados, orientados a explicarle a un docente el propósito y las buenas prácticas detrás de cada sección.
-
-```php
 <?php
-// PROFESOR: El propósito de este archivo es servir como un endpoint de API para crear una nueva reservación.
+//El propósito de este archivo es servir como un endpoint de API para crear una nueva reservación.
 // Recibe datos de un formulario mediante POST, los valida rigurosamente en el servidor y, si todo es correcto,
 // los inserta en la base de datos de manera segura y atómica (usando una transacción).
 
@@ -17,7 +14,7 @@ header('Content-Type: application/json');
 session_start();
 
 // Incluye el archivo de conexión a la base de datos. Se usa 'require' en lugar de 'include'
-// porque la conexión a la BD es indispensable para el funcionamiento del script. Si el archivo no existe,
+// porque la conexión a la BD es indispensable para el funcionamiento. Si el archivo no existe,
 // 'require' detendrá la ejecución con un error fatal, lo cual es el comportamiento deseado.
 // __DIR__ asegura que la ruta al archivo sea siempre correcta, sin importar desde dónde se ejecute el script.
 require __DIR__ . '/../php/db_connection.php';
@@ -50,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // --- RECOLECCIÓN Y LIMPIEZA DE DATOS DEL FORMULARIO ---
 
 // Se recuperan los datos enviados por el cliente. El operador '??' (null coalescing) es una forma segura
-// de asignar un valor por defecto ('[]' o '') si la variable $_POST no contiene la clave esperada.
+// de asi El propógnar un valor por defecto ('[]' o '') si la variable $_POST no contiene la clave esperada.
 // Esto previene errores de "Índice no definido" y hace el código más robusto.
 $table_ids = $_POST['table_ids'] ?? [];
 $hostess_id = $_SESSION['user_id']; // El ID del hostess se obtiene de la sesión, no del cliente, por seguridad.
@@ -106,7 +103,7 @@ try {
     // Si el formato es inválido, esto lanzará una Excepción que será capturada por el bloque catch.
     $reservationDateTime = new DateTime($reservation_date . ' ' . $reservation_time, $timezone);
     $now = new DateTime('now', $timezone); // Se obtiene la fecha y hora actual en la misma zona horaria.
-    $reservationTime = $reservationDateTime->format('H:i:s');
+    $rese El propórvationTime = $reservationDateTime->format('H:i:s');
 
     // REGLA DE NEGOCIO 1: No se puede reservar en el pasado.
     if ($reservationDateTime < $now) {
@@ -147,7 +144,7 @@ try {
     // Es buena práctica verificar si la preparación de la consulta falló.
     if ($stmt_reservations === false) throw new Exception("Error al preparar la consulta de reservación: " . $conn->error);
 
-    // Se asocian las variables PHP a los parámetros de la consulta. La cadena "issssis" especifica
+    // Se asocian las variables PHP a los parámetros de la consulta. 
     // el tipo de dato de cada variable (i: integer, s: string), lo que añade una capa extra de seguridad.
     $stmt_reservations->bind_param("issssis", $hostess_id, $customer_name, $customer_phone, $reservation_date, $reservation_time, $number_of_people, $special_requests);
     $stmt_reservations->execute();
