@@ -6,7 +6,7 @@ Claro, aquí tienes el mismo código con comentarios detallados, orientados a ex
 // Recibe datos de un formulario mediante POST, los valida rigurosamente en el servidor y, si todo es correcto,
 // los inserta en la base de datos de manera segura y atómica (usando una transacción).
 
-// --- CONFIGURACIÓN INICIAL Y DE RESPUESTA ---
+// --- CONFIGURACIÓN INICIAL Y DE RESPUESTA
 
 // Se especifica que la respuesta de este script será en formato JSON.
 // Esto es fundamental para que el cliente (JavaScript en el navegador) sepa cómo interpretar los datos que recibe.
