@@ -65,6 +65,7 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
                             placeholder="Nombre del cliente" 
                             required 
                             pattern="[a-zA-Z\s]+" 
+                            maxlength="100"
                             title="Solo se admiten letras y espacios.">
                         
                         <input 
