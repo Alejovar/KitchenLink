@@ -1,3 +1,7 @@
+-- Script para creacion de las tablas en la base de datos, con algunos registros inluidos, como los roles que existen
+-- un restaurante y ademas las mesas que existen en el restaurante para el cual esta elaborado
+-- este proyecto, en caso de ser usado para otro, por el momento el unico registro que seria necesario modificar seria
+-- el de las mesas
 -- ========= TABLA DE ROLES =========
 -- Almacena los diferentes tipos de empleados.
 CREATE TABLE roles (

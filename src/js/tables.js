@@ -1,3 +1,4 @@
+// AUN NO FUNCIONAL, ES EL JS PARA LA INTERFAZ PRINCIPAL DE LOS MESEROS, DISPONIBLE EN UN FUTURO CERCANO
 document.addEventListener('DOMContentLoaded', () => {
     // Get references to DOM elements
     const addTableButton = document.getElementById('addTableButton');
