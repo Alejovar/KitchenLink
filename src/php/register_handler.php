@@ -1,4 +1,6 @@
 <?php
+// Clase AUN NO DISPONIBLE es la logica para registrar nuevos usuarios, hecha solo para facilitar el registrar
+// nuevo usuario, proximamente disponible.
 include 'db_connection.php';
 session_start(); // 
 

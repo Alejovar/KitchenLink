@@ -1,4 +1,5 @@
 <?php
+//Logica de la intefaz de login
 session_start();
 require 'db_connection.php';
 
@@ -46,12 +47,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['user_name'] = $row['name'];
             $_SESSION['rol_id'] = $row['rol_id'];
-
+            // En caso de que un usuario con el rol de hostess inicie sesion se le redirige a su interfaz principal
             if ($row['rol_id'] == 4) {
                 echo json_encode([
                     "success" => true,
                     "redirect" => "/KitchenLink/src/php/reservations.php"
                 ]);
+            // Cualquier otro usuario por el momento se redirige a una interfaz generica, solo por el momento
+            // en lo que se desarrollan las demas interfaces
             } else {
                 echo json_encode([
                     "success" => true,

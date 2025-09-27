@@ -1,4 +1,5 @@
 <?php
+// Clase de PRUEBA, para cerrar sesion
 // Iniciar la sesión para poder acceder a ella.
 session_start();
 

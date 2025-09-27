@@ -1,7 +1,9 @@
 <?php
+// Archivo de conexion con la base de datos
+//IMPORTANTE, Modificar esto para correrlo de forma local segun sean las credenciales de tu base de datos
 $servername = "127.0.0.1";
 $username_db = "root";
-$password_db = "Avm050802Avm?"; // Tu contraseña
+$password_db = "Avm050802Avm?";
 $dbname = "KitchenLink";
 
 // Crea la conexión
