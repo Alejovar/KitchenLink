@@ -197,7 +197,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const allowOnlyNumbers = (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); };
     numPersonasInput.addEventListener('input', allowOnlyNumbers);
     telClienteInput.addEventListener('input', allowOnlyNumbers);
-    nombreClienteInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); });
+    
+    // Listener para el nombre del cliente con la nueva validación.
+    nombreClienteInput.addEventListener('input', (e) => { 
+        // 1. Reemplaza cualquier caracter que no sea una letra o un espacio.
+        e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+        // 2. Si el texto excede los 100 caracteres, lo corta.
+        if (e.target.value.length > 100) {
+            e.target.value = e.target.value.slice(0, 100);
+        }
+    });
     
     // Límites de longitud para evitar entradas excesivas.
     telClienteInput.addEventListener('input', (e) => { if (e.target.value.length > 10) e.target.value = e.target.value.slice(0, 10); });
