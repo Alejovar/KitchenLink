@@ -63,7 +63,8 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
                     <input type="text" name="customer_name" placeholder="Nombre del cliente" required pattern="[a-zA-Z\s]+">
                     <input type="tel" name="customer_phone" placeholder="Teléfono (opcional)" pattern="[0-9]+">
                 </div>
-                <textarea name="special_requests" placeholder="Solicitudes especiales (opcional)"></textarea>
+                <!-- AHORA CON LIMITE DE 500 -->
+                <textarea name="special_requests" placeholder="Solicitudes especiales (opcional)" maxlength="500"></textarea>
                 
                 <div id="hiddenTableInputs"></div>
                 

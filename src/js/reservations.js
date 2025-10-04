@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. SELECCIÓN DE ELEMENTOS DEL DOM ---
     // Guardamos referencias a todos los elementos interactivos de la página para un acceso rápido.
-    
+
     // Elementos del formulario de nueva reservación
     const reservaForm = document.getElementById('reservaForm');
     const dateInput = reservaForm.querySelector('input[name="reservation_date"]');
@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const telClienteInput = reservaForm.querySelector('input[name="customer_phone"]');
     const tableSelectorContainer = document.getElementById('tableSelectorContainer'); // Div donde se muestran las mesas disponibles para SELECCIONAR.
     const hiddenTableInputsContainer = document.getElementById('hiddenTableInputs'); // Div para guardar los inputs ocultos de las mesas seleccionadas.
-    
+
     // Elementos de la vista de estado de mesas y lista de reservaciones
     const tableGrid = document.getElementById('tableGrid'); // Contenedor que muestra el estado de TODAS las mesas.
     const viewDateInput = document.getElementById('viewDate'); // Input de fecha para FILTRAR la lista de reservaciones.
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function validateReservationLogic() {
         const selectedDate = dateInput.value;
         const selectedTime = timeInput.value;
-        
+
         // Creamos un objeto Date completo para poder compararlo con la fecha y hora actuales.
         const reservationDateTime = new Date(`${selectedDate}T${selectedTime}`);
         const now = new Date();
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Limpiamos selecciones previas.
         tableSelectorContainer.innerHTML = '<span style="color: #999; font-size: 14px; align-self: center;">Seleccione fecha y hora...</span>';
         hiddenTableInputsContainer.innerHTML = '';
-        
+
         // Si no se ha seleccionado fecha y hora, no hacemos la búsqueda.
         if (!date || !time) return;
 
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
             reservationsList.innerHTML = '<p style="color: red;">Error al cargar las reservaciones.</p>';
         }
     }
-    
+
     /**
      * @description Función reutilizable para enviar una petición a la API para archivar (confirmar o cancelar) una reservación.
      * @param {number} reservationId - El ID de la reservación a modificar.
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/KitchenLink/src/api/archive_reservation.php', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reservation_id: reservationId, status: status })
             });
             const result = await response.json();
@@ -197,9 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const allowOnlyNumbers = (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); };
     numPersonasInput.addEventListener('input', allowOnlyNumbers);
     telClienteInput.addEventListener('input', allowOnlyNumbers);
-    
+
     // Listener para el nombre del cliente con la nueva validación.
-    nombreClienteInput.addEventListener('input', (e) => { 
+    nombreClienteInput.addEventListener('input', (e) => {
         // 1. Reemplaza cualquier caracter que no sea una letra o un espacio.
         e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
         // 2. Si el texto excede los 100 caracteres, lo corta.
@@ -207,7 +207,16 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.value = e.target.value.slice(0, 100);
         }
     });
-    
+
+    const specialRequestsInput = reservaForm.querySelector('textarea[name="special_requests"]');
+    if (specialRequestsInput) {
+        specialRequestsInput.addEventListener('input', (e) => {
+            if (e.target.value.length > 500) {
+                e.target.value = e.target.value.slice(0, 500);
+            }
+        });
+    }
+
     // Límites de longitud para evitar entradas excesivas.
     telClienteInput.addEventListener('input', (e) => { if (e.target.value.length > 10) e.target.value = e.target.value.slice(0, 10); });
     numPersonasInput.addEventListener('input', (e) => { if (e.target.value.length > 2) e.target.value = e.target.value.slice(0, 2); });
@@ -222,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tableButton = e.target;
             const tableId = tableButton.dataset.tableId;
             tableButton.classList.toggle('selected'); // Cambia el estilo visual del botón.
-            
+
             // Si el botón ahora está seleccionado, crea un input oculto con su ID.
             if (tableButton.classList.contains('selected')) {
                 const hiddenInput = document.createElement('input');
@@ -241,7 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Maneja el envío del formulario de nueva reservación.
     reservaForm.addEventListener('submit', async (e) => {
         e.preventDefault(); // Evita que la página se recargue.
-        
+
         // Primero, ejecuta las validaciones de lógica de negocio.
         if (!validateReservationLogic()) {
             return; // Si la validación falla, detiene el proceso.
@@ -286,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Lógica para cambiar manualmente el estado de una mesa.
             // ... (código para actualizar estado de la mesa) ...
         }
-        
+
         // --- 2. Clic en el botón para expandir/colapsar detalles de una reservación ---
         if (e.target.closest('.details-toggle')) {
             const card = e.target.closest('.reservation-card');
@@ -305,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = e.target.closest('.reservation-card');
             const reservationId = card.dataset.reservationId;
             const [btnConfirm, btnCancel] = [card.querySelector('.btn-confirm'), card.querySelector('.btn-cancel')];
-            
+
             // Define el mensaje y el estado según el botón presionado.
             let action = confirmButton ? 'confirmar la llegada del cliente' : 'CANCELAR esta reservación';
             let status = confirmButton ? 'completada' : 'cancelada';
@@ -349,12 +358,12 @@ document.addEventListener('DOMContentLoaded', () => {
     dateInput.value = today;
     viewDateInput.value = today;
     dateInput.min = today; // Evita que el usuario seleccione una fecha pasada en el calendario.
-    
+
     // Carga los datos iniciales de la página.
     loadTableStatuses();
     loadReservations(today);
     fetchAvailableTablesForForm();
-    
+
     // --- 5. TEMPORIZADOR AUTOMÁTICO DE LIMPIEZA ---
     // Establece un intervalo que se ejecutará periódicamente en segundo plano.
     const cleanupInterval = 5 * 60 * 1000; // 5 minutos en milisegundos.
