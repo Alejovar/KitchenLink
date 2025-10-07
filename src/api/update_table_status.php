@@ -57,4 +57,3 @@ try {
 // Cerramos la conexión.
 $conn->close();
 ?>
-```

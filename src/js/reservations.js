@@ -18,13 +18,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const numPersonasInput = reservaForm.querySelector('input[name="number_of_people"]');
     const nombreClienteInput = reservaForm.querySelector('input[name="customer_name"]');
     const telClienteInput = reservaForm.querySelector('input[name="customer_phone"]');
-    const tableSelectorContainer = document.getElementById('tableSelectorContainer'); // Div donde se muestran las mesas disponibles para SELECCIONAR.
-    const hiddenTableInputsContainer = document.getElementById('hiddenTableInputs'); // Div para guardar los inputs ocultos de las mesas seleccionadas.
+
+    // Div donde se muestran las mesas disponibles para SELECCIONAR.
+    const tableSelectorContainer = document.getElementById('tableSelectorContainer'); 
+    // Div para guardar los inputs ocultos de las mesas seleccionadas.
+    const hiddenTableInputsContainer = document.getElementById('hiddenTableInputs'); 
 
     // Elementos de la vista de estado de mesas y lista de reservaciones
-    const tableGrid = document.getElementById('tableGrid'); // Contenedor que muestra el estado de TODAS las mesas.
-    const viewDateInput = document.getElementById('viewDate'); // Input de fecha para FILTRAR la lista de reservaciones.
-    const reservationsList = document.getElementById('reservationsList'); // Contenedor para mostrar las tarjetas de las reservaciones.
+    // Contenedor que muestra el estado de TODAS las mesas.
+    const tableGrid = document.getElementById('tableGrid'); 
+    // Input de fecha para FILTRAR la lista de reservaciones.
+    const viewDateInput = document.getElementById('viewDate'); 
+    // Contenedor para mostrar las tarjetas de las reservaciones.
+    const reservationsList = document.getElementById('reservationsList'); 
 
     // --- 2. FUNCIONES DE VALIDACIÓN Y ASÍNCRONAS ---
 
@@ -48,7 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Validamos que la hora de la reservación esté dentro del horario de operación (8:00 AM a 10:59 PM).
         const hour = parseInt(selectedTime.split(':')[0]);
-        if (hour < 8 || hour > 22) {
+        // > 22 para permitir hasta las 22:59
+        if (hour < 8 || hour > 22) { 
             alert('Error: Las reservaciones solo están disponibles de 8:00 AM a 10:00 PM.');
             return false;
         }
@@ -63,7 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/KitchenLink/src/api/get_table_status.php');
             const tables = await response.json();
+
             tableGrid.innerHTML = ''; // Limpiamos la vista actual.
+
             tables.forEach(table => {
                 const tableBox = document.createElement('div');
                 // Asignamos una clase CSS dinámica según el estado de la mesa para darle color.
@@ -76,8 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tableGrid.appendChild(tableBox);
             });
         } catch (error) {
-            console.error("Error al cargar estado de mesas:", error);
-            tableGrid.innerHTML = '<p style="color: red;">Error al cargar las mesas.</p>';
+            console.error('Error al cargar estados de mesas:', error);
         }
     }
 
@@ -87,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAvailableTablesForForm() {
         const date = dateInput.value;
         const time = timeInput.value;
+
         // Limpiamos selecciones previas.
         tableSelectorContainer.innerHTML = '<span style="color: #999; font-size: 14px; align-self: center;">Seleccione fecha y hora...</span>';
         hiddenTableInputsContainer.innerHTML = '';
@@ -104,16 +113,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 tables.forEach(table => {
                     const optionDiv = document.createElement('div');
                     optionDiv.className = 'table-option';
-                    optionDiv.textContent = table.table_name;
                     optionDiv.dataset.tableId = table.id;
+                    
+                    // CORREGIDO: Eliminamos la referencia a 'capacity'
+                    optionDiv.innerHTML = `Mesa ${table.table_name}`;
+                    
                     tableSelectorContainer.appendChild(optionDiv);
                 });
             } else {
-                tableSelectorContainer.innerHTML = '<span style="color: #999;">No hay mesas disponibles.</span>';
+                tableSelectorContainer.innerHTML = '<span style="color: #c00; font-size: 14px; align-self: center;">No hay mesas disponibles para esta hora.</span>';
             }
         } catch (error) {
-            console.error("Error al buscar mesas para el formulario:", error);
-            tableSelectorContainer.innerHTML = '<p style="color: red;">Error al cargar mesas.</p>';
+            console.error('Error al cargar mesas disponibles:', error);
+            tableSelectorContainer.innerHTML = '<span style="color: #c00; font-size: 14px; align-self: center;">Error al cargar datos.</span>';
         }
     }
 
@@ -124,10 +136,19 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadReservations(date) {
         if (!date) return;
         try {
-            reservationsList.innerHTML = '<p>Cargando...</p>';
             const response = await fetch(`/KitchenLink/src/api/get_reservations.php?date=${date}`);
+            
+            // ************ CORRECCIÓN CLAVE ************
+            // 1. Verificamos si la respuesta HTTP fue exitosa (código 200).
+            if (!response.ok) {
+                // Si el servidor devolvió 404, 500, etc., lanzamos un error que el catch detectará.
+                throw new Error(`Error HTTP: ${response.status} al cargar reservaciones.`);
+            }
+            // ********************************************
+            
             const reservations = await response.json();
             reservationsList.innerHTML = '';
+            
             if (reservations.length > 0) {
                 // Por cada reservación, creamos una tarjeta HTML con sus datos y botones de acción.
                 reservations.forEach(res => {
@@ -135,31 +156,34 @@ document.addEventListener('DOMContentLoaded', () => {
                     card.className = 'reservation-card';
                     card.dataset.reservationId = res.id;
                     card.innerHTML = `
-                        <div class="reservation-summary">
-                            <div class="summary-info">
-                                <div class="customer-name">${res.customer_name}</div>
-                                <div class="details">${res.reservation_time.substring(0, 5)}h | ${res.number_of_people}p | ${res.table_names}</div>
-                            </div>
-                            <div class="reservation-actions">
-                                <button class="btn-confirm" title="Confirmar llegada"><i class="fas fa-check"></i></button>
-                                <button class="btn-cancel" title="Cancelar reservación"><i class="fas fa-times"></i></button>
-                            </div>
-                            <button class="details-toggle" title="Ver detalles"><i class="fas fa-chevron-down"></i></button>
+                        <div class="card-header">
+                            <span class="customer-name">${res.customer_name}</span>
+                            <span class="reservation-time">${res.reservation_time.substring(0, 5)}</span>
+                            <button class="details-toggle"><i class="fas fa-chevron-down"></i></button>
                         </div>
-                        <div class="reservation-details">
-                            <p><strong>Teléfono:</strong> ${res.customer_phone || 'No especificado'}</p>
-                            <p><strong>Solicitudes:</strong> ${res.special_requests || 'Ninguna'}</p>
-                            <p><strong>Registrado por:</strong> ${res.hostess_name}</p>
+                        <div class="card-status status-${res.status}">${res.status.toUpperCase()}</div>
+                        <div class="reservation-details" style="display: none;">
+                            <p><strong>Teléfono:</strong> ${res.customer_phone}</p>
+                            <p><strong>Personas:</strong> ${res.number_of_people}</p>
+                            <p><strong>Mesas:</strong> ${res.table_names}</p>
+                            ${res.special_requests ? `<p><strong>Solicitudes:</strong> ${res.special_requests}</p>` : ''}
                         </div>
+                        ${res.status === 'reservada' ? `
+                            <div class="card-actions">
+                                <button class="btn btn-sm btn-success btn-confirm">Confirmar</button>
+                                <button class="btn btn-sm btn-danger btn-cancel">Cancelar</button>
+                            </div>
+                        ` : ''}
                     `;
                     reservationsList.appendChild(card);
                 });
             } else {
-                reservationsList.innerHTML = '<p>No hay reservaciones para esta fecha.</p>';
+                reservationsList.innerHTML = '<p class="text-center">No hay reservaciones para esta fecha.</p>';
             }
         } catch (error) {
-            console.error("Error al cargar reservaciones:", error);
-            reservationsList.innerHTML = '<p style="color: red;">Error al cargar las reservaciones.</p>';
+            console.error('Error al cargar reservaciones:', error);
+            // El mensaje ahora será más útil, incluyendo el error de HTTP en la consola
+            reservationsList.innerHTML = '<p class="text-center text-danger">Error al cargar datos. Revisa la Consola (F12) para ver el error HTTP.</p>';
         }
     }
 
@@ -176,17 +200,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reservation_id: reservationId, status: status })
             });
+            
+            // VERIFICACIÓN CLAVE: Si hay un error HTTP aquí, no procedemos.
+            if (!response.ok) {
+                 throw new Error(`Error HTTP: ${response.status}`);
+            }
+
             const result = await response.json();
             if (result.success) {
-                alert(`Reservación movida al historial como: ${status}`);
+                alert(`Reservación ${status} con éxito.`);
                 return true;
             } else {
-                alert('Error desde el servidor: ' + result.message);
+                // Esto ocurre si el PHP devuelve {success: false, message: '...'}.
+                alert(`Error al ${status === 'completada' ? 'confirmar' : 'cancelar'}: ` + result.message);
                 return false;
             }
         } catch (error) {
-            console.error('Error de conexión al archivar:', error);
-            alert('Error de conexión. No se pudo completar la acción.');
+            // El error de conexión falso está siendo capturado aquí.
+            console.error('Error en la API de archivo:', error);
+            alert(`Error de conexión al procesar la reservación. El cambio PUEDE haberse realizado, pero revisa la consola (F12). Error: ${error.message}`);
             return false;
         }
     }
@@ -197,25 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const allowOnlyNumbers = (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); };
     numPersonasInput.addEventListener('input', allowOnlyNumbers);
     telClienteInput.addEventListener('input', allowOnlyNumbers);
-
-    // Listener para el nombre del cliente con la nueva validación.
-    nombreClienteInput.addEventListener('input', (e) => {
-        // 1. Reemplaza cualquier caracter que no sea una letra o un espacio.
-        e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-        // 2. Si el texto excede los 100 caracteres, lo corta.
-        if (e.target.value.length > 100) {
-            e.target.value = e.target.value.slice(0, 100);
-        }
-    });
-
-    const specialRequestsInput = reservaForm.querySelector('textarea[name="special_requests"]');
-    if (specialRequestsInput) {
-        specialRequestsInput.addEventListener('input', (e) => {
-            if (e.target.value.length > 500) {
-                e.target.value = e.target.value.slice(0, 500);
-            }
-        });
-    }
+    nombreClienteInput.addEventListener('input', (e) => { e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, ''); });
 
     // Límites de longitud para evitar entradas excesivas.
     telClienteInput.addEventListener('input', (e) => { if (e.target.value.length > 10) e.target.value = e.target.value.slice(0, 10); });
@@ -230,8 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.classList.contains('table-option')) {
             const tableButton = e.target;
             const tableId = tableButton.dataset.tableId;
-            tableButton.classList.toggle('selected'); // Cambia el estilo visual del botón.
 
+            tableButton.classList.toggle('selected'); // Cambia el estilo visual del botón.
+            
             // Si el botón ahora está seleccionado, crea un input oculto con su ID.
             if (tableButton.classList.contains('selected')) {
                 const hiddenInput = document.createElement('input');
@@ -240,7 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 hiddenInput.value = tableId;
                 hiddenInput.id = `table-input-${tableId}`;
                 hiddenTableInputsContainer.appendChild(hiddenInput);
-            } else { // Si se deselecciona, busca y elimina el input oculto correspondiente.
+            } else { 
+                // Si se deselecciona, busca y elimina el input oculto correspondiente.
                 const inputToRemove = document.getElementById(`table-input-${tableId}`);
                 if (inputToRemove) inputToRemove.remove();
             }
@@ -265,48 +281,97 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch('/KitchenLink/src/api/add_reservation.php', { method: 'POST', body: formData });
+            // VERIFICACIÓN CLAVE: Si hay un error HTTP aquí, no procedemos.
+            if (!response.ok) {
+                 throw new Error(`Error HTTP: ${response.status}`);
+            }
+
             const result = await response.json();
             if (result.success) {
                 alert('¡Reservación registrada con éxito!');
                 reservaForm.reset(); // Limpia el formulario.
                 hiddenTableInputsContainer.innerHTML = ''; // Limpia los inputs ocultos.
+                
                 // Recarga las vistas para reflejar la nueva reservación.
                 fetchAvailableTablesForForm();
                 loadReservations(viewDateInput.value);
             } else {
-                alert('Error al registrar: ' + result.message);
+                alert('Error al registrar reservación: ' + result.message);
             }
         } catch (error) {
-            console.error('Error al registrar la reservación:', error);
+            console.error('Error en el envío del formulario:', error);
+            alert('Error de conexión al registrar la reservación.');
         }
     });
 
     // Cuando el usuario cambia la fecha de visualización, se recarga la lista de reservaciones.
     viewDateInput.addEventListener('change', () => loadReservations(viewDateInput.value));
 
+    // Usamos el modo de captura para mayor robustez del clic en las mesas.
+    tableGrid.addEventListener('click', async (e) => {
+        const tableBox = e.target.closest('.table-box');
+
+        if (tableBox) {
+            const tableId = tableBox.dataset.tableId;
+            const tableNameElement = tableBox.querySelector('.table-name');
+
+            if (!tableNameElement) {
+                console.error("ERROR CRÍTICO: Elemento de nombre de mesa (.table-name) no encontrado.");
+                return;
+            }
+
+            const tableName = tableNameElement.textContent;
+
+            if (!confirm(`¿Desea cambiar el estado de la ${tableName}?`)) return;
+
+            try {
+                // Lógica para cambiar manualmente el estado de una mesa.
+                const response = await fetch('/KitchenLink/src/api/update_table_status.php', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ table_id: tableId }) 
+                });
+                
+                // VERIFICACIÓN CLAVE: Si hay un error HTTP aquí, no procedemos.
+                if (!response.ok) {
+                     throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const result = await response.json(); 
+                
+                if (result.success) {
+                    // Si la respuesta es JSON y es exitosa, recargamos.
+                    loadTableStatuses();
+                    fetchAvailableTablesForForm();
+                } else {
+                    alert("Error: " + result.message);
+                }
+            } catch (error) { 
+                console.error('Error al actualizar estado:', error);
+                alert("Error de conexión al actualizar el estado de la mesa. Revisa la Consola (F12) para detalles.");
+            }
+        }
+    }, true);
+
+
     /**
      * Listener global que maneja clics en elementos dinámicos (delegación de eventos).
-     * Esto es más eficiente que añadir un listener a cada botón o tarjeta individualmente.
+     * Solo maneja la lógica de tarjetas de reservación (detalles y botones de acción).
      */
     document.addEventListener('click', async (e) => {
-        // --- 1. Clic en una mesa de la cuadrícula de estado ---
-        if (e.target.closest('.table-box')) {
-            const tableBox = e.target.closest('.table-box');
-            // Lógica para cambiar manualmente el estado de una mesa.
-            // ... (código para actualizar estado de la mesa) ...
-        }
-
-        // --- 2. Clic en el botón para expandir/colapsar detalles de una reservación ---
+        
+        // --- 1. Clic en el botón para expandir/colapsar detalles de una reservación ---
         if (e.target.closest('.details-toggle')) {
             const card = e.target.closest('.reservation-card');
             const details = card.querySelector('.reservation-details');
             const icon = card.querySelector('.details-toggle i');
             const isVisible = details.style.display === 'block';
+
             details.style.display = isVisible ? 'none' : 'block'; // Muestra u oculta los detalles.
             icon.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up'; // Cambia el icono de la flecha.
         }
 
-        // --- 3. Clic en los botones de 'Confirmar' o 'Cancelar' de una reservación ---
+        // --- 2. Clic en los botones de 'Confirmar' o 'Cancelar' de una reservación ---
         const confirmButton = e.target.closest('.btn-confirm');
         const cancelButton = e.target.closest('.btn-cancel');
 
@@ -365,8 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchAvailableTablesForForm();
 
     // --- 5. TEMPORIZADOR AUTOMÁTICO DE LIMPIEZA ---
-    // Establece un intervalo que se ejecutará periódicamente en segundo plano.
     const cleanupInterval = 5 * 60 * 1000; // 5 minutos en milisegundos.
+    // Establece un intervalo que se ejecutará periódicamente en segundo plano.
     setInterval(async () => {
         try {
             console.log("Ejecutando limpieza automática de mesas... " + new Date().toLocaleTimeString());

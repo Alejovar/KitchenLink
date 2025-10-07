@@ -1,6 +1,3 @@
-¡Claro\! Este es bastante directo, así que aquí va:
-
-```php
 <?php
 // src/api/get_current_available_tables.php
 
@@ -34,4 +31,3 @@ try {
 // Cerramos la conexión. ¡Listo!
 $conn->close();
 ?>
-```

@@ -103,7 +103,7 @@ try {
     // Si el formato es inválido, esto lanzará una Excepción que será capturada por el bloque catch.
     $reservationDateTime = new DateTime($reservation_date . ' ' . $reservation_time, $timezone);
     $now = new DateTime('now', $timezone); // Se obtiene la fecha y hora actual en la misma zona horaria.
-    $rese El propórvationTime = $reservationDateTime->format('H:i:s');
+    $reservationTime = $reservationDateTime->format('H:i:s');
 
     // REGLA DE NEGOCIO 1: No se puede reservar en el pasado.
     if ($reservationDateTime < $now) {

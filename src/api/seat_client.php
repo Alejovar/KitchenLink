@@ -1,6 +1,3 @@
-¡Desde luego\! Aquí tienes el código con comentarios que explican el proceso.
-
-```php
 <?php
 // src/api/seat_client.php
 // Preparamos la respuesta en formato JSON.
@@ -89,4 +86,3 @@ try {
 // Cerramos la conexión.
 $conn->close();
 ?>
-```

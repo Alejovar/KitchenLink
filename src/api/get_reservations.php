@@ -12,8 +12,10 @@ $date = $_GET['date'] ?? date('Y-m-d');
 // de un día específico, incluyendo el nombre del hostess y una lista de todas las mesas asignadas.
 $sql = "SELECT
             r.id, r.customer_name, r.customer_phone, r.reservation_time,
-            r.number_of_people, r.special_requests, u.name AS hostess_name,
-            -- La magia está aquí: GROUP_CONCAT junta los nombres de todas las mesas de una reserva en un solo texto.
+            r.number_of_people, r.special_requests, 'reservada' AS status, u.name AS hostess_name,
+            -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            -- CORRECCIÓN: Generamos la columna 'status' con valor fijo 'reservada' 
+            -- para satisfacer la necesidad del JavaScript.
             GROUP_CONCAT(t.table_name ORDER BY t.table_name SEPARATOR ', ') AS table_names
         FROM reservations AS r
         -- Unimos las tablas para poder obtener los nombres en lugar de solo los IDs.
@@ -51,6 +53,6 @@ while($row = $result->fetch_assoc()) {
 // Devolvemos el array de reservaciones como JSON.
 echo json_encode($reservations);
 
-// Cerramos la conexión. ¡Nos vemos!
+// Cerramos la conexión. 
 $conn->close();
-?>
+// (Se omite el ?> de cierre como buena práctica en scripts de API)
