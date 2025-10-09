@@ -127,3 +127,20 @@ CREATE TABLE `waiting_list_history` (
   `status` ENUM('seated', 'cancelled') NOT NULL COMMENT 'Indica si el cliente fue sentado o canceló.',
   `tables_assigned` VARCHAR(255) DEFAULT NULL COMMENT 'Nombres de las mesas asignadas, separados por comas'
 );
+
+-- ========= TABLA DE MESAS PARA MESEROS =========
+CREATE TABLE restaurant_tables (
+    table_id INT PRIMARY KEY AUTO_INCREMENT, 
+    table_number INT NOT NULL,
+    assigned_server_id INT NOT NULL, 
+    client_count INT NOT NULL,
+    
+    -- Restricción de Unicidad Global
+    CONSTRAINT UK_TableNumber UNIQUE (table_number),
+    
+    -- Llave Foránea al Mesero
+    CONSTRAINT FK_ServerAssignment FOREIGN KEY (assigned_server_id) 
+        REFERENCES users(id)
+        ON DELETE RESTRICT 
+        ON UPDATE CASCADE
+);

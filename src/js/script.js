@@ -12,10 +12,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Verificamos que el formulario exista en la página antes de añadirle listeners.
   // Esto previene errores en otras páginas que no tengan este formulario.
-  if (loginForm) {
+if (loginForm) {
 
     // --- VALIDACIÓN EN TIEMPO REAL ---
     const userInput = document.getElementById("user");
+    const passwordInput = document.getElementById("password"); // <<< Obtenemos el campo de contraseña
 
     // Escuchamos el evento 'input', que se dispara cada vez que el usuario escribe o borra algo.
     userInput.addEventListener("input", () => {
@@ -29,6 +30,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Limpia el mensaje de error tan pronto como el usuario empieza a corregir el campo.
       loginError.textContent = "";
+    });
+
+    // Escuchamos el evento 'input' del campo de CONTRASEÑA.
+    passwordInput.addEventListener("input", () => {
+        // Limitamos la longitud a 12 caracteres.
+        if (passwordInput.value.length > 12) {
+            passwordInput.value = passwordInput.value.slice(0, 12);
+        }
+        
+        // Limpia el mensaje de error tan pronto como el usuario empieza a escribir.
+        loginError.textContent = "";
     });
     
     // Hacemos lo mismo para el campo de contraseña: si hay un error y el usuario empieza a escribir, lo borramos.

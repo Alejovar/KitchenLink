@@ -8,14 +8,10 @@ require __DIR__ . '/../php/db_connection.php';
 $date = $_GET['date'] ?? date('Y-m-d');
 
 // --- La Consulta Principal ---
-// Este query es el corazón del script. Su objetivo es traer toda la info de las reservaciones
-// de un día específico, incluyendo el nombre del hostess y una lista de todas las mesas asignadas.
 $sql = "SELECT
             r.id, r.customer_name, r.customer_phone, r.reservation_time,
             r.number_of_people, r.special_requests, 'reservada' AS status, u.name AS hostess_name,
-            -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            -- CORRECCIÓN: Generamos la columna 'status' con valor fijo 'reservada' 
-            -- para satisfacer la necesidad del JavaScript.
+            -- Asumimos que todas las reservas en esta tabla están 'reservada'.
             GROUP_CONCAT(t.table_name ORDER BY t.table_name SEPARATOR ', ') AS table_names
         FROM reservations AS r
         -- Unimos las tablas para poder obtener los nombres en lugar de solo los IDs.
@@ -55,4 +51,3 @@ echo json_encode($reservations);
 
 // Cerramos la conexión. 
 $conn->close();
-// (Se omite el ?> de cierre como buena práctica en scripts de API)

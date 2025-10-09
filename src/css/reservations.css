@@ -345,3 +345,87 @@ select[multiple] option {
     border-color: #ef9a9a;
 }
 
+/* 1. Base de la Tarjeta y Encabezado */
+.reservation-card {
+    position: relative; /* CRÍTICO: Necesario para que .card-actions use position: absolute; */
+    /* Otros estilos de la tarjeta... */
+}
+
+/* 2. Estilo del Contenedor de Acciones (Botones de Ícono) */
+.btn-icon {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    margin-left: 5px;
+    border-radius: 50%;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    /* Estilos para quitar el fondo azul y usar los colores de ícono */
+    background-color: transparent !important; 
+    border: 2px solid transparent; 
+    box-shadow: none !important; 
+}
+
+/* 3. Definición de los colores de los iconos */
+.btn-icon.btn-success { color: #28a745; } /* Verde */
+.btn-icon.btn-danger { color: #dc3545; } /* Rojo */
+
+/* 4. POSICIONAMIENTO: Mueve los botones a la esquina superior derecha */
+.reservation-card .card-actions {
+    position: absolute;
+    top: 10px;    /* Ajusta la distancia desde el borde superior */
+    right: 15px;  /* Pega a la orilla derecha */
+    display: flex;
+    align-items: center;
+    z-index: 10; /* Asegura que estén sobre otros elementos si hay superposición */
+}
+
+/* 5. Ajuste del Encabezado para evitar que el texto se superponga */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Deja un margen derecho para que el texto (Nombre, Hora) no toque los botones de acción */
+    padding-right: 90px; 
+}
+
+
+/* --- Estilos para el Botón de Edición (Lápiz) --- */
+
+.btn-edit-reservation {
+    /* CRÍTICO: Asegura que el botón se vea y tenga el mismo tamaño que la palomita y la X */
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    margin-left: 5px;
+    border-radius: 50%; /* Lo hace redondo */
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    /* Estilo de apariencia */
+    background: none;
+    border: 1px solid #ffd000; /* Borde sutil */
+    color: var(--color-primary); /* Color púrpura/azul primario para destacar la edición */
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+
+
+.btn-edit-reservation:hover {
+    background-color: var(--color-active-bg); /* Fondo suave al pasar el mouse */
+}
+
+/* Aseguramos que los botones de acción se muestren como bloques */
+.card-actions, .card-actions-edit {
+    display: flex; /* Para que los ítems dentro sigan en línea */
+    justify-content: flex-end; /* Alinea los botones a la derecha */
+    margin-top: 10px; /* Espacio entre los grupos de botones */
+}
