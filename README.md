@@ -99,9 +99,9 @@ Para registrar usuarios por primera vez (modo despliegue):
 - 🔑 Se requiere la **contraseña de gerente** para crear nuevos usuarios.
 
 ---
-
+<p align="center">
 ![Register.png](/documentation/interfaces/register.png)
-
+</p>
 ---
 
 ## 📚 Documentación del proyecto
@@ -120,6 +120,6 @@ Si deseas probar el sistema, solicitar acceso o recibir ayuda para desplegarlo:
 📩 **DM a [@imalejovar](https://www.instagram.com/imalejovar)** en Instagram.
 
 ---
-
+<p align="center">
 ![logo.png](/documentation/images/logo.png)
-
+</p>
