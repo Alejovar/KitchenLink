@@ -8,7 +8,6 @@ Actualmente el sistema **ya está desplegado y en funcionamiento** en la siguien
 
 > Para acceder, puedes crear un usuario desde la sección **“Registrar”**.  
 > ⚠️ **Nota:** Para registrar un nuevo usuario, se requiere la **contraseña de un gerente**.  
-> Si deseas una cuenta de prueba o acceso de demostración, mándame DM en **Instagram: [@imalejovar](https://www.instagram.com/imalejovar)**.
 
 ---
 
