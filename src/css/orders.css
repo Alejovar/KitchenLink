@@ -91,11 +91,11 @@ body {
 /* ------------------- Sección de Usuario y Logout (CORRECCIONES FINALES) ------------------- */
 .user-info { 
     /* Esta es la clase que envuelve todo (avatar/texto y botón) */
-    padding: 15px 20px 20px;
+    padding: 60px 0px 0px 0px;
     display: flex; 
     flex-direction: column; 
     align-items: flex-start; 
-    padding-top: 20px;
+    padding-top: 0px;
     
     /* CORRECCIÓN 1: ELIMINAR LA LÍNEA GRIS SUPERIOR */
     border-top: none; 
@@ -104,16 +104,16 @@ body {
     /* Contenedor del avatar y el texto (Alineación horizontal) */
     display: flex;
     align-items: center; 
-    gap: 10px; /* Espacio entre el icono y el texto */
-    margin-bottom: 10px; /* Espacio entre el texto y el botón de logout */
-    margin: 5px 0 0; /* Espacio a la derecha del ícono */
+    gap: 5x; /* Espacio entre el icono y el texto */
+    margin-bottom: 5px; /* Espacio entre el texto y el botón de logout */
+    margin: 2px 0 0; /* Espacio a la derecha del ícono */
 
 }
 
 /* 1. ESTILO Y TAMAÑO DEL ICONO DE USUARIO */
 .user-details i {
     /* CORRECCIÓN 2: REDUCIR TAMAÑO DEL ICONO DE USUARIO (De 1.8rem a 1.5rem o menos) */
-    font-size: 1.5rem; 
+    font-size: 0.9em; 
     color: var(--color-text-dark);
 }
 
@@ -127,31 +127,27 @@ body {
 /* 3. ESTILO DEL NOMBRE */
 .user-name-text { 
     /* CORRECCIÓN 3: Nombre en Negritas (Aumentar el peso de la fuente) */
-    font-size: 0.95rem;
-    font-weight: 700; /* Usamos 700 para negritas fuertes */
+    font-size: 14px;
+    font-weight: bold; /* Usamos 700 para negritas fuertes */
     color: var(--color-text-dark);
-    line-height: 1.2; 
 }
 
 /* 4. ESTILO DE LA SESIÓN ACTIVA (Gris más pequeño) */
 .session-status-text {
-    font-size: 0.8rem;
+    font-size: 0.9em;
     color: var(--color-text-light); /* Gris suave */
-    line-height: 1.2;
 }
 
 /* BOTÓN DE LOGOUT (PÍLDORA - REGLAS LITERALES DE TU DISEÑO) */
 .logout-btn {
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    
+    display: inline-block;  
     /* PROPIEDADES DE PÍLDORA Y COLOR */
     background-color: var(--color-gray-soft); /* f1f3f4 */
     color: var(--color-alert); /* c62828 */
-    padding: 4px 10px;
-    font-weight: 500;
-    font-size: 11px;
+    margin-top: 10px;
+    padding: 6px 12px;
+    font-weight: bold;
+    font-size: 12px;
     text-decoration: none;
     border: 1px solid #ddd;
     border-radius: 16px; /* Forma de píldora */
@@ -163,10 +159,7 @@ body {
     border-color: #ef9a9a;
 }
 
-.logout-btn i {
-    font-size: 1rem;
-    margin: 5px 0 0; /* Espacio a la derecha del ícono */
-}
+
 
 /* ------------------- Contenido Principal (MAIN) ------------------- */
 .content {
