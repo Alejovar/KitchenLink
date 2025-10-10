@@ -100,8 +100,7 @@ Para registrar usuarios por primera vez (modo despliegue):
 
 ---
 <p align="center">
-![Register.png](/documentation/interfaces/register.png)
-</p>
+  <img src="documentation/interfaces/register.png" alt="Pantalla de registro" width="600"/></p>
 ---
 
 ## 📚 Documentación del proyecto
@@ -121,5 +120,5 @@ Si deseas probar el sistema, solicitar acceso o recibir ayuda para desplegarlo:
 
 ---
 <p align="center">
-![logo.png](/documentation/images/logo.png)
-</p>
+  <img src="documentation/images/logo.png" alt="Logo KitchenLink" width="600"/>
+  </p>
