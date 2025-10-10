@@ -1,84 +1,126 @@
 # KitchenLink 🍽️
 
-**KitchenLink** es un sistema de gestión web para restaurantes, diseñado para optimizar el manejo de reservaciones y la administración de listas de espera en tiempo real.  
-Actualmente solo se han desarrollado las primeras funciones, pero se planea que en los próximos meses se incorporen las interfaces restantes.
+**KitchenLink** es un sistema web para la gestión integral de restaurantes, diseñado para optimizar el manejo de **reservaciones**, **listas de espera**, **mesas** y **órdenes** en tiempo real.  
 
-La aplicación permite al personal de recepción (hostess) tener un control visual e intuitivo del estado de las mesas, agilizando el servicio y mejorando la experiencia de los clientes.
+Actualmente el sistema **ya está desplegado y en funcionamiento** en la siguiente dirección:
+
+🔗 [KitchenLink — Sistema en línea](https://kitchenlink.host.adellya.my.id/KitchenLink/login.html)
+
+> Para acceder, puedes crear un usuario desde la sección **“Registrar”**.  
+> ⚠️ **Nota:** Para registrar un nuevo usuario, se requiere la **contraseña de un gerente**.  
+> Si deseas una cuenta de prueba o acceso de demostración, mándame DM en **Instagram: [@imalejovar](https://www.instagram.com/imalejovar)**.
 
 ---
 
 ## ✨ Características principales
 
 ### Gestión de reservaciones
--   📅 **Creación de reservaciones:** Registra nuevas reservaciones indicando fecha, hora, número de personas, nombre del cliente y solicitudes especiales.
--   🪑 **Asignación de mesas:** Selecciona visualmente las mesas disponibles para una reservación.
--   👀 **Visualización en tiempo real:** Muestra el estado actual de todas las mesas (Disponible, Ocupado, Reservado).
--   📋 **Lista de reservaciones del día:** Consulta todas las reservaciones programadas para una fecha específica.
--   ✅ **Gestión de historial:** Confirma llegadas o cancela reservaciones, enviando los registros al historial para futuros reportes.
+- 📅 **Creación de reservaciones:** Registra nuevas reservaciones con fecha, hora, número de personas y nombre del cliente.  
+- 🪑 **Asignación visual de mesas:** Selecciona mesas disponibles desde una interfaz interactiva.  
+- 👀 **Estado en tiempo real:** Visualiza las mesas disponibles, ocupadas o reservadas.  
+- 📋 **Listado del día:** Consulta todas las reservaciones activas según la fecha.  
+- ✅ **Historial:** Guarda reservaciones confirmadas o canceladas para consulta posterior.
 
 ### Gestión de lista de espera
--   👥 **Lista de espera activa:** Añade clientes sin reservación a una lista de espera dinámica.
--   ⏱️ **Tiempo de espera estimado:** Calcula y muestra un tiempo de espera aproximado según la cantidad de grupos en lista.
--   🪑 **Asignación de mesas a clientes en espera:** Permite “sentar” a clientes seleccionando mesas disponibles; el estado se actualiza automáticamente y el cliente pasa al historial.
--   ❌ **Registro de cancelaciones:** Envía al historial a clientes que deciden no esperar.
+- 👥 **Lista dinámica:** Añade clientes sin reservación a una lista activa.  
+- ⏱️ **Tiempos estimados:** Calcula automáticamente los tiempos de espera.  
+- 🪑 **Asignación directa:** Permite sentar clientes de la lista a mesas disponibles.  
+- ❌ **Cancelaciones:** Envía al historial a los clientes que decidan no esperar.
 
-### Administración
--   🔒 **Sistema de autenticación:** Inicio de sesión seguro para el personal autorizado (contraseñas encriptadas con `password_hash()` en PHP).
--   🛡️ **Validación de datos:** Reglas estrictas en la interfaz y en el servidor para garantizar la integridad y el formato correcto de la información (nombres, teléfonos, número de personas, horarios, etc.).
+### Administración y autenticación
+- 🔒 **Inicio de sesión seguro:** Autenticación mediante contraseñas encriptadas con `password_hash()` en PHP.  
+- 🧩 **Validación estricta:** Control del formato de datos (nombres, teléfonos, horarios, etc.).  
+- 👨‍💼 **Roles:** Diferenciación entre **usuarios**, con permisos independientes.
+
+---
+
+## 🍽️ Orders — Interfaz de Mesero (YA DISPONIBLE / En desarrollo)
+
+La interfaz **Orders** permite a los **meseros** gestionar sus mesas y órdenes activas.  
+Actualmente ya se encuentra **disponible en la versión desplegada** y continuará en desarrollo con nuevas funciones.
+
+### Funcionalidades
+- 🧾 **Gestión de mesas:** Cada mesero puede crear, editar y administrar las mesas que le correspondan.  
+- 👥 **Sesiones múltiples:** Permite que varios meseros inicien sesión simultáneamente sin interferir entre sí.  
+- 🔀 **Vista personalizada:** Aunque la interfaz visual es idéntica para todos, cada mesero **solo ve las mesas que él mismo creó**.  
+- 💬 **Sincronización activa:** Cada acción (crear, ocupar o liberar una mesa) se refleja inmediatamente en su sesión.  
+- 🚧 **Estado actual:** Implementada y funcionando, con futuras actualizaciones planeadas para gestión de pedidos y seguimiento de órdenes.
 
 ---
 
 ## 🛠️ Tecnologías utilizadas
 
--   **Frontend:** `HTML5`, `CSS3`, `JavaScript (Vanilla)`
--   **Backend:** `PHP`
--   **Base de datos:** `MySQL`
--   **Entorno de servidor local:** `XAMPP` (Apache + MySQL + PHP)
+- **Frontend:** `HTML5`, `CSS3`, `JavaScript (Vanilla)`  
+- **Backend:** `PHP`  
+- **Base de datos:** `MySQL`  
+- **Servidor requerido:** Hosting o servidor con soporte para **PHP + MySQL**  
+- **Compatibilidad:** Funciona en cualquier entorno con Apache, Nginx o similar.
 
 ---
 
-## 🚀 Instalación en local
+## 🚀 Despliegue en servidor
 
-Sigue estos pasos para ejecutar el proyecto en tu equipo.
+Si deseas desplegar **KitchenLink** por tu cuenta, sigue estos pasos:
 
-### Prerrequisitos
--   Tener instalado un entorno como **XAMPP** o WAMP (Apache, MySQL y PHP).
--   Un navegador moderno (Chrome, Firefox, etc.).
+### 1. Requisitos
+- Servidor web con soporte para:  
+  - **PHP 7.4+ o superior**  
+  - **MySQL 5.7+ o MariaDB**  
+  - Archivos estáticos (`HTML`, `CSS`, `JS`)  
+- Acceso a **phpMyAdmin** o consola MySQL para importar la base de datos.
 
-### 1. Configuración de la base de datos
-1.  Inicia **Apache** y **MySQL** desde el panel de control de XAMPP.
-2.  Abre `http://localhost/phpmyadmin/`.
-3.  Crea una base de datos llamada `kitchenlink_db`.
-4.  Selecciónala y ve a la pestaña **SQL**.
-5.  Copia y pega el código SQL del archivo `documentation/tables.txt`. Incluye las tablas y algunos registros iniciales.  
-   *(Puedes modificar los registros siempre que respetes la estructura de las tablas).*
+> ⚠️ **Importante:** KitchenLink **no se ejecuta en local** (XAMPP/WAMP) por defecto; requiere un **servidor web real o hosting** compatible con PHP y MySQL.
 
-### 2. Configuración de los archivos del proyecto
-1.  **Clonar repositorio:** Descarga o clona el proyecto en tu computadora.
-2.  **Ubicar el proyecto:** Mueve la carpeta `KitchenLink` al directorio `htdocs` de XAMPP.  
-    -   Windows: `C:/xampp/htdocs/`  
-    -   Linux: `/opt/lampp/htdocs/`
-3.  **Configurar conexión a la base de datos:** Edita `KitchenLink/src/php/db_connection.php`.
-4.  **Ajustar credenciales:** Verifica usuario, contraseña y nombre de la base de datos (se recomienda usar `KitchenLink`).
+### 2. Configuración de la base de datos
+1. Crea una base de datos llamada `kitchenlink_db`.  
+2. Importa el contenido del archivo `documentation/tables.txt` (estructura y datos base).
 
-### 3. Ejecutar
-1.  Abre tu navegador.
-2.  Accede a: `http://localhost/KitchenLink/login.html`
+### 3. Configuración del proyecto
+1. Sube la carpeta `KitchenLink` al directorio público de tu hosting (`public_html`, `htdocs`, etc.).  
+2. Edita `KitchenLink/src/php/db_connection.php` con tus credenciales MySQL (usuario, contraseña y nombre de la BD).  
+3. Accede desde tu navegador con la URL de tu dominio:  
+[https://tusitio.com/KitchenLink/login.html](https://tusitio.com/KitchenLink/login.html)
 
 ---
 
-### Notas importantes
-1. **Creación de usuarios iniciales:**  
-   Para registrar un usuario, primero genera un hash de contraseña:  
-   - Edita `KitchenLink/src/php/generar_hash.php` con la contraseña deseada.  
-   - Ejecuta en el navegador: `http://localhost/KitchenLink/src/php/generar_hash.php`  
-   - Copia el hash generado e insértalo manualmente en la base de datos junto con un nombre de usuario.
-   
-2. **Registro de nuevos usuarios:**  
-   También puedes acceder a: `http://localhost/KitchenLink/register.html` (actualmente oculto).  
-   Ingresa nombre completo, usuario, contraseña y rol.  
-   El sistema encripta la contraseña automáticamente al guardar.
+## 📋 Notas importantes
+
+### Creación de usuarios iniciales
+Para registrar usuarios por primera vez (modo despliegue):  
+1. Edita `KitchenLink/src/php/generar_hash.php` con la contraseña deseada.  
+2. Ejecuta el archivo desde el navegador:  
+[https://tusitio.com/KitchenLink/src/php/generar_hash.php](https://tusitio.com/KitchenLink/src/php/generar_hash.php)  
+3. Copia el hash generado e insértalo manualmente en la base de datos junto con un nombre de usuario y rol.
+
+### Registro de nuevos usuarios
+- Página de registro:  
+[https://tusitio.com/KitchenLink/register.html](https://tusitio.com/KitchenLink/register.html)  
+- Ingresa nombre completo, usuario, contraseña y rol.  
+- El sistema encripta la contraseña automáticamente.  
+- 🔑 Se requiere la **contraseña de gerente** para crear nuevos usuarios.
 
 ---
 
-![Register.png](/documentation/images/register.png)
+![Register.png](/documentation/interfaces/register.png)
+
+---
+
+## 📚 Documentación del proyecto
+
+Toda la documentación técnica, manuales, diagramas y archivos complementarios se encuentran disponibles en la carpeta:  
+
+`/documentation/docs/`  
+
+Ahí se incluyen los archivos PDF correspondientes al desarrollo, configuración, estructura de la base de datos y guías de usuario. La documentación se irá ampliando conforme avanza el proyecto.
+
+---
+
+## 💬 Contacto y soporte
+
+Si deseas probar el sistema, solicitar acceso o recibir ayuda para desplegarlo:  
+📩 **DM a [@imalejovar](https://www.instagram.com/imalejovar)** en Instagram.
+
+---
+
+![logo.png](/documentation/images/logo.png)
+
