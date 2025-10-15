@@ -13,4 +13,7 @@ $conn = new mysqli($servername, $username_db, $password_db, $dbname);
 if ($conn->connect_error) {
     die("Error de conexión a la base de datos: " . $conn->connect_error);
 }
+
+// --- Forzar UTF-8 para que json_encode funcione correctamente ---
+$conn->set_charset("utf8mb4");
 ?>

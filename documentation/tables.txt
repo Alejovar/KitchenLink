@@ -144,3 +144,234 @@ CREATE TABLE restaurant_tables (
         ON DELETE RESTRICT 
         ON UPDATE CASCADE
 );
+
+
+-- ######################################################################
+-- # 2. ESTRUCTURA DE MENÚ DINÁMICO Y MODIFICADORES
+-- ######################################################################
+
+-- 2.1. Tabla de Categorías del Menú
+CREATE TABLE IF NOT EXISTS menu_categories (
+    category_id INT NOT NULL AUTO_INCREMENT,
+    category_name VARCHAR(100) NOT NULL,
+    display_order INT NOT NULL DEFAULT 0,
+    
+    -- CORREGIDO: Declaramos PK una sola vez con CONSTRAINT
+    CONSTRAINT PK_MenuCategory PRIMARY KEY (category_id), 
+    CONSTRAINT UK_CategoryName UNIQUE (category_name)
+);
+
+-- 2.2. Tabla de Grupos de Modificadores
+CREATE TABLE IF NOT EXISTS modifier_groups (
+    group_id INT NOT NULL AUTO_INCREMENT,
+    group_name VARCHAR(100) NOT NULL,
+    selection_type VARCHAR(20) DEFAULT 'SINGLE',
+    
+    CONSTRAINT PK_ModifierGroup PRIMARY KEY (group_id)
+);
+
+-- 2.3. Tabla de Opciones de Modificadores
+CREATE TABLE IF NOT EXISTS modifiers (
+    modifier_id INT NOT NULL AUTO_INCREMENT,
+    group_id INT NOT NULL,
+    modifier_name VARCHAR(100) NOT NULL,
+    modifier_price DECIMAL(10, 2) DEFAULT 0.00,
+    
+    CONSTRAINT PK_ModifierOption PRIMARY KEY (modifier_id),
+    CONSTRAINT FK_OptionGroup FOREIGN KEY (group_id) REFERENCES modifier_groups(group_id)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- 2.4. Tabla de Productos (Catálogo)
+CREATE TABLE IF NOT EXISTS products (
+    product_id INT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    category_id INT NOT NULL,
+    is_available BOOLEAN DEFAULT TRUE,
+    modifier_group_id INT NULL,
+    
+    CONSTRAINT PK_Product PRIMARY KEY (product_id),
+    CONSTRAINT FK_ProductCategory FOREIGN KEY (category_id) REFERENCES menu_categories(category_id)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT FK_ProductModifierGroup FOREIGN KEY (modifier_group_id) REFERENCES modifier_groups(group_id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- ######################################################################
+-- # 3. ESTRUCTURA DE ÓRDENES Y DETALLES
+-- ######################################################################
+
+-- 3.1. Tabla de Órdenes (Comandas)
+CREATE TABLE IF NOT EXISTS orders (
+    order_id INT NOT NULL AUTO_INCREMENT,
+    table_id INT NOT NULL,
+    server_id INT NOT NULL, 
+    order_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING', 
+    
+    CONSTRAINT PK_Order PRIMARY KEY (order_id),
+    CONSTRAINT FK_OrderTable FOREIGN KEY (table_id) REFERENCES restaurant_tables(table_id)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT FK_OrderServer FOREIGN KEY (server_id) REFERENCES users(id)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- 3.2. Tabla de Detalles de la Orden (Ítems y Modificadores)
+CREATE TABLE IF NOT EXISTS order_details (
+    detail_id INT NOT NULL AUTO_INCREMENT,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    price_at_order DECIMAL(10, 2) NOT NULL,
+    special_notes TEXT,
+    modifier_id INT NULL, 
+
+    CONSTRAINT PK_OrderDetail PRIMARY KEY (detail_id),
+    CONSTRAINT FK_DetailOrder FOREIGN KEY (order_id) REFERENCES orders(order_id)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT FK_DetailProduct FOREIGN KEY (product_id) REFERENCES products(product_id)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT FK_DetailModifier FOREIGN KEY (modifier_id) REFERENCES modifiers(modifier_id)
+        ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- ######################################################################
+-- # 4. INSERCIÓN DE DATOS INICIALES (MENÚ COMPLETO)
+-- ######################################################################
+
+-- 4.1. Roles
+INSERT INTO roles (id, role_name) VALUES
+(1, 'Administrador'), (2, 'Mesero'), (3, 'Cocinero')
+ON DUPLICATE KEY UPDATE role_name=VALUES(role_name);
+
+-- 4.2. Grupos de Modificadores (Asumidos IDs 1, 2, 3)
+INSERT INTO modifier_groups (group_id, group_name) VALUES
+(1, 'Guiso a Elegir'), (2, 'Temperatura'), (3, 'Sabor Bebida Fría')
+ON DUPLICATE KEY UPDATE group_name=VALUES(group_name);
+
+-- 4.3. Categorías
+INSERT INTO menu_categories (category_id, category_name, display_order) VALUES
+(1, 'Chilaquiles', 10), (2, 'Otros Productos', 20), (3, 'Muuk Fortaleza del dia', 30),
+(4, 'La Musa Mestiza', 40), (5, 'Keto', 50), (6, 'Menu de ninos', 60),
+(7, 'Sorbitos de amor', 70), (8, 'Sorbitos especiales', 80), (9, 'Amanecer Detox', 90),
+(10, 'Cheers', 100), (11, 'Amanecer frio', 95)
+ON DUPLICATE KEY UPDATE category_name=VALUES(category_name);
+
+-- TRUNCATE TABLE products; -- (Ejecutar si es necesario para reiniciar la tabla)
+
+-- IDs de Modificadores: 1: Guiso, 2: Temperatura, 3: Sabor
+-- IDs de Categoría: 1:Chilaquiles, 4:Musa Mestiza, 7:Sorbitos Amor, 10:Cheers, etc.
+
+INSERT INTO products (name, price, category_id, modifier_group_id) VALUES
+-- 1. Chilaquiles (ID 1): NO REQUIERE MODIFICADOR
+('Mi amor bonito', 228.00, 1, NULL), 
+('Nativos', 219.00, 1, NULL), 
+('Dona susana', 216.00, 1, NULL),
+('Nene', 216.00, 1, NULL), 
+('La Chef', 219.00, 1, NULL), 
+('Mosqueteras', 228.00, 1, NULL),
+('Levanta muertos', 223.00, 1, NULL), 
+('Pa Que Amarre', 238.00, 1, NULL),
+
+-- 2. Otros Productos (ID 2): NO REQUIERE MODIFICADOR
+('Ingrediente extra', 44.00, 2, NULL), 
+('Tortillas de harina', 0.00, 2, NULL),
+('Tortillas de maiz', 0.00, 2, NULL), 
+('Tortillas de Nixtamal azul', 44.00, 2, NULL),
+('La reliquia', 540.00, 2, NULL),
+
+-- 3. Muuk Fortaleza del dia (ID 3): NO REQUIERE MODIFICADOR
+('Surenos', 223.00, 3, NULL), 
+('Montados', 228.00, 3, NULL), 
+('Montados nativos', 228.00, 3, NULL),
+('Montados levantamuertos', 228.00, 3, NULL), 
+('Madrileno', 219.00, 3, NULL), 
+('A la mexicana', 216.00, 3, NULL),
+('Rebeldia', 228.00, 3, NULL),
+
+-- 4. La Musa Mestiza (ID 4): REQUIERE GUISO (ID 1)
+('Mexico lindo', 116.00, 4, 1), 
+('La regia', 116.00, 4, 1), 
+
+-- 5. Keto (ID 5): NO REQUIERE MODIFICADOR
+('MUCHOQUESO', 216.00, 5, NULL), 
+('Primera Dama', 239.00, 5, NULL), 
+('La Notario', 228.00, 5, NULL),
+('El desayuo del Sr. Viktor', 239.00, 5, NULL), 
+('Toast Mestizo', 226.00, 5, NULL), 
+('Retono de amor', 216.00, 5, NULL),
+('Sarape de Amor', 0.00, 5, NULL), 
+('Mi saltillo', 216.00, 5, NULL), 
+('Nopales', 216.00, 5, NULL),
+
+-- 6. Menu de ninos (ID 6): NO REQUIERE MODIFICADOR
+('Mi abuelita', 128.00, 6, NULL), 
+('Surenito', 118.00, 6, NULL), 
+('Molletin', 109.00, 6, NULL),
+
+-- 7. Sorbitos de amor (ID 7): Chocomilk requiere Temperatura (ID 2)
+('Tollimare', 118.00, 7, NULL), 
+('El conta', 119.00, 7, NULL), 
+('Capuccino cabrito', 124.00, 7, NULL),
+('Olla Mestiza', 74.00, 7, NULL), 
+('Tierra Mestiza', 77.00, 7, NULL), 
+('Americano Mosere', 71.00, 7, NULL),
+('Americano', 87.00, 7, NULL), 
+('Chocomilk', 124.00, 7, 2), -- <--- REQUIERE TEMPERATURA (ID 2)
+
+-- 8. Sorbitos especiales (ID 8): NO REQUIERE MODIFICADOR
+('Chocoavena', 124.00, 8, NULL), 
+('Jamaica Guayaba', 112.00, 8, NULL), 
+('Limonada Pink', 119.00, 8, NULL), 
+('Limonada', 117.00, 8, NULL), 
+('Limonada Mineral', 124.00, 8, NULL), 
+('Naranjada', 117.00, 8, NULL),
+('Naranjada Mineral', 124.00, 8, NULL), 
+('Agua embotellada', 39.00, 8, NULL), 
+('Refresco', 64.00, 8, NULL),
+
+-- 9. Amanecer Detox (ID 9): NO REQUIERE MODIFICADOR
+('Verde despertar', 124.00, 9, NULL), 
+('Naranja', 87.00, 9, NULL),
+
+-- 10. Amanecer frio (ID 10, Asumimos que esta categoría tiene ID 10)
+('Iced Latte', 134.00, 11, 3), -- <--- REQUIERE SABOR (ID 3)
+('Iced Capuccino', 124.00, 11, NULL), 
+('Cafe frio', 124.00, 11, NULL),
+
+-- 11. Cheers (ID 10): Mimosas NO REQUIERE MODIFICADOR
+('Mimosas', 184.00, 10, NULL), 
+('Mixologia', 224.00, 10, NULL),
+('Tisanas mestizas', 124.00, 10, NULL), 
+('Carrito Mimosas', 920.00, 10, NULL)
+
+-- Usar ON DUPLICATE KEY UPDATE si es una actualización de datos
+ON DUPLICATE KEY UPDATE 
+    price=VALUES(price), category_id=VALUES(category_id), modifier_group_id=VALUES(modifier_group_id);
+
+
+
+-- Modifiers 
+
+-- 2. INSERCIÓN COMPLETA DE MODIFICADORES
+
+INSERT INTO modifiers (group_id, modifier_name, modifier_price) VALUES
+-- Grupo 1: Guisos a Elegir (Para La Regia, Mexico Lindo, Chilaquiles, Muuk)
+(1, 'Chicharron', 0.00),
+(1, 'Huevo en salsa', 0.00),
+(1, 'Picadillo', 0.00),
+(1, 'Queso en salsa', 0.00),
+(1, 'Nopalitos', 0.00),
+(1, 'Rajas poblanas', 0.00),
+(1, 'Papa con chorizo', 0.00),
+(1, 'Sin guiso', 0.00),
+
+-- Grupo 2: Temperatura (Para Chocomilk, Sorbitos de amor)
+(2, 'Caliente', 0.00),
+(2, 'Frío', 0.00),
+
+-- Grupo 3: Sabores de Bebida Fría (Para Iced Latte, Mimosas)
+(3, 'Vainilla', 0.00),
+(3, 'Caramelo', 0.00),
+(3, 'Chocolate', 0.00);

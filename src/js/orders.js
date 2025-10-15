@@ -7,7 +7,7 @@ const API_ROUTES = {
     CREATE_TABLE: '/KitchenLink/src/api/orders/create_table.php'
 };
 
-// Referencias del DOM
+// Referencias del DOM (Se asumen que existen)
 const newTableForm = document.getElementById('newTableForm');
 const tableNumberInput = document.getElementById('mesaNumber');
 const tableNumberError = document.getElementById('mesaNumberError');
@@ -18,7 +18,7 @@ const tableGridContainer = document.getElementById('tableGridContainer');
 const mainContent = document.querySelector('main');
 
 
-// --- 1. Lógica de Control de Mesas y Botones (Se mantienen) ---
+// --- 1. Lógica de Control de Mesas y Botones ---
 
 function updateControlButtons() {
     const shouldEnable = selectedTable !== null;
@@ -44,6 +44,9 @@ function handleTableClick(clickedTable) {
     updateControlButtons();
 }
 
+/**
+ * Crea y añade una nueva tarjeta de mesa al DOM (SIN listener de click aquí).
+ */
 function createTableCard(number) {
     const newCard = document.createElement('div');
     newCard.classList.add('table-card', 'active');
@@ -54,15 +57,23 @@ function createTableCard(number) {
         <span>${number}</span>
     `;
     
-    newCard.addEventListener('click', () => {
-        handleTableClick(newCard);
-    });
+    // CORRECCIÓN CLAVE: Eliminamos el newCard.addEventListener aquí.
     
     tableGridContainer.appendChild(newCard); 
 }
 
+/**
+ * Función que adjunta el listener de click a todas las tarjetas de mesa.
+ */
+function initializeTableListeners() {
+    const tableCards = document.querySelectorAll('.table-card');
+    tableCards.forEach(card => {
+        card.addEventListener('click', () => { handleTableClick(card); });
+    });
+}
 
-// --- 2. Lógica de Carga Inicial (loadTables se mantiene) ---
+
+// --- 2. Lógica de Carga Inicial (loadTables) ---
 
 function loadTables() {
     fetch(API_ROUTES.GET_TABLES)
@@ -83,10 +94,8 @@ function loadTables() {
             tableGridContainer.innerHTML = '<p style="padding: 20px;">No tienes mesas asignadas. Usa el botón "+" para crear una nueva mesa.</p>';
         }
         
-        const tableCards = document.querySelectorAll('.table-card');
-        tableCards.forEach(card => {
-            card.addEventListener('click', () => { handleTableClick(card); });
-        });
+        // CRÍTICO: LLAMAR A LA FUNCIÓN DE ENLACE DESPUÉS DE DIBUJAR LAS MESAS
+        initializeTableListeners(); 
     })
     .catch(error => {
         console.error('Error al cargar mesas:', error);
@@ -156,7 +165,9 @@ function handleSubmitForm(e) {
     })
     .then(data => {
         if (data.success) {
+            // CRÍTICO: Creamos la nueva tarjeta y LUEGO refrescamos los listeners
             createTableCard(tableNumber);
+            initializeTableListeners(); // Añade el listener a la nueva tarjeta
             closeModal();
             alert(data.message);
         } else {
@@ -168,16 +179,13 @@ function handleSubmitForm(e) {
         tableNumberError.textContent = error.message || 'Ocurrió un error de conexión al servidor.';
     });
 }
+newTableForm.addEventListener('submit', handleSubmitForm);
 
 
-// --- 4. Inicialización (CRÍTICO: Aquí se resuelve el conflicto de botones) ---
+// --- 4. Inicialización ---
 
 function initializePrototype() {
-    // 1. ADJUNTAR EL EVENTO SUBMIT DIRECTAMENTE AL FORMULARIO
-    newTableForm.addEventListener('submit', handleSubmitForm);
-
-
-    // 2. ADJUNTAR EVENTO CLICK AL FAB
+    // 1. ADJUNTAR EVENTO CLICK AL FAB (Abre modal)
     const fabButton = document.getElementById('fab');
     const modalElement = document.getElementById('newTableModal'); 
 
@@ -193,15 +201,15 @@ function initializePrototype() {
         });
     }
 
-    // 3. Iniciar la carga de mesas
+    // 2. Iniciar la carga de mesas (la que dibuja las mesas)
     loadTables();
     
-    // 4. Asegurar que el modal esté oculto al inicio
+    // 3. Asegurar que el modal esté oculto al inicio
     if (modalElement) {
         modalElement.classList.remove('visible'); 
     }
     
-    // 5. Simular acciones de botones del footer (Esta lógica ahora NO toca el modal)
+    // 4. Lógica del Footer (Redirección a TPV y Bloqueo)
     controlButtons.forEach(button => {
         button.addEventListener('click', () => {
             const action = button.textContent;
@@ -210,10 +218,18 @@ function initializePrototype() {
                  window.location.href = '/KitchenLink/src/php/logout.php';
                  return;
             }
+            
+            const tableId = selectedTable ? selectedTable.getAttribute('data-table-id') : null;
+            
+            // REDIRECCIÓN A TPV AL EDITAR MESA
+            if (button.id === 'btn-edit-order' && selectedTable) {
+                window.location.href = `/KitchenLink/src/php/order_interface.php?table=${tableId}`;
+                return;
+            }
 
+            // Lógica de alerta por defecto
             if (selectedTable) {
-                const tableId = selectedTable.getAttribute('data-table-id');
-                alert(`Acción: "${action}" ejecutada para la Mesa ${tableId}.`);
+                alert(`Acción: "${action}" ejecutada para la Mesa ${tableId}".`);
             } else if (button.id !== 'btn-exit' && button.id !== 'btn-advanced-options') {
                 alert(`Debe seleccionar una mesa para realizar la acción: "${action}".`);
             }
