@@ -30,8 +30,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
             <h2>Restaurante</h2>
             <ul>
                 <li><a href="#" class="active"><i class="fas fa-utensils"></i> Mesas</a></li>
-                <li><a href="#"><i class="fas fa-bell"></i> Órdenes Pendientes</a></li>
-            </ul>
+                <li><a href="/KitchenLink/src/php/pending_orders.php"><i class="fas fa-bell"></i> Órdenes Pendientes</a></li>            </ul>
         </div>
         
        <div class="user-info">
@@ -51,6 +50,8 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
         </aside>
 
     <main class="content">
+        <div id="liveClockContainer"></div>
+
         <h1>Gestión de Mesas</h1>
         
         <section class="table-status-container">

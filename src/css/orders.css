@@ -395,3 +395,94 @@ h1 {
     transform: scale(1.03); 
     transition: all 0.2s ease-in-out;
 }
+
+/* --- NUEVOS ESTILOS PARA LA INFORMACIÓN DE LA MESA --- */
+
+.table-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Alinear número arriba, info abajo */
+    align-items: center;
+    padding: 20px 10px;
+    height: 110px; /* Aumentar un poco la altura */
+    transition: transform 0.2s, box-shadow 0.2s;
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.table-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(90, 45, 252, 0.2);
+}
+
+.table-btn.selected {
+    border-color: #5a2dfc;
+    box-shadow: 0 0 0 3px rgba(90, 45, 252, 0.3);
+    transform: translateY(-3px);
+}
+
+.table-btn .table-number {
+    font-size: 2.5rem; 
+    font-weight: 700;
+    line-height: 1;
+    color: #343a40;
+}
+
+.table-info {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #495057;
+    opacity: 0.9;
+}
+
+.timer, .client-count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 12px;
+}
+
+.timer i { color: #007bff; }
+.client-count i { color: #28a745; }
+
+.no-tables-msg, .error-msg {
+    color: #6c757d;
+    grid-column: 1 / -1; 
+    text-align: center;
+    font-size: 1.1rem;
+    padding: 40px 20px;
+}
+
+.error-msg {
+    color: #dc3545;
+}
+
+/* --- NUEVOS ESTILOS PARA LA BARRA DE RELOJ ESTILO UBUNTU --- */
+
+#liveClockContainer {
+    background-color: #2c3e50; /* Un color oscuro y moderno, similar al de la captura */
+    color: #ecf0f1; /* Un blanco suave para el texto */
+    padding: 10px 0;
+    border-radius: 8px;
+    margin-bottom: 25px; /* Espacio entre la barra y el título "Gestión de Mesas" */
+    text-align: center;
+    font-family: 'Roboto Mono', monospace; /* Fuente digital y limpia */
+    font-size: 1.2rem;
+    font-weight: 500;
+    letter-spacing: 1px; /* Un poco de espacio entre letras */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Pequeño ajuste para que el título principal no quede tan pegado */
+.content h1 {
+    margin-top: 0;
+}

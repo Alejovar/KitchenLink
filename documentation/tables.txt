@@ -128,13 +128,17 @@ CREATE TABLE `waiting_list_history` (
   `tables_assigned` VARCHAR(255) DEFAULT NULL COMMENT 'Nombres de las mesas asignadas, separados por comas'
 );
 
--- ========= TABLA DE MESAS PARA MESEROS =========
+-- ========= TABLA DE MESAS PARA MESEROS (ACTUALIZADA) =========
+-- Almacena el estado de las mesas actualmente ocupadas, incluyendo quién las atiende, 
+-- cuántos clientes hay y el momento exacto en que se ocuparon.
+
 CREATE TABLE restaurant_tables (
     table_id INT PRIMARY KEY AUTO_INCREMENT, 
     table_number INT NOT NULL,
     assigned_server_id INT NOT NULL, 
     client_count INT NOT NULL,
-    
+    occupied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Registra el momento exacto en que la mesa es ocupada
+
     -- Restricción de Unicidad Global
     CONSTRAINT UK_TableNumber UNIQUE (table_number),
     
@@ -217,7 +221,9 @@ CREATE TABLE IF NOT EXISTS orders (
         ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
--- 3.2. Tabla de Detalles de la Orden (Ítems y Modificadores)
+-- Estructura actualizada para la tabla: order_details
+-- Incluye la hora de adición (added_at) y la marca de lote (batch_timestamp)
+
 CREATE TABLE IF NOT EXISTS order_details (
     detail_id INT NOT NULL AUTO_INCREMENT,
     order_id INT NOT NULL,
@@ -225,7 +231,10 @@ CREATE TABLE IF NOT EXISTS order_details (
     quantity INT NOT NULL,
     price_at_order DECIMAL(10, 2) NOT NULL,
     special_notes TEXT,
-    modifier_id INT NULL, 
+    item_status ENUM('PENDIENTE', 'COMPLETADO') NOT NULL DEFAULT 'PENDIENTE',
+    modifier_id INT NULL,
+    added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    batch_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT PK_OrderDetail PRIMARY KEY (detail_id),
     CONSTRAINT FK_DetailOrder FOREIGN KEY (order_id) REFERENCES orders(order_id)

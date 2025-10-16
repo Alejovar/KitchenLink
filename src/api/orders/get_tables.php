@@ -1,5 +1,5 @@
 <?php
-// get_tables.php - Endpoint API para obtener mesas filtradas del mesero actual
+// /api/orders/get_tables.php - API para obtener las mesas y su tiempo de ocupación
 
 session_start();
 header('Content-Type: application/json');
@@ -12,32 +12,44 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // CRÍTICO: Incluye tu archivo de conexión MySQLi
-require '../../php/db_connection.php'; 
+require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php'; 
 
 $server_id = $_SESSION['user_id']; 
 
-// 2. CONSULTA SQL CLAVE
-$sql = "SELECT table_number FROM restaurant_tables WHERE assigned_server_id = ? ORDER BY table_number ASC";
+// 2. CONSULTA SQL MEJORADA
+// Obtiene todos los datos necesarios y calcula los minutos transcurridos
+$sql = "
+    SELECT 
+        table_id,
+        table_number,
+        client_count,
+        occupied_at,
+        TIMESTAMPDIFF(MINUTE, occupied_at, NOW()) AS minutes_occupied
+    FROM 
+        restaurant_tables
+    WHERE
+        assigned_server_id = ? -- Solo mostrar las mesas del mesero actual
+    ORDER BY 
+        table_number ASC
+";
 
 try {
     // MySQLi: PREPARAR, VINCULAR y EJECUTAR
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $server_id); // 'i' vincula el ID del mesero
+    $stmt->bind_param("i", $server_id);
     $stmt->execute();
     
     $result = $stmt->get_result(); 
-    $mesas = [];
-    while ($row = $result->fetch_assoc()) {
-        $mesas[] = $row['table_number'];
-    }
+    // Ahora obtenemos un array de objetos, no solo de números
+    $tables = $result->fetch_all(MYSQLI_ASSOC);
     
     $stmt->close();
+    $conn->close();
 
-    // 3. DEVOLVER RESPUESTA JSON
-    echo json_encode(['success' => true, 'tables' => $mesas]);
+    // 3. DEVOLVER RESPUESTA JSON COMPLETA
+    echo json_encode(['success' => true, 'tables' => $tables]);
 
 } catch (\Exception $e) {
-    // Si la consulta falla (ej. la tabla no existe), devuelve un error 500 al cliente.
     error_log("Error fetching tables from DB: " . $e->getMessage());
     http_response_code(500); 
     echo json_encode(['success' => false, 'message' => 'Error al consultar las mesas en la base de datos.']);

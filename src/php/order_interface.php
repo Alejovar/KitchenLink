@@ -1,22 +1,26 @@
 <?php
-// order_interface.php - VERSIÓN FINAL CORREGIDA
+// order_interface.php - VERSIÓN FINAL CON HORA DEL SERVIDOR
+
+ini_set('display_errors', 1); // Quitar cuando todo funcione
+error_reporting(E_ALL);     // Quitar cuando todo funcione
 
 session_start();
+
 // 1. Seguridad
 if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
-    header('Location: /KitchenLink/login.html'); 
+    header('Location: /KitchenLink/login.html');
     exit();
 }
 
 // 2. Obtener y validar la mesa
 $table_number = filter_input(INPUT_GET, 'table', FILTER_VALIDATE_INT);
 if (!$table_number) {
-    header('Location: /KitchenLink/src/php/orders.php'); 
+    header('Location: /KitchenLink/src/php/orders.php');
     exit();
 }
 
 // 3. Conexión a DB
-require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php'; 
+require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
 // 4. Consulta de Categorías
 $categories = [];
@@ -31,77 +35,68 @@ try {
     error_log("DB Error fetching categories: " . $e->getMessage());
 }
 
-// 5. Consulta de orden activa y sus items
-$active_order_id = 0;
+// 5. Consulta de items
 $existing_items = [];
-
 try {
-    // Busca una orden activa para el NÚMERO de mesa
-    $sql_order = "SELECT o.order_id, o.order_time FROM orders o JOIN restaurant_tables rt ON o.table_id = rt.table_id WHERE rt.table_number = ? AND o.status != 'PAGADA' LIMIT 1";
-    $stmt_order = $conn->prepare($sql_order);
-    $stmt_order->bind_param("i", $table_number);
-    $stmt_order->execute();
-    $order_result = $stmt_order->get_result();
-    $active_order = $order_result->fetch_assoc();
-    $stmt_order->close();
-    
-    if ($active_order) {
-        $active_order_id = $active_order['order_id'];
-        // Convertir la fecha de la BD a milisegundos para JavaScript
-        $order_timestamp_ms = (new DateTime($active_order['order_time']))->getTimestamp() * 1000;
+    $sql_all_items = "
+        SELECT
+            od.added_at, p.name AS product_name, m.modifier_name,
+            od.product_id AS id, od.price_at_order AS price,
+            od.special_notes AS comment, od.modifier_id
+        FROM orders o
+        JOIN restaurant_tables rt ON o.table_id = rt.table_id
+        JOIN order_details od ON o.order_id = od.order_id
+        JOIN products p ON od.product_id = p.product_id
+        LEFT JOIN modifiers m ON od.modifier_id = m.modifier_id
+        WHERE rt.table_number = ? AND o.status != 'PAGADA'
+        ORDER BY od.added_at ASC, od.detail_id ASC";
 
-        // Si encontramos una orden, buscamos sus items
-        $sql_items = "
-            SELECT od.product_id AS id, p.name AS name, m.modifier_name, od.price_at_order AS price, od.special_notes AS comment, od.modifier_id
-            FROM order_details od
-            JOIN products p ON od.product_id = p.product_id
-            LEFT JOIN modifiers m ON od.modifier_id = m.modifier_id
-            WHERE od.order_id = ? ORDER BY od.detail_id ASC
-        ";
-        $stmt_items = $conn->prepare($sql_items);
-        $stmt_items->bind_param("i", $active_order_id);
-        $stmt_items->execute();
-        $items_result = $stmt_items->get_result();
-        
-        while ($row = $items_result->fetch_assoc()) {
-            $item_name = $row['name'];
-            if (!empty($row['modifier_name'])) {
-                $item_name .= " (" . htmlspecialchars($row['modifier_name']) . ")";
-            }
-            $existing_items[] = [
-                'id' => (int)$row['id'],
-                'name' => $item_name,
-                'price' => (float)$row['price'],
-                'comment' => $row['comment'],
-                'modifier_id' => $row['modifier_id'] ? (int)$row['modifier_id'] : null,
-                'type' => 'product',
-                'sentTimestamp' => $order_timestamp_ms // <-- AÑADIR TIMESTAMP A CADA ITEM
-            ];
+    $stmt_items = $conn->prepare($sql_all_items);
+    $stmt_items->bind_param("i", $table_number);
+    $stmt_items->execute();
+    $items_result = $stmt_items->get_result();
+
+    while ($row = $items_result->fetch_assoc()) {
+        $item_name = htmlspecialchars($row['product_name']);
+        if (!empty($row['modifier_name'])) {
+            $item_name .= " (" . htmlspecialchars($row['modifier_name']) . ")";
         }
-        $stmt_items->close();
+        $existing_items[] = [
+            'id' => (int)$row['id'],
+            'name' => $item_name,
+            'price' => (float)$row['price'],
+            'comment' => $row['comment'],
+            'modifier_id' => $row['modifier_id'] ? (int)$row['modifier_id'] : null,
+            'type' => 'product',
+            'sentTimestamp' => (new DateTime($row['added_at']))->format(DateTime::ATOM)
+        ];
     }
+    $stmt_items->close();
 } catch (\Exception $e) {
-    error_log("DB Error fetching active order: " . $e->getMessage());
+    die("Error fatal al consultar los detalles de la orden: " . $e->getMessage());
 }
 
-// Preparamos los datos para JS
-$initial_order_json = json_encode(['items' => $existing_items]);
+// CAMBIO CLAVE: Preparamos un objeto que contiene los items Y la hora actual del servidor.
+$initial_data = [
+    'server_time' => (new DateTime())->format(DateTime::ATOM), // <-- AÑADIDO
+    'items' => $existing_items
+];
+$initial_order_json = json_encode($initial_data);
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ordenando Mesa #<?php echo htmlspecialchars($table_number); ?></title>
-    <link rel="stylesheet" href="/KitchenLink/src/css/tpv.css"> 
+    <link rel="stylesheet" href="/KitchenLink/src/css/tpv.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <div class="tpv-container">
         <header class="tpv-header">
             <h2>Mesa Actual: #<?php echo htmlspecialchars($table_number); ?></h2>
-            <input type="hidden" id="activeOrderId" value="<?php echo $active_order_id; ?>">
+            <div id="liveClockContainer"></div>
             <button onclick="window.location.href='/KitchenLink/src/php/orders.php'" class="btn-back">
                 <i class="fas fa-arrow-left"></i> Volver a Mesas
             </button>
@@ -117,7 +112,9 @@ $initial_order_json = json_encode(['items' => $existing_items]);
                                 <?php echo htmlspecialchars($cat['category_name']); ?>
                             </a>
                         <?php $first = false; endforeach; ?>
-                    <?php else: ?><p>No hay categorías.</p><?php endif; ?>
+                    <?php else: ?>
+                        <p>No hay categorías.</p>
+                    <?php endif; ?>
                 </nav>
             </aside>
 
@@ -147,10 +144,32 @@ $initial_order_json = json_encode(['items' => $existing_items]);
         </div>
     </div>
     
-    <div id="modifierModal" class="modal-overlay" style="display:none;"><div class="modal-content"><span class="close-btn">&times;</span><h3 id="modalProductName"></h3><p>Seleccione <span id="modifierGroupName">la opción</span> requerida:</p><div id="modifierOptions" class="modifier-options-grid"></div><button id="addModifiedItemBtn" class="btn btn-primary">Añadir al Pedido</button></div></div>
-    <div id="commentModal" class="modal-overlay" style="display:none;"><div class="modal-content"><span class="close-btn">&times;</span><h3>Añadir Comentario</h3><p id="commentModalItemName"></p><textarea id="commentInput" placeholder="Ej: Sin cebolla, término medio..." rows="4"></textarea><input type="hidden" id="commentItemIndex"><div class="modal-actions"><button id="cancelCommentBtn" class="btn btn-secondary">Cancelar</button><button id="saveCommentBtn" class="btn btn-primary">Guardar</button></div></div></div>
+    <div id="modifierModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3 id="modalProductName"></h3>
+            <p>Seleccione <span id="modifierGroupName">la opción</span> requerida:</p>
+            <div id="modifierOptions" class="modifier-options-grid"></div>
+            <button id="addModifiedItemBtn" class="btn btn-primary">Añadir al Pedido</button>
+        </div>
+    </div>
+
+    <div id="commentModal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3>Añadir Comentario</h3>
+            <p id="commentModalItemName"></p>
+            <textarea id="commentInput" placeholder="Ej: Sin cebolla, término medio..." rows="4"></textarea>
+            <input type="hidden" id="commentItemIndex">
+            <div class="modal-actions">
+                <button id="cancelCommentBtn" class="btn btn-secondary">Cancelar</button>
+                <button id="saveCommentBtn" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
     
     <script id="initialOrderData" type="application/json"><?php echo $initial_order_json; ?></script>
+    
     <script src="/KitchenLink/src/js/tpv.js"></script> 
 </body>
 </html>
