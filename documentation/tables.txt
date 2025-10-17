@@ -231,10 +231,17 @@ CREATE TABLE IF NOT EXISTS order_details (
     quantity INT NOT NULL,
     price_at_order DECIMAL(10, 2) NOT NULL,
     special_notes TEXT,
+    
+    -- Estado original del ítem (Pendiente, Completado)
     item_status ENUM('PENDIENTE', 'COMPLETADO') NOT NULL DEFAULT 'PENDIENTE',
+    
     modifier_id INT NULL,
     added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     batch_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- ✅ NUEVAS COLUMNAS DE CANCELACIÓN:
+    is_cancelled BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Indica si el ítem fue cancelado (true) o no (false).',
+    cancellation_reason VARCHAR(255) DEFAULT NULL COMMENT 'Razón por la que el ítem fue marcado como cancelado.', 
 
     CONSTRAINT PK_OrderDetail PRIMARY KEY (detail_id),
     CONSTRAINT FK_DetailOrder FOREIGN KEY (order_id) REFERENCES orders(order_id)
@@ -243,7 +250,7 @@ CREATE TABLE IF NOT EXISTS order_details (
         ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT FK_DetailModifier FOREIGN KEY (modifier_id) REFERENCES modifiers(modifier_id)
         ON DELETE SET NULL ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ######################################################################
 -- # 4. INSERCIÓN DE DATOS INICIALES (MENÚ COMPLETO)

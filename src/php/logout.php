@@ -10,6 +10,6 @@ $_SESSION = array();
 session_destroy();
 
 // Redirigir al usuario a la página de inicio de sesión.
-header("Location: /KitchenLink/login.html"); // Asegúrate de que esta ruta sea correcta
+header("Location: /KitchenLink/index.html"); // Asegúrate de que esta ruta sea correcta
 exit();
 ?>

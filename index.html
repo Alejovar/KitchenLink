@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesión Bloqueada</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Colores de tu interfaz */
+            --primary-purple: #7f00ff;
+            --background-light: #f0f2f5;
+            --text-dark: #333;
+            --container-bg: #ffffff;
+            /* Usaremos una versión más clara de tu morado para el degradado */
+            --gradient-start-color: #f7e6ff; /* Morado muy claro */
+            --gradient-end-color: #ffffff; /* Blanco */
+            --highlight-color: rgba(127, 0, 255, 0.1);
+        }
+        
+        body, html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', sans-serif;
+            color: var(--text-dark);
+            cursor: pointer;
+            position: relative;
+            
+            /* 🚨 AJUSTE CRÍTICO DEL DEGRADADO: Usamos un degradado simple en un tamaño grande para la animación */
+            background: linear-gradient(135deg, var(--gradient-start-color) 0%, var(--gradient-end-color) 100%);
+            background-size: 200% 200%; /* Tamaño grande */
+            background-attachment: fixed; /* Fija el degradado al viewport */
+            animation: backgroundPan 25s ease-in-out infinite alternate; /* Animación lenta y suave */
+        }
+
+        /* --- CONTENEDOR CENTRAL (El modal) --- */
+        .lock-container {
+            text-align: center;
+            padding: 45px 50px;
+            border-radius: 16px; 
+            background: var(--container-bg);
+            /* Animaciones: float y fadeIn */
+            animation: fadeIn 0.8s ease-out forwards, 
+                       float 4s ease-in-out infinite alternate; 
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08); 
+            border: 1px solid #eee;
+            opacity: 0; 
+            will-change: transform, opacity;
+            z-index: 1;
+        }
+
+        .app-logo {
+            margin-bottom: 20px;
+        }
+
+        .app-logo img {
+            max-width: 160px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            transition: transform 0.4s ease-out;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.1)); 
+        }
+
+        h1 {
+            font-size: 2.2rem; 
+            margin: 0 0 8px 0;
+            color: var(--primary-purple); 
+            letter-spacing: -0.5px;
+        }
+
+        .message {
+            font-size: 1.05rem;
+            color: var(--text-light-subtle);
+            margin-top: 25px;
+            line-height: 1.6;
+        }
+
+        /* --- KEYFRAMES DE ANIMACIÓN --- */
+        
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-5px); }
+        }
+
+        /* 🚨 Animación de paneo/movimiento del degradado en el fondo */
+        @keyframes backgroundPan {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; } /* Mover a la derecha */
+            100% { background-position: 0% 50%; } /* Regresar */
+        }
+    </style>
+</head>
+<body>
+
+<div class="lock-container" id="lockContainer">
+    <div class="app-logo">
+        <img src="/KitchenLink/documentation/images/KitchenLink_logo.png" alt="KitchenLink Logo"> 
+    </div>
+    
+    <h1>Sesión Bloqueada</h1> 
+    <p class="message">Presione cualquier parte para ir al inicio de sesión.</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const unlock = () => {
+            window.location.href = '/KitchenLink/login.html'; 
+        };
+
+        document.body.addEventListener('click', unlock);
+        document.addEventListener('keydown', unlock);
+    });
+</script>
+
+</body>
+</html>

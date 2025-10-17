@@ -20,6 +20,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
 <title>Gestión de Mesas</title>
 
 <link rel="stylesheet" href="/KitchenLink/src/css/orders.css">
+<link rel="stylesheet" href="/KitchenLink/src/css/modal_advanced_options.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
@@ -30,7 +31,8 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
             <h2>Restaurante</h2>
             <ul>
                 <li><a href="#" class="active"><i class="fas fa-utensils"></i> Mesas</a></li>
-                <li><a href="/KitchenLink/src/php/pending_orders.php"><i class="fas fa-bell"></i> Órdenes Pendientes</a></li>            </ul>
+                <li><a href="/KitchenLink/src/php/pending_orders.php"><i class="fas fa-bell"></i> Órdenes Pendientes</a></li>
+            </ul>
         </div>
         
        <div class="user-info">
@@ -68,16 +70,21 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
         
         <div class="footer-actions">
             <div class="control-buttons">
-                <button class="action-btn secondary-btn" id="btn-edit">Editar</button>
-                <button class="action-btn secondary-btn" id="btn-exit">Salir</button>
-                <button class="action-btn alert-btn" id="btn-block">Bloquear</button>
                 <button class="action-btn primary-btn" id="btn-edit-order">Editar mesa</button>
                 <button class="action-btn primary-btn" id="btn-advanced-options">Opciones avanzadas</button>
             </div>
         </div>
     </main>
-</div> <?php include 'modal_create_table.php'; ?> 
+</div> 
 
-<script src="/KitchenLink/src/js/orders.js"></script>
+<?php include 'modal_create_table.php'; ?> 
+
+<?php 
+    // Incluimos el archivo que contiene nuestros modales desde la carpeta de componentes.
+    include $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/components/advanced_options_modals.php';
+?>
+
+<script type="module" src="/KitchenLink/src/js/orders.js"></script>
+
 </body>
 </html>
