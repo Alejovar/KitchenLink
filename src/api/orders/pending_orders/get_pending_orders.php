@@ -1,85 +1,123 @@
 <?php
 // /api/orders/pending_orders/get_pending_orders.php
-// VERSIÓN FINAL - FILTRADO POR MESERO
+// VERSIÓN FINAL Y SEGURA: Agrupa por el tiempo exacto de inserción para simular el lote (Comanda).
 
-session_start(); // 1. Iniciamos la sesión para saber quién es el usuario
-header('Content-Type: application/json');
+session_start();
+// Define el huso horario para PHP.
+date_default_timezone_set('America/Mexico_City'); 
+header('Content-Type: application/json; charset=utf-8');
 
-// 2. Seguridad: Verificamos si el usuario está logueado y es un mesero (rol_id = 2)
+// 1. Seguridad
 if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
-    http_response_code(403); // Código de "Acceso Prohibido"
-    echo json_encode(['error' => 'Acceso denegado.']);
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'Acceso denegado.'], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
-// 3. Obtenemos el ID del mesero de la sesión
 $server_id = $_SESSION['user_id'];
 
+// Conexión
 require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
 try {
-    // 4. Se modifica la consulta SQL para añadir el filtro por 'server_id'
+    $final_statuses = ['PAGADA', 'CANCELADA', 'CLOSED']; 
+    $status_placeholders = str_repeat('?,', count($final_statuses) - 1) . '?';
+    $status_types = str_repeat('s', count($final_statuses));
+
+    // 🚨 CONSULTA FINAL Y SEGURA: Agrupa por la columna added_at (tiempo de lote). 🚨
     $sql = "
         SELECT
             rt.table_number,
-            od.batch_timestamp,
-            o.status,
-            GROUP_CONCAT(
-                CONCAT(p.name, IF(m.modifier_name IS NOT NULL, CONCAT(' (', m.modifier_name, ')'), ''))
-                ORDER BY od.detail_id ASC
-                SEPARATOR '|'
-            ) AS item_names,
-            GROUP_CONCAT(
-                od.quantity 
-                ORDER BY od.detail_id ASC
-                SEPARATOR '|'
-            ) AS item_quantities
-        FROM order_details od
-        JOIN products p ON od.product_id = p.product_id
-        JOIN orders o ON od.order_id = o.order_id
+            o.order_id,
+            
+            -- 🔑 TIEMPO DE REFERENCIA: Usamos MIN(od.added_at) para el tiempo de inicio confiable.
+            MIN(od.added_at) AS order_start_time, 
+
+            -- Estado de Cocina (Kitchen)
+            SUM(CASE WHEN od.preparation_area = 'COCINA' AND od.item_status IN ('PENDIENTE', 'EN_PREPARACION') THEN 1 ELSE 0 END) AS kitchen_pending_items,
+            SUM(CASE WHEN od.preparation_area = 'COCINA' AND od.item_status = 'LISTO' THEN 1 ELSE 0 END) AS kitchen_ready_items,
+            
+            -- CONTEO ACTIVO: Cuenta CUALQUIER ítem que NO sea CANCELADO O COMPLETADO.
+            SUM(CASE WHEN od.preparation_area = 'COCINA' AND od.item_status NOT IN ('CANCELADO', 'COMPLETADO') THEN 1 ELSE 0 END) AS total_kitchen_active_items,
+
+            -- Estado de Barra (Bar)
+            SUM(CASE WHEN od.preparation_area = 'BARRA' AND od.item_status IN ('PENDIENTE', 'EN_PREPARACION') THEN 1 ELSE 0 END) AS bar_pending_items,
+            SUM(CASE WHEN od.preparation_area = 'BARRA' AND od.item_status = 'LISTO' THEN 1 ELSE 0 END) AS bar_ready_items,
+            SUM(CASE WHEN od.preparation_area = 'BARRA' AND od.item_status NOT IN ('CANCELADO', 'COMPLETADO') THEN 1 ELSE 0 END) AS total_bar_active_items
+            
+        FROM orders o
         JOIN restaurant_tables rt ON o.table_id = rt.table_id
-        LEFT JOIN modifiers m ON od.modifier_id = m.modifier_id
-        WHERE o.status = 'PENDING' AND o.server_id = ? -- ¡ESTE ES EL CAMBIO CLAVE!
-        GROUP BY rt.table_number, od.batch_timestamp
-        ORDER BY od.batch_timestamp ASC;
+        JOIN order_details od ON o.order_id = od.order_id
+        
+        WHERE 
+            o.server_id = ? 
+            AND o.status NOT IN ({$status_placeholders}) 
+            AND od.is_cancelled = FALSE 
+            AND od.item_status != 'COMPLETADO' 
+            
+            -- Filtro de fechas inválidas.
+            AND od.added_at IS NOT NULL
+            AND od.added_at != '0000-00-00 00:00:00'
+        
+        -- 🔑 SOLUCIÓN AL ERROR 500: Agrupamos por la columna rt.table_number, o.order_id Y la columna added_at.
+        -- Ya que added_at tiene un valor distinto para cada lote, esto simula el GROUP BY por lote/tiempo.
+        GROUP BY rt.table_number, o.order_id, od.added_at
+        
+        ORDER BY order_start_time ASC;
     ";
 
     $stmt = $conn->prepare($sql);
-    // 5. Se vincula el ID del mesero a la consulta para evitar inyección SQL
-    $stmt->bind_param("i", $server_id);
+    
+    $bind_params = array_merge([$server_id], $final_statuses);
+    $stmt->bind_param("i" . $status_types, ...$bind_params); 
+    
     $stmt->execute();
     $result = $stmt->get_result();
 
-    $orders_by_batch = [];
+    $orders_summary = [];
     while ($row = $result->fetch_assoc()) {
-        $item_names = $row['item_names'] ? explode('|', $row['item_names']) : [];
-        $item_quantities = $row['item_quantities'] ? explode('|', $row['item_quantities']) : [];
+        
+        // Solo si hay ítems activos, se muestra la orden/lote.
+        if ((int)$row['total_kitchen_active_items'] > 0 || (int)$row['total_bar_active_items'] > 0) {
+            
+            $startTime = $row['order_start_time']; 
+            
+            if (!$startTime) {
+                 $timestamp_atom = (new DateTime('now'))->format(DateTime::ATOM);
+            } else {
+                 $timestamp_atom = (new DateTime($startTime))->format(DateTime::ATOM);
+            }
 
-        $items_details = [];
-        for ($i = 0; $i < count($item_names); $i++) {
-            $items_details[] = [
-                'name' => htmlspecialchars($item_names[$i]),
-                'quantity' => (int)$item_quantities[$i]
+            $orders_summary[] = [
+                'table_number' => (int)$row['table_number'],
+                'order_id' => (int)$row['order_id'],
+                // Mantenemos 'batch_timestamp' como NOMBRE de la variable para el JS
+                'batch_timestamp' => $timestamp_atom, 
+                
+                'kitchen_pending' => (int)$row['kitchen_pending_items'],
+                'kitchen_ready' => (int)$row['kitchen_ready_items'],
+                'total_kitchen_active' => (int)$row['total_kitchen_active_items'],
+
+                'bar_pending' => (int)$row['bar_pending_items'],
+                'bar_ready' => (int)$row['bar_ready_items'],
+                'total_bar_active' => (int)$row['total_bar_active_items']
             ];
         }
-
-        $orders_by_batch[] = [
-            'table_number' => $row['table_number'],
-            'order_time' => (new DateTime($row['batch_timestamp']))->format(DateTime::ATOM),
-            'items' => $items_details
-        ];
     }
+    $stmt->close();
 
     $response = [
-        'server_time' => (new DateTime())->format(DateTime::ATOM),
-        'orders' => $orders_by_batch
+        'success' => true,
+        'server_time' => (new DateTime())->format(DateTime::ATOM), 
+        'orders_summary' => $orders_summary
     ];
 
-    echo json_encode($response);
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(['error' => 'Error en el servidor: ' . $e->getMessage()]);
+    error_log("Error fatal en get_pending_orders.php: " . $e->getMessage()); 
+    echo json_encode(['success' => false, 'error' => 'Error de servidor: No se pudo procesar la solicitud.'], JSON_UNESCAPED_UNICODE);
 }
 
 $conn->close();

@@ -154,16 +154,17 @@ CREATE TABLE restaurant_tables (
 -- # 2. ESTRUCTURA DE MENÚ DINÁMICO Y MODIFICADORES
 -- ######################################################################
 
--- 2.1. Tabla de Categorías del Menú
 CREATE TABLE IF NOT EXISTS menu_categories (
     category_id INT NOT NULL AUTO_INCREMENT,
     category_name VARCHAR(100) NOT NULL,
     display_order INT NOT NULL DEFAULT 0,
     
-    -- CORREGIDO: Declaramos PK una sola vez con CONSTRAINT
+    -- ✅ NUEVA COLUMNA DE DESTINO
+    preparation_area ENUM('COCINA', 'BARRA') NOT NULL DEFAULT 'COCINA', 
+    
     CONSTRAINT PK_MenuCategory PRIMARY KEY (category_id), 
     CONSTRAINT UK_CategoryName UNIQUE (category_name)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2.2. Tabla de Grupos de Modificadores
 CREATE TABLE IF NOT EXISTS modifier_groups (
@@ -232,17 +233,23 @@ CREATE TABLE IF NOT EXISTS order_details (
     price_at_order DECIMAL(10, 2) NOT NULL,
     special_notes TEXT,
     
-    -- Estado original del ítem (Pendiente, Completado)
-    item_status ENUM('PENDIENTE', 'COMPLETADO') NOT NULL DEFAULT 'PENDIENTE',
+    -- ✅ ESTADO DE FLUJO: Para que Cocina/Barra pueda marcar el proceso.
+    item_status ENUM('PENDIENTE', 'EN_PREPARACION', 'LISTO', 'COMPLETADO', 'CANCELADO') NOT NULL DEFAULT 'PENDIENTE',
+    
+    -- ✅ ÁREA DE PREPARACIÓN: Para filtrar la comanda a Cocina o Barra.
+    preparation_area ENUM('COCINA', 'BARRA') NOT NULL COMMENT 'Área de preparación determinada por la categoría del producto.',
     
     modifier_id INT NULL,
     added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     batch_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    -- ✅ NUEVAS COLUMNAS DE CANCELACIÓN:
+    -- ✅ CAMPOS DE CANCELACIÓN: (Auditoría Gerencial)
     is_cancelled BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'Indica si el ítem fue cancelado (true) o no (false).',
     cancellation_reason VARCHAR(255) DEFAULT NULL COMMENT 'Razón por la que el ítem fue marcado como cancelado.', 
 
+    -- ✅ TIEMPO DE FINALIZACIÓN: Para que el mesero sepa cuándo recoger el producto.
+    completed_at TIMESTAMP NULL DEFAULT NULL COMMENT 'Timestamp cuando el ítem fue marcado como LISTO para ser recogido.',
+    
     CONSTRAINT PK_OrderDetail PRIMARY KEY (detail_id),
     CONSTRAINT FK_DetailOrder FOREIGN KEY (order_id) REFERENCES orders(order_id)
         ON DELETE CASCADE ON UPDATE CASCADE,
@@ -255,11 +262,6 @@ CREATE TABLE IF NOT EXISTS order_details (
 -- ######################################################################
 -- # 4. INSERCIÓN DE DATOS INICIALES (MENÚ COMPLETO)
 -- ######################################################################
-
--- 4.1. Roles
-INSERT INTO roles (id, role_name) VALUES
-(1, 'Administrador'), (2, 'Mesero'), (3, 'Cocinero')
-ON DUPLICATE KEY UPDATE role_name=VALUES(role_name);
 
 -- 4.2. Grupos de Modificadores (Asumidos IDs 1, 2, 3)
 INSERT INTO modifier_groups (group_id, group_name) VALUES
@@ -391,3 +393,12 @@ INSERT INTO modifiers (group_id, modifier_name, modifier_price) VALUES
 (3, 'Vainilla', 0.00),
 (3, 'Caramelo', 0.00),
 (3, 'Chocolate', 0.00);
+
+UPDATE menu_categories
+SET preparation_area = 'BARRA'
+WHERE category_id IN (7, 8, 9, 10, 11);
+
+UPDATE menu_categories
+SET preparation_area = 'COCINA'
+WHERE category_id IN (1, 2, 3, 4, 5, 6);
+

@@ -425,3 +425,81 @@ body {
     left: 50%;
     transform: translateX(-50%);
 }
+
+/* --- ESTILOS PARA EL BUSCADOR GLOBAL --- */
+
+.search-product-area {
+    position: relative;
+    padding: 10px 0 20px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 500px; /* Limita el ancho del buscador */
+    margin: 0 auto;
+}
+
+#productSearchInput {
+    width: 100%;
+    padding: 12px 12px 12px 40px; /* Padding izquierdo para el ícono */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1em;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: border-color 0.2s;
+}
+
+#productSearchInput:focus {
+    border-color: #7f00ff; /* Resalta al enfocar */
+    outline: none;
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+/* --- RESULTADOS DROPDOWN --- */
+
+.search-results-dropdown {
+    position: absolute;
+    top: 100%; /* Aparece justo debajo del input */
+    left: 0;
+    right: 0;
+    max-width: 500px;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    z-index: 100; /* Asegura que esté sobre otros elementos */
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.search-result-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.15s;
+}
+
+.search-result-item:hover {
+    background-color: #f0f8ff; /* Fondo claro al pasar el mouse */
+}
+
+.result-name {
+    font-weight: 600;
+}
+
+.result-price {
+    color: #7f00ff;
+    font-weight: 700;
+}

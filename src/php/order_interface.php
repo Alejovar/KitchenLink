@@ -78,7 +78,7 @@ try {
 
 // CAMBIO CLAVE: Preparamos un objeto que contiene los items Y la hora actual del servidor.
 $initial_data = [
-    'server_time' => (new DateTime())->format(DateTime::ATOM), // <-- AÑADIDO
+    'server_time' => (new DateTime())->format(DateTime::ATOM),
     'items' => $existing_items
 ];
 $initial_order_json = json_encode($initial_data);
@@ -119,10 +119,19 @@ $initial_order_json = json_encode($initial_data);
             </aside>
 
             <section class="product-grid-area">
-                <h2>Productos</h2>
+                <div class="search-product-area">
+                    <div class="search-input-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="productSearchInput" placeholder="Buscar producto por nombre..." autocomplete="off">
+                    </div>
+                    
+                    <div id="searchResultsDropdown" class="search-results-dropdown" style="display:none;">
+                        </div>
+                </div>
+                
+                <h2>Productos</h2> 
                 <div id="productGrid"><p id="productLoading">Seleccione una categoría.</p></div>
             </section>
-
             <aside class="order-summary-area">
                 <h3>Resumen de Orden</h3>
                 <div id="orderItems"><p class="text-center">Aún no hay productos.</p></div>

@@ -1,93 +1,134 @@
 <?php
-// send_order.php - VERSIÓN FINAL CORREGIDA
+// =====================================================
+// send_order.php - Envío de orden con hora local y notas NULL
+// =====================================================
 
+// ⚠️ Debe ser la PRIMERA línea del archivo (sin espacios antes)
 session_start();
-header('Content-Type: application/json');
 
-$response = ['success' => false, 'message' => 'Ocurrió un error inesperado.'];
+// 🟢 CORRECCIÓN CLAVE 1: Define el huso horario para PHP para que todas las funciones usen la hora local (México/Saltillo).
+// Esto resuelve la diferencia de 3 horas (21:00 vs 18:00).
+date_default_timezone_set('America/Mexico_City'); 
 
-// 1. Seguridad y obtención de ID de mesero
-if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
-    $response['message'] = 'Acceso denegado.';
-    echo json_encode($response);
-    exit();
-}
-$server_id = $_SESSION['user_id'];
+header('Content-Type: application/json; charset=utf-8');
 
-// 2. Obtener y validar datos de entrada
-$data = json_decode(file_get_contents('php://input'), true);
-$table_number = filter_var($data['table_number'] ?? 0, FILTER_VALIDATE_INT);
-$items = $data['items'] ?? [];
+// 🔒 Silenciar salida no controlada pero registrar errores
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+error_reporting(E_ALL);
 
-if (!$table_number || empty($items)) {
-    $response['message'] = 'Datos incompletos: Se requiere número de mesa y al menos un producto.';
-    echo json_encode($response);
-    exit();
-}
+$response = ['success' => false, 'message' => 'Error desconocido.'];
 
-// 3. Conexión a la Base de Datos
-require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
-
-$conn->begin_transaction();
 try {
-    // 4. Buscar el table_id a partir del número de mesa
-    $sql_table_id = "SELECT table_id FROM restaurant_tables WHERE table_number = ? LIMIT 1";
-    $stmt_table = $conn->prepare($sql_table_id);
-    $stmt_table->bind_param("i", $table_number);
-    $stmt_table->execute();
-    $table_result = $stmt_table->get_result();
-    if ($table_result->num_rows === 0) throw new Exception("El número de mesa no es válido.");
-    $table_id = $table_result->fetch_assoc()['table_id'];
-    $stmt_table->close();
-
-    // 5. Buscar una orden activa para la mesa o crear una nueva
-    $order_id = null;
-    $sql_find_order = "SELECT order_id FROM orders WHERE table_id = ? AND status NOT IN ('PAGADA', 'CANCELADA') LIMIT 1";
-    $stmt_find = $conn->prepare($sql_find_order);
-    $stmt_find->bind_param("i", $table_id);
-    $stmt_find->execute();
-    $order_res = $stmt_find->get_result();
-    if ($order_row = $order_res->fetch_assoc()) {
-        $order_id = $order_row['order_id'];
-    } else {
-        // CORRECCIÓN: Usamos 'PENDING' para coincidir con la base de datos y la vista de cocina.
-        $sql_create_order = "INSERT INTO orders (table_id, server_id, status) VALUES (?, ?, 'PENDING')";
-        $stmt_create = $conn->prepare($sql_create_order);
-        $stmt_create->bind_param("ii", $table_id, $server_id);
-        $stmt_create->execute();
-        $order_id = $conn->insert_id;
-        $stmt_create->close();
+    // Validar sesión
+    if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
+        throw new Exception('Acceso denegado.');
     }
-    $stmt_find->close();
-    if (!$order_id) throw new Exception("No se pudo obtener o crear la orden.");
+    $server_id = $_SESSION['user_id'];
 
-    // ================== LÓGICA DE COMANDAS SEPARADAS ==================
+    // Leer datos JSON
+    $rawData = trim(file_get_contents('php://input'));
+    if ($rawData === '') throw new Exception('No se recibieron datos.');
 
-    // 6. Se define UNA SOLA HORA para identificar toda esta comanda (lote)
-    $batchTime = date('Y-m-d H:i:s');
+    $data = json_decode($rawData, true, 512, JSON_THROW_ON_ERROR);
+    $table_number = intval($data['table_number'] ?? 0);
+    $items = $data['items'] ?? [];
+    if ($table_number <= 0 || empty($items)) {
+        throw new Exception('Datos incompletos.');
+    }
 
-    // 7. Se prepara la consulta para insertar los detalles de la orden
-    $sql_insert_item = "INSERT INTO order_details (order_id, product_id, quantity, price_at_order, special_notes, modifier_id, batch_timestamp) VALUES (?, ?, 1, ?, ?, ?, ?)";
-    $stmt_item = $conn->prepare($sql_insert_item);
-    
+    // Conexión
+    require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
+    require __DIR__ . '/MenuModel.php';
+    $menuModel = new MenuModel($conn);
+    if (!$conn || $conn->connect_errno) throw new Exception('Error de conexión a la base de datos.');
+
+    $conn->begin_transaction();
+
+    // Buscar mesa
+    $stmt = $conn->prepare("SELECT table_id FROM restaurant_tables WHERE table_number=? LIMIT 1");
+    $stmt->bind_param("i", $table_number);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res->num_rows === 0) throw new Exception("Mesa no válida.");
+    $table_id = $res->fetch_assoc()['table_id'];
+    $stmt->close();
+
+    // Buscar orden activa o crear nueva
+    $stmt = $conn->prepare("SELECT order_id FROM orders WHERE table_id=? AND status NOT IN ('PAGADA','CANCELADA','CLOSED') LIMIT 1");
+    $stmt->bind_param("i", $table_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+
+    if ($row = $res->fetch_assoc()) {
+        $order_id = $row['order_id'];
+    } else {
+        $stmt2 = $conn->prepare("INSERT INTO orders (table_id, server_id, status) VALUES (?, ?, 'PENDING')");
+        $stmt2->bind_param("ii", $table_id, $server_id);
+        $stmt2->execute();
+        $order_id = $conn->insert_id;
+        $stmt2->close();
+    }
+    $stmt->close();
+
+    if (!$order_id) throw new Exception('No se pudo crear o recuperar la orden.');
+
+    // Hora local (Ahora esto usa la zona horaria definida arriba)
+    $tz = new DateTimeZone('America/Mexico_City');
+    $batch_timestamp = (new DateTime('now', $tz))->format('Y-m-d H:i:s');
+
+    // Insertar items
+    $stmt_item = $conn->prepare("
+        INSERT INTO order_details
+        (order_id, product_id, quantity, price_at_order, special_notes, modifier_id, batch_timestamp, preparation_area)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    if (!$stmt_item) throw new Exception('Error preparando inserción: ' . $conn->error);
+
     foreach ($items as $item) {
-        // 8. Se inserta cada producto usando la misma variable '$batchTime'
-        $stmt_item->bind_param("iidsss", $order_id, $item['id'], $item['price'], $item['comment'], $item['modifier_id'], $batchTime);
-        $stmt_item->execute();
+        $preparation_area = $menuModel->getPreparationAreaByProductId($item['id']);
+        
+        // 🟢 CORRECCIÓN 2A: Si no hay notas, usa "" en lugar de NULL para bind_param('s').
+        $notes = (!isset($item['comment']) || trim($item['comment']) === '' || $item['comment'] === '0') ? "" : trim($item['comment']);
+        
+        // 🟢 CORRECCIÓN 2B: Si no hay modifier, usa 0 en lugar de NULL para bind_param('i').
+        $modifier_id = isset($item['modifier_id']) && $item['modifier_id'] !== '' ? intval($item['modifier_id']) : 0;
+
+        // Variables obligatorias para bind_param
+        $product_id = intval($item['id']);
+        $quantity = intval($item['quantity'] ?? 1);
+        $price = floatval($item['price']);
+        $special_notes = $notes;    // Ahora es "" o el texto
+        $modifier = $modifier_id;   // Ahora es 0 o el ID
+        $prep_area = $preparation_area;
+
+        $stmt_item->bind_param(
+            "iiidssis",
+            $order_id,
+            $product_id,
+            $quantity,
+            $price,
+            $special_notes,
+            $modifier,
+            $batch_timestamp, // Este valor ahora debe ser la hora local (21:xx)
+            $prep_area
+        );
+        
+        if (!$stmt_item->execute()) {
+             // throw new Exception('Fallo en la ejecución del item: ' . $stmt_item->error); // Para depuración
+        }
     }
     $stmt_item->close();
-    
-    // ===================================================================
 
     $conn->commit();
-    $response['success'] = true;
-    $response['message'] = 'Comanda enviada con éxito.';
+    $response = ['success' => true, 'message' => 'Comanda enviada con éxito.'];
 
-} catch (Exception $e) {
-    $conn->rollback();
-    http_response_code(500); // Buena práctica para errores del servidor
-    $response['message'] = 'Error en la base de datos: ' . $e->getMessage();
+} catch (Throwable $e) {
+    if (isset($conn) && $conn->connect_errno === 0) $conn->rollback();
+    http_response_code(500);
+    $response = ['success' => false, 'message' => $e->getMessage()];
 }
 
-echo json_encode($response);
-?>
+// ✅ Enviar JSON limpio
+echo json_encode($response, JSON_UNESCAPED_UNICODE);
+exit;

@@ -9,13 +9,27 @@ class MenuModel {
     }
 
     /**
-     * Obtiene los productos disponibles para una categoría específica.
+     * Obtiene los productos disponibles para una categoría específica,
+     * incluyendo el área de preparación.
      */
     public function getProductsByCategory($categoryId) {
-        $sql = "SELECT product_id, name, price, modifier_group_id 
-                FROM products 
-                WHERE category_id = ? 
-                ORDER BY name ASC";
+        $sql = "
+            SELECT 
+                p.product_id, 
+                p.name, 
+                p.price, 
+                p.modifier_group_id,
+                mc.preparation_area 
+            FROM 
+                products p
+            JOIN
+                menu_categories mc ON mc.category_id = p.category_id
+            WHERE 
+                p.category_id = ?
+                AND p.is_available = TRUE 
+            ORDER BY 
+                p.name ASC
+        ";
         
         $stmt = null;
         try {
@@ -26,28 +40,55 @@ class MenuModel {
             
             $stmt->bind_param("i", $categoryId);
             $stmt->execute();
-            $result = $stmt->get_result();
-            $products = $result->fetch_all(MYSQLI_ASSOC);
+            $result = $stmt->get_result(); 
+            $products = $result->fetch_all(MYSQLI_ASSOC); 
             $stmt->close();
             return $products;
         } catch (\Exception $e) {
             error_log("DB Error getting products: " . $e->getMessage());
-            return [];
+            if ($stmt) $stmt->close(); 
+            throw new \Exception("Error de BD: " . $e->getMessage()); 
         }
     }
 
-        /**
+    /**
+     * Obtiene el área de preparación para un producto específico.
+     */
+    public function getPreparationAreaByProductId($productId) {
+        $sql = "
+            SELECT 
+                mc.preparation_area 
+            FROM 
+                products p
+            JOIN 
+                menu_categories mc ON mc.category_id = p.category_id
+            WHERE 
+                p.product_id = ?
+        ";
+        $stmt = null;
+        try {
+            $stmt = $this->conn->prepare($sql);
+            if ($stmt === false) throw new Exception("Error al preparar SQL de área: " . $this->conn->error);
+            
+            $stmt->bind_param("i", $productId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            $area = $result->fetch_assoc()['preparation_area'] ?? 'COCINA'; 
+            $stmt->close();
+            return $area;
+        } catch (\Exception $e) {
+            error_log("DB Error getting product area: " . $e->getMessage());
+            if ($stmt) $stmt->close();
+            throw new \Exception("Error al consultar área de preparación: " . $e->getMessage()); 
+        }
+    }
+
+    /**
      * Obtiene los modificadores (guisos/sabores) para un grupo dado.
-     * CRÍTICO: Solución en dos pasos para evitar fallos de JOIN.
      */
     public function getModifiersByGroup($groupId) {
-        // 1. SELECT para obtener solo las opciones del modificador
-        $sql_options = "SELECT modifier_id, modifier_name, modifier_price
-                        FROM modifiers
-                        WHERE group_id = ? 
-                        ORDER BY modifier_price ASC, modifier_name ASC";
-        
-        // 2. SELECT para obtener solo el nombre del grupo
+        $sql_options = "SELECT modifier_id, modifier_name, modifier_price FROM modifiers WHERE group_id = ? ORDER BY modifier_price ASC, modifier_name ASC";
         $sql_name = "SELECT group_name FROM modifier_groups WHERE group_id = ?";
         
         $output = ['modifiers' => [], 'group_name' => 'Opción Requerida'];
@@ -55,7 +96,6 @@ class MenuModel {
         $stmt_name = null;
         
         try {
-            // --- A. Obtener Opciones (Lista de Caliente/Frío o Sabores) ---
             $stmt_options = $this->conn->prepare($sql_options);
             if ($stmt_options === false) throw new Exception("Error SQL en opciones: " . $this->conn->error);
             
@@ -65,7 +105,6 @@ class MenuModel {
             $output['modifiers'] = $result_options->fetch_all(MYSQLI_ASSOC);
             $stmt_options->close();
 
-            // --- B. Obtener Nombre del Grupo (Título del modal) ---
             $stmt_name = $this->conn->prepare($sql_name);
             if ($stmt_name === false) throw new Exception("Error SQL en nombre de grupo: " . $this->conn->error);
             
@@ -83,6 +122,8 @@ class MenuModel {
 
         } catch (\Exception $e) {
             error_log("DB Error getting modifiers: " . $e->getMessage());
+            if ($stmt_options) $stmt_options->close();
+            if ($stmt_name) $stmt_name->close();
             return ['modifiers' => [], 'group_name' => 'Error de Conexión'];
         }
     }
