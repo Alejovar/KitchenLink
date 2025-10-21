@@ -74,7 +74,7 @@ Desde la selección de una mesa activa, el mesero puede:
   - 🕐 **Pendiente → Preparando → Listo**
 - Cuando todos los productos están listos, la orden completa pasa automáticamente al **historial de cocina**.  
 
-### 🧾 Historial de Cocina (SE ESTA DESARRROLLANDO)
+### 🧾 Historial de Cocina (YA DISPONIBLE)
 - Permite **consultar órdenes completadas por fecha**.  
 - Visualiza todos los productos procesados ese día junto con su hora y mesero correspondiente.  
 
