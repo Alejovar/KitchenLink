@@ -33,17 +33,58 @@ Actualmente el sistema **ya está desplegado y en funcionamiento** en la siguien
 
 ---
 
-## 🍽️ Orders — Interfaz de Mesero (YA DISPONIBLE / En desarrollo)
+## 🍽️ Orders — Interfaz de Mesero (YA DISPONIBLE)
 
 La interfaz **Orders** permite a los **meseros** gestionar sus mesas y órdenes activas.  
-Actualmente ya se encuentra **disponible en la versión desplegada** y continuará en desarrollo con nuevas funciones.
+Actualmente ya se encuentra **totalmente implementada y funcional**, con comunicación en tiempo real entre **meseros**, **cocina** y **barra**.
 
 ### Funcionalidades
-- 🧾 **Gestión de mesas:** Cada mesero puede crear, editar y administrar las mesas que le correspondan.  
-- 👥 **Sesiones múltiples:** Permite que varios meseros inicien sesión simultáneamente sin interferir entre sí.  
-- 🔀 **Vista personalizada:** Aunque la interfaz visual es idéntica para todos, cada mesero **solo ve las mesas que él mismo creó**.  
-- 💬 **Sincronización activa:** Cada acción (crear, ocupar o liberar una mesa) se refleja inmediatamente en su sesión.  
-- 🚧 **Estado actual:** Implementada y funcionando, con futuras actualizaciones planeadas para gestión de pedidos y seguimiento de órdenes.
+
+#### 🪑 Interfaz principal
+- Permite **crear mesas nuevas**, mostrando el **tiempo en minutos** desde su creación y el **número de personas**.  
+- Incluye una **opción para editar mesa**, donde el mesero puede:
+  - Agregar platillos y **dividirlos por tiempos** (según se requiera).  
+  - **Agregar comentarios** individuales a los productos.  
+  - Usar una **barra de búsqueda** para localizar productos fácilmente (organizados por categorías).  
+  - **Agregar múltiples unidades** de un producto a la vez.  
+  - **Enviar la orden a cocina y/o barra**, regresando automáticamente a la vista principal.
+
+#### ⚙️ Opciones avanzadas de mesa
+Desde la selección de una mesa activa, el mesero puede:
+- 🔢 **Cambiar número de mesa** o **cantidad de personas**.  
+- 🔁 **Mover productos entre mesas**.  
+- ❌ **Cancelar productos** individuales.  
+- 👨‍🍳 **Reasignar el mesero** responsable de una mesa.  
+
+#### ⏳ Ordenes pendientes
+- Nueva **interfaz dinámica** donde cada mesero visualiza sus órdenes pendientes en tiempo real.  
+- Cada producto cambia automáticamente de estado según el progreso en cocina o barra (**Pendiente → Preparando → Listo**).  
+- Muestra el **tiempo en minutos desde que la orden fue enviada**.  
+- Cuando una orden está completamente lista y el mesero la entrega, puede presionar **“Completar orden”**, eliminándola de su lista.  
+
+---
+
+## 👨‍🍳 Interfaz de Cocina (YA DISPONIBLE)
+
+- Muestra todas las órdenes enviadas por los meseros en **tiempo real**, incluyendo:
+  - Nombre del mesero que la envió.  
+  - Hora exacta de envío y **minutos transcurridos** desde entonces.  
+  - Detalle completo de la orden (tiempos, productos y comentarios).  
+- Cada producto puede marcarse con un clic:
+  - 🕐 **Pendiente → Preparando → Listo**
+- Cuando todos los productos están listos, la orden completa pasa automáticamente al **historial de cocina**.  
+
+### 🧾 Historial de Cocina (SE ESTA DESARRROLLANDO)
+- Permite **consultar órdenes completadas por fecha**.  
+- Visualiza todos los productos procesados ese día junto con su hora y mesero correspondiente.  
+
+---
+
+## 🍹 Interfaz de Barra (SE ESTA DESARROLLANDO)
+
+La interfaz de barra funciona de forma análoga a la de cocina, pero únicamente muestra **productos pertenecientes a la barra**.  
+- Gestiona el estado de cada bebida en tiempo real (**Pendiente → Preparando → Listo**).  
+- Cuando todas las bebidas de una orden están listas, se envía al **historial de barra**, con las mismas opciones de filtrado por fecha.  
 
 ---
 
@@ -99,8 +140,11 @@ Para registrar usuarios por primera vez (modo despliegue):
 - 🔑 Se requiere la **contraseña de gerente** para crear nuevos usuarios.
 
 ---
+
 <p align="center">
-  <img src="documentation/interfaces/register.png" alt="Pantalla de registro" width="600"/></p>
+  <img src="documentation/interfaces/register.png" alt="Pantalla de registro" width="600"/>
+</p>
+
 ---
 
 ## 📚 Documentación del proyecto
@@ -119,6 +163,7 @@ Si deseas probar el sistema, solicitar acceso o recibir ayuda para desplegarlo:
 📩 **DM a [@imalejovar](https://www.instagram.com/imalejovar)** en Instagram.
 
 ---
+
 <p align="center">
   <img src="documentation/images/logo.png" alt="Logo KitchenLink" width="600"/>
-  </p>
+</p>
