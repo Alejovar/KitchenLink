@@ -54,13 +54,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     "success" => true,
                     "redirect" => "/KitchenLink/src/php/reservations.php"
                 ]);
-            // Si el usuario tiene id 2 lo mandamos a otra ruta
+            // Si el usuario tiene id 2 (Mesero) lo mandamos a la ruta de órdenes
             } elseif ($row['rol_id'] == 2) {
                 echo json_encode([
                     "success" => true,
                     "redirect" => "/KitchenLink/src/php/orders.php"
                 ]);
-            // Cualquier otro usuario por el momento se redirige a una interfaz generica
+            // 🟢 REDIRECCIÓN A COCINA (Rol 3)
+            } elseif ($row['rol_id'] == 3) {
+                echo json_encode([
+                    "success" => true,
+                    "redirect" => "/KitchenLink/src/php/kitchen_orders.php"
+                ]);
+            // Cualquier otro usuario (incluyendo el Encargado de Barra rol 5, si no tiene interfaz propia aún)
             } else {
                 echo json_encode([
                     "success" => true,

@@ -1,30 +1,34 @@
-// tpv.js - VERSIÓN FINAL CON BUSCADOR CORREGIDO
+// tpv.js - VERSIÓN 12.8 - CORRECCIÓN FINAL DE LÓGICA DE TIEMPOS
 
 // Rutas a los endpoints PHP (AJAX)
 const API_ROUTES = {
     API_PRODUCT_URL: '/KitchenLink/src/api/orders/tpv/get_products_by_category.php',
     API_MODIFIER_URL: '/KitchenLink/src/api/orders/tpv/get_product_modifiers.php',
     API_SEND_ORDER: '/KitchenLink/src/api/orders/tpv/send_order.php',
-    API_SEARCH_PRODUCT: '/KitchenLink/src/api/orders/tpv/search_products.php' 
+    API_SEARCH_PRODUCT: '/KitchenLink/src/api/orders/tpv/search_products.php',
+    API_GET_ACTIVE_ORDER_ID: '/KitchenLink/src/api/orders/get_active_order_id.php', 
+    API_GET_ORDER_ITEMS: '/KitchenLink/src/api/orders/tpv/get_current_order.php' 
 };
 
-// Referencias del DOM (se obtendrán dentro de DOMContentLoaded)
+// Referencias del DOM y Variables de estado
 let categoryList, productGrid, orderItems, orderTotalElement, sendOrderBtn, quantitySelector, addTimeBtn,
     commentModal, commentModalItemName, commentInput, commentItemIndex, saveCommentBtn, cancelCommentBtn,
     closeCommentModalBtn, modifierModal, modalProductName, modifierGroupName, modifierOptions,
     closeModifierModalBtn, clockContainer;
-let searchInput, searchDropdown; // Referencias para el buscador
+let searchInput, searchDropdown; 
 
-// Variables de estado
 const tableNumber = parseInt(new URLSearchParams(window.location.search).get('table')) || 0;
 let currentOrder = [];
+let timeCounter = 1; 
+let activeOrderId = 0; 
 let currentProduct = null;
-let timeCounter = 1;
-let lastItemWasTime = false;
-const LOCK_TIME_MS = 60000; // 1 minuto
-let serverNow = Date.now();
+let serverNow = Date.now(); 
+let shouldCreateNewTime = false; 
 
-// [ --- Funciones de Reloj, Total, Orden, Enviar --- ]
+// ----------------------------------------------------
+// FUNCIONES CLAVE DE ORDEN Y TIEMPOS
+// ----------------------------------------------------
+
 function updateClock() {
     if (!clockContainer) return;
     const now = new Date();
@@ -38,92 +42,252 @@ function updateClock() {
 }
 
 function updateOrderTotal() {
-    const total = currentOrder.filter(item => item.type === 'product').reduce((sum, item) => sum + item.price, 0);
+    const total = currentOrder.filter(item => item.type === 'product' && !item.sentTimestamp).reduce((sum, item) => sum + item.price, 0);
     orderTotalElement.textContent = `$${total.toFixed(2)}`;
 }
 
+function getFirstPendingTimeIndex() {
+    return currentOrder.findIndex(item => item.type === 'time' && !item.sentTimestamp);
+}
+
 function addItemToOrder(item) {
-    const itemToAdd = { 
-        ...item, 
-        type: 'product', 
-        comment: '', 
-        modifierGroupId: undefined 
-    }; 
-    currentOrder.push(itemToAdd);
-    lastItemWasTime = false;
+    const itemToAdd = {
+        ...item,
+        type: 'product',
+        comment: item.comment || '',
+        quantity: 1,
+        modifier_id: item.modifier_id || undefined
+    };
+
+    const lastPendingTimeIndex = currentOrder.findLastIndex(i => i.type === 'time' && !i.sentTimestamp);
+
+    if (lastPendingTimeIndex === -1) {
+        currentOrder.push(itemToAdd);
+    } else {
+        const nextTimeIndex = currentOrder.findIndex(
+            (i, index) => index > lastPendingTimeIndex && i.type === 'time'
+        );
+        const insertionIndex = (nextTimeIndex !== -1) ? nextTimeIndex : currentOrder.length;
+        currentOrder.splice(insertionIndex, 0, itemToAdd);
+    }
+
     renderOrderSummary();
+    if (orderItems) orderItems.scrollTop = orderItems.scrollHeight;
 }
 
 function renderOrderSummary() {
-    orderItems.innerHTML = '';
-    if (currentOrder.length === 0) {
-        orderItems.innerHTML = '<p class="text-center">Aún no hay productos.</p>';
-        updateOrderTotal();
-        return;
+    if (!orderItems) return;
+
+    currentOrder = currentOrder.filter((item, index, arr) => {
+        if (item.type !== 'time') return true;
+        if (item.sentTimestamp) return true;
+        if (item.name.includes('Tiempo 1')) return true;
+
+        const nextTimeIndex = arr.slice(index + 1).findIndex(i => i.type === 'time');
+        const productsInBlock = nextTimeIndex === -1 
+            ? arr.slice(index + 1).some(i => i.type === 'product' && !i.sentTimestamp)
+            : arr.slice(index + 1, index + 1 + nextTimeIndex).some(i => i.type === 'product' && !i.sentTimestamp);
+        
+        return productsInBlock;
+    });
+
+    const hasPendingTime = currentOrder.some(i => i.type === 'time' && !i.sentTimestamp);
+    if (!hasPendingTime) {
+         currentOrder.push({ type: 'time', name: `--- Tiempo ${timeCounter} ---` });
+    } else {
+        const lastPendingIndex = currentOrder.findLastIndex(i => i.type === 'time' && !i.sentTimestamp);
+        if (lastPendingIndex !== -1) {
+             currentOrder[lastPendingIndex].name = `--- Tiempo ${timeCounter} ---`;
+        }
     }
 
-    const now = serverNow;
-
+    orderItems.innerHTML = '';
     currentOrder.forEach((item, index) => {
         const itemDiv = document.createElement('div');
-        const isItemEditable = !item.sentTimestamp || (now - item.sentTimestamp < LOCK_TIME_MS);
-        const removeButtonHTML = `<button class="btn-remove" data-index="${index}">&times;</button>`;
+        const isTime = item.type === 'time';
+        const isEditable = !item.sentTimestamp;
 
-        if (item.type === 'time') {
-            itemDiv.className = 'order-time-separator';
+        if (isTime) {
+            itemDiv.className = `order-time-separator ${isEditable ? 'time-pending' : 'time-sent'}`;
             itemDiv.innerHTML = `<span>${item.name}</span>`;
-        } else if (item.type === 'product') {
-            itemDiv.className = 'order-item';
+            if (!isEditable) {
+                itemDiv.classList.add('time-permanent');
+            } else if (item.name.includes('Tiempo 1')) {
+                 const nextTimeIndex = currentOrder.slice(index + 1).findIndex(i => i.type === 'time');
+                 const productsInBlock = nextTimeIndex === -1 
+                     ? currentOrder.slice(index + 1).some(i => i.type === 'product' && !i.sentTimestamp)
+                     : currentOrder.slice(index + 1, index + 1 + nextTimeIndex).some(i => i.type === 'product' && !i.sentTimestamp);
+                 if (!productsInBlock) itemDiv.classList.add('time-permanent');
+            }
+        } else {
+            itemDiv.className = `order-item ${isEditable ? '' : 'locked-item'}`;
             itemDiv.dataset.index = index;
-            const commentHTML = (item.comment && item.comment.trim() !== '') ? `<span class="item-comment"><i class="fas fa-sticky-note"></i> ${item.comment}</span>` : '';
+            const commentHTML = item.comment ? `<span class="item-comment"><i class="fas fa-sticky-note"></i> ${item.comment}</span>` : '';
+            const displayQuantity = item.quantity && item.quantity > 1 ? `${item.quantity}x ` : '';
             itemDiv.innerHTML = `
-                <div class="item-details"><span class="item-name">${item.name}</span>${commentHTML}</div>
+                <div class="item-details"><span class="item-name">${displayQuantity}${item.name}</span>${commentHTML}</div>
                 <span class="item-price">$${item.price.toFixed(2)}</span>
-                ${isItemEditable ? removeButtonHTML : '<span class="item-locked"><i class="fas fa-lock"></i></span>'}`;
+                ${isEditable ? `<button class="btn-remove" data-index="${index}">&times;</button>` : '<span class="item-locked"><i class="fas fa-lock"></i></span>'}`;
         }
         orderItems.appendChild(itemDiv);
     });
 
-    const hasSentItems = currentOrder.some(item => typeof item.sentTimestamp === 'number');
-    sendOrderBtn.textContent = hasSentItems ? 'Actualizar Orden' : 'Enviar a Cocina';
-    const hasNewItems = currentOrder.some(item => !item.sentTimestamp && item.type === 'product');
+    const hasNewItems = currentOrder.some(i => i.type === 'product' && !i.sentTimestamp);
+    const hasSentItems = currentOrder.some(i => i.type === 'product' && i.sentTimestamp);
+
     sendOrderBtn.disabled = !hasNewItems;
+    sendOrderBtn.textContent = hasSentItems ? 'Actualizar Orden' : 'Enviar a Cocina';
+    
+    const pendingTimeIndex = getFirstPendingTimeIndex();
+    const hasProductsInActiveTime = pendingTimeIndex !== -1 && currentOrder.slice(pendingTimeIndex + 1).some(i => i.type === 'product' && !i.sentTimestamp);
+    addTimeBtn.disabled = !hasProductsInActiveTime;
+
     updateOrderTotal();
 }
 
-async function sendOrderToKitchen() { 
-    const newItemsToSend = currentOrder.filter(item => !item.sentTimestamp && item.type === 'product');
-    if (newItemsToSend.length === 0) {
-        alert('No hay productos nuevos para enviar.');
+async function sendOrderToKitchen() {
+    const timesMap = {};
+    let current_service_time = 0;
+
+    for (const item of currentOrder) {
+        if (item.type === 'time') {
+            const timeMatch = item.name.match(/Tiempo (\d+)/);
+            if (timeMatch) {
+                current_service_time = parseInt(timeMatch[1]);
+            }
+        } else if (item.type === 'product' && !item.sentTimestamp) {
+            if (current_service_time > 0) {
+                if (!timesMap[current_service_time]) {
+                    timesMap[current_service_time] = {
+                        service_time: current_service_time,
+                        items: []
+                    };
+                }
+                timesMap[current_service_time].items.push({
+                    id: item.id,
+                    quantity: item.quantity || 1,
+                    price: item.price,
+                    comment: item.comment,
+                    modifier_id: item.modifier_id
+                });
+            }
+        }
+    }
+    
+    const finalTimesToSend = Object.values(timesMap);
+
+    if (finalTimesToSend.length === 0) {
+        console.warn("sendOrderToKitchen fue llamada, pero no se encontraron ítems nuevos para enviar.");
+        renderOrderSummary();
         return;
     }
+    
     sendOrderBtn.disabled = true;
     sendOrderBtn.textContent = 'Enviando...';
     try {
         const response = await fetch(API_ROUTES.API_SEND_ORDER, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ table_number: tableNumber, items: newItemsToSend })
+            body: JSON.stringify({
+                table_number: tableNumber,
+                times: finalTimesToSend,
+                order_id: activeOrderId
+            })
         });
+
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.message || 'Error desconocido.');
 
-        alert('¡Orden enviada/actualizada!');
-        
-        const now = Date.now();
-        currentOrder.forEach(item => {
-            if (!item.sentTimestamp && item.type === 'product') {
-                item.sentTimestamp = now;
-            }
-        });
-        renderOrderSummary();
+        loadInitialOrder();
+
     } catch (error) {
-        alert(`Error: ${error.message}`);
+        console.error('Error al enviar la orden:', error);
+        alert(`Error al enviar la comanda: ${error.message}`);
         renderOrderSummary();
     }
 }
 
-// --- Lógica de Interfaz y Productos ---
+
+async function loadInitialOrder() {
+    if (tableNumber <= 0) return;
+
+    try {
+        const urlId = `${API_ROUTES.API_GET_ACTIVE_ORDER_ID}?table_number=${tableNumber}`;
+        const orderIdResponse = await fetch(urlId);
+        const orderIdData = await orderIdResponse.json();
+        
+        if (!orderIdData.success || !orderIdData.order_id) {
+            activeOrderId = 0;
+            currentOrder = [];
+            timeCounter = 1;
+            renderOrderSummary(); 
+            return;
+        }
+
+        activeOrderId = orderIdData.order_id;
+
+        const itemsResponse = await fetch(`${API_ROUTES.API_GET_ORDER_ITEMS}?order_id=${activeOrderId}`);
+        const data = await itemsResponse.json();
+        
+        if (!data.success) throw new Error(data.message || 'Error al obtener ítems de orden.');
+        
+        const times = data.times || [];
+        
+        currentOrder = [];
+        let maxTime = 0;
+
+        times.forEach(timeBatch => {
+            const displayTime = timeBatch.service_time; 
+            const sentTimestamp = timeBatch.items[0]?.added_at || timeBatch.items[0]?.batch_timestamp; 
+            maxTime = Math.max(maxTime, displayTime);
+            
+            if (timeBatch.items && timeBatch.items.length > 0) {
+                currentOrder.push({ 
+                    type: 'time', 
+                    name: `--- Tiempo ${displayTime} ---`,
+                    sentTimestamp: new Date(sentTimestamp).getTime() 
+                });
+                
+                timeBatch.items.forEach(item => {
+                    currentOrder.push({
+                        type: 'product',
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: 1, 
+                        comment: item.comment,
+                        modifier_id: item.modifier_id,
+                        sentTimestamp: new Date(sentTimestamp).getTime() 
+                    });
+                });
+            }
+        });
+        
+        // ==============================================================================
+        // ✅ CORRECCIÓN DE LÓGICA: No avanzar al siguiente tiempo automáticamente.
+        // El contador ahora se establece en el último tiempo activo (o en 1 si es nuevo).
+        // `renderOrderSummary` se encargará de añadir el separador PENDIENTE para este
+        // mismo tiempo, permitiendo agregar más productos.
+        // ==============================================================================
+        timeCounter = maxTime > 0 ? maxTime : 1;
+        
+    } catch (error) {
+        console.error('Error al cargar la orden inicial:', error);
+        currentOrder = [];
+        timeCounter = 1;
+    }
+    renderOrderSummary();
+    if (orderItems) {
+        orderItems.scrollTop = orderItems.scrollHeight;
+    }
+}
+
+
+// ----------------------------------------------------
+// CÓDIGO RESTANTE (Funciones de Menú, Búsqueda, Modales, etc...)
+// Se mantiene igual...
+// ----------------------------------------------------
+
 function renderProducts(products) {
     productGrid.innerHTML = '';
     if (products.length === 0) {
@@ -144,7 +308,6 @@ function renderProducts(products) {
 async function handleCategoryClick(categoryId) { 
     productGrid.innerHTML = '<p id="productLoading">Cargando productos...</p>';
     
-    // Lógica para establecer la categoría activa en el menú lateral
     document.querySelectorAll('.category-item').forEach(item => {
         if (item.dataset.categoryId == categoryId) {
             item.classList.add('active');
@@ -194,14 +357,11 @@ function renderModifiers(modifiers) {
     modifiers.forEach(mod => {
         const label = document.createElement('label');
         label.className = 'modifier-option';
-        label.innerHTML = `<input type="radio" name="modifier-choice" value="${mod.modifier_id}" data-price="${mod.modifier_price}">${mod.modifier_name} ${parseFloat(mod.modifier_price) > 0 ? `(+$${parseFloat(mod.modifier_price).toFixed(2)})` : ''}`;
+        label.innerHTML = `<input type="radio" name="modifier-choice" value="${mod.modifier_id}" data-price="${mod.modifier_price}">${mod.modifier_name} ${parseFloat(mod.modifier_price).toFixed(2) > 0 ? `(+$${parseFloat(mod.modifier_price).toFixed(2)})` : ''}`;
         modifierOptions.appendChild(label);
     });
 }
 
-// ----------------------------------------------------
-// 🚨 LÓGICA DEL BUSCADOR GLOBAL 🚨
-// ----------------------------------------------------
 let searchTimeout;
 
 function setupSearchListeners() {
@@ -225,38 +385,40 @@ function setupSearchListeners() {
     searchDropdown.addEventListener('click', (e) => {
         const item = e.target.closest('.search-result-item');
         if (item) {
-            // 1. Obtener todos los datos necesarios
             const productId = parseInt(item.dataset.productId);
             const price = parseFloat(item.dataset.price);
             const categoryId = parseInt(item.dataset.categoryId);
             
-            // 🚨 CORRECCIÓN CLAVE: Usamos ternario para asegurar que sea null o un entero válido 🚨
             const rawModId = item.dataset.modifierGroupId;
             const modifierGroupId = (rawModId && rawModId !== 'null' && rawModId !== '0') ? parseInt(rawModId) : null;
             
             const name = item.querySelector('.result-name').textContent;
-            
-            // 2. Asignar currentProduct CORRECTAMENTE para el flujo de modificadores
+            const quantity = parseInt(quantitySelector.value) || 1; 
+
             currentProduct = {
                 id: productId, 
                 name: name,
                 price: price, 
-                modifierGroupId: modifierGroupId // ⬅️ Asignación clave
+                modifierGroupId: modifierGroupId,
+                quantity: quantity 
             };
             
-            // 3. Navegar/Seleccionar la categoría lateral
-            handleCategoryClick(categoryId);
+            handleCategoryClick(categoryId); 
             
-            // 4. DECIDIR: Si el ID es un número válido (> 0), cargar modificadores
             if (currentProduct.modifierGroupId) {
                 loadModifiers(currentProduct.modifierGroupId); 
-            } else {
-                // Si NO requiere modificador, lo agregamos directamente
-                const quantity = parseInt(quantitySelector.value) || 1; 
-                for (let i = 0; i < quantity; i++) addItemToOrder(currentProduct);
+            } else { 
+                for (let i = 0; i < quantity; i++) {
+                    addItemToOrder({
+                        id: currentProduct.id,
+                        name: currentProduct.name,
+                        price: currentProduct.price,
+                        quantity: 1, 
+                        modifierGroupId: currentProduct.modifierGroupId
+                    });
+                }
             }
             
-            // 5. Limpiar y cerrar el dropdown
             searchInput.value = '';
             searchDropdown.style.display = 'none';
         }
@@ -286,11 +448,10 @@ function renderSearchResults(products) {
         const item = document.createElement('div');
         item.className = 'search-result-item';
         
-        // Almacenar datos críticos en el dataset
         item.dataset.productId = product.id;
         item.dataset.price = product.price;
         item.dataset.categoryId = product.category_id;
-        item.dataset.modifierGroupId = product.modifier_group_id || ''; // Puede ser nulo
+        item.dataset.modifierGroupId = product.modifier_group_id || ''; 
         
         item.innerHTML = `
             <span class="result-name">${product.name}</span>
@@ -302,11 +463,7 @@ function renderSearchResults(products) {
     searchDropdown.style.display = 'block';
 }
 
-// ----------------------------------------------------
-
-// --- Event Listeners y Inicialización ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Obtener todas las referencias del DOM
     categoryList = document.getElementById('categoryList');
     productGrid = document.getElementById('productGrid');
     orderItems = document.getElementById('orderItems');
@@ -327,21 +484,12 @@ document.addEventListener('DOMContentLoaded', () => {
     modifierOptions = document.getElementById('modifierOptions');
     closeModifierModalBtn = modifierModal.querySelector('.close-btn');
     clockContainer = document.getElementById('liveClockContainer');
-    
-    // 🚨 NUEVAS REFERENCIAS DEL DOM PARA LA BÚSQUEDA 🚨
     searchInput = document.getElementById('productSearchInput');
     searchDropdown = document.getElementById('searchResultsDropdown');
 
-
-    // 2. Iniciar reloj y actualizador de UI
     updateClock();
     setInterval(updateClock, 1000);
-    setInterval(() => {
-        serverNow += 5000; 
-        renderOrderSummary();
-    }, 5000);
 
-    // 3. Asignar todos los listeners
     sendOrderBtn.addEventListener('click', sendOrderToKitchen);
 
     categoryList.addEventListener('click', (e) => {
@@ -351,45 +499,74 @@ document.addEventListener('DOMContentLoaded', () => {
             handleCategoryClick(categoryItem.dataset.categoryId); 
         }
     });
-
+    
     productGrid.addEventListener('click', (e) => {
         const productBtn = e.target.closest('.product-item-btn');
         if (!productBtn) return;
         
+        const quantity = parseInt(quantitySelector.value) || 1; 
+
         currentProduct = {
             id: parseInt(productBtn.dataset.productId), 
             name: productBtn.querySelector('.product-name').textContent,
             price: parseFloat(productBtn.dataset.price), 
-            modifierGroupId: parseInt(productBtn.dataset.modifierGroupId) || null
+            modifierGroupId: parseInt(productBtn.dataset.modifierGroupId) || null,
+            quantity: quantity 
         };
         
         if (currentProduct.modifierGroupId) { 
             loadModifiers(currentProduct.modifierGroupId); 
         } else { 
-            const quantity = parseInt(quantitySelector.value) || 1; 
-            for (let i = 0; i < quantity; i++) addItemToOrder(currentProduct); 
+            for (let i = 0; i < quantity; i++) {
+                addItemToOrder({
+                    id: currentProduct.id,
+                    name: currentProduct.name,
+                    price: currentProduct.price, 
+                    quantity: 1, 
+                    modifierGroupId: currentProduct.modifierGroupId
+                });
+            }
         }
     });
 
-    // 🚨 INICIALIZAR LISTENERS DE BÚSQUEDA 🚨
     setupSearchListeners();
 
-
     document.getElementById('addModifiedItemBtn').addEventListener('click', () => {
+        if (!currentProduct) return; 
         const selectedRadio = modifierOptions.querySelector('input[name="modifier-choice"]:checked');
-        if (!selectedRadio) { alert('Por favor, selecciona una opción.'); return; }
+        if (!selectedRadio) { return; } 
+        
+        const quantity = currentProduct.quantity; 
         const modifier = { id: parseInt(selectedRadio.value), name: selectedRadio.parentNode.textContent.trim().split('(')[0].trim(), price: parseFloat(selectedRadio.dataset.price) };
-        const combinedItem = { ...currentProduct, name: `${currentProduct.name} (${modifier.name})`, price: currentProduct.price + modifier.price, modifier_id: modifier.id };
-        const quantity = parseInt(quantitySelector.value) || 1;
-        for (let i = 0; i < quantity; i++) addItemToOrder(combinedItem);
-        modifierModal.style.display = 'none'; currentProduct = null;
+        const unitPrice = currentProduct.price + modifier.price;
+
+        for (let i = 0; i < quantity; i++) {
+            const combinedItem = { 
+                id: currentProduct.id,
+                name: `${currentProduct.name} (${modifier.name})`, 
+                price: unitPrice, 
+                modifier_id: modifier.id,
+                quantity: 1
+            };
+            addItemToOrder(combinedItem);
+        }
+        
+        modifierModal.style.display = 'none'; 
+        currentProduct = null;
     });
 
     addTimeBtn.addEventListener('click', () => {
-        if (lastItemWasTime) { alert('Debes agregar al menos un producto antes de agregar otro tiempo.'); return; }
-        currentOrder.push({ type: 'time', name: `--- Tiempo ${timeCounter++} ---` });
-        lastItemWasTime = true;
+        const pendingTimes = currentOrder.filter(i => i.type === 'time' && !i.sentTimestamp);
+        if (!pendingTimes.length) return;
+
+        const activeTime = pendingTimes[pendingTimes.length - 1];
+        const activeIndex = currentOrder.lastIndexOf(activeTime);
+        currentOrder[activeIndex].sentTimestamp = Date.now();
+        shouldCreateNewTime = true; 
+        timeCounter++;
+        currentOrder.push({ type: 'time', name: `--- Tiempo ${timeCounter} ---` }); 
         renderOrderSummary();
+        if (orderItems) orderItems.scrollTop = orderItems.scrollHeight;
     });
 
     saveCommentBtn.addEventListener('click', () => {
@@ -413,9 +590,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (removeBtn) {
             e.stopPropagation();
             const indexToRemove = parseInt(removeBtn.dataset.index);
-            if (!isNaN(indexToRemove) && currentOrder[indexToRemove]) {
+            if (!isNaN(indexToRemove) && currentOrder[indexToRemove] && !currentOrder[indexToRemove].sentTimestamp) {
                 currentOrder.splice(indexToRemove, 1);
                 renderOrderSummary();
+                if (orderItems) {
+                    orderItems.scrollTop = orderItems.scrollHeight;
+                }
             }
             return;
         }
@@ -425,49 +605,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const index = parseInt(itemElement.dataset.index);
             if (isNaN(index) || !currentOrder[index]) return;
             const item = currentOrder[index];
-            
-            const isItemEditable = !item.sentTimestamp || (serverNow - item.sentTimestamp < LOCK_TIME_MS);
-
+            const isItemEditable = !item.sentTimestamp; 
             if (isItemEditable && item.type === 'product') {
                 commentModalItemName.textContent = item.name;
                 commentInput.value = item.comment || '';
                 commentItemIndex.value = index;
                 commentModal.style.display = 'flex';
-                commentInput.focus();
             }
         }
     });
 
-    // 4. Cargar datos iniciales
-    const dataElement = document.getElementById('initialOrderData');
-    if (dataElement) {
-        try {
-            const data = JSON.parse(dataElement.textContent);
-            if (data.server_time) {
-                serverNow = new Date(data.server_time).getTime();
-            }
-            if (data && data.items) {
-                const initialItems = data.items.map(item => {
-                    if (item.sentTimestamp) {
-                        item.sentTimestamp = new Date(item.sentTimestamp).getTime();
-                    }
-                    return item;
-                });
-                currentOrder.push({ type: 'time', name: `--- Tiempo ${timeCounter++} ---` });
-                if (initialItems.length > 0) {
-                    currentOrder.push(...initialItems);
-                    lastItemWasTime = false;
-                } else {
-                    lastItemWasTime = true;
-                }
-            }
-        } catch (e) { console.error("Error al parsear datos iniciales:", e); }
-    }
+    loadInitialOrder(); 
 
-    // 5. Carga inicial de la UI
     const firstCategory = document.querySelector('.category-item');
     if (firstCategory) {
         handleCategoryClick(firstCategory.dataset.categoryId); 
     }
-    renderOrderSummary();
 });

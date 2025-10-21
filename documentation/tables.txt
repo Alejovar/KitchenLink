@@ -208,6 +208,8 @@ CREATE TABLE IF NOT EXISTS products (
 -- ######################################################################
 
 -- 3.1. Tabla de Órdenes (Comandas)
+-- Se define con el motor InnoDB desde el inicio.
+-- Se asume que las tablas 'restaurant_tables' y 'users' ya existen.
 CREATE TABLE IF NOT EXISTS orders (
     order_id INT NOT NULL AUTO_INCREMENT,
     table_id INT NOT NULL,
@@ -220,7 +222,11 @@ CREATE TABLE IF NOT EXISTS orders (
         ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT FK_OrderServer FOREIGN KEY (server_id) REFERENCES users(id)
         ON DELETE RESTRICT ON UPDATE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+---
+
+
 
 -- Estructura actualizada para la tabla: order_details
 -- Incluye la hora de adición (added_at) y la marca de lote (batch_timestamp)
@@ -258,6 +264,9 @@ CREATE TABLE IF NOT EXISTS order_details (
     CONSTRAINT FK_DetailModifier FOREIGN KEY (modifier_id) REFERENCES modifiers(modifier_id)
         ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE order_details
+ADD COLUMN service_time INT NOT NULL DEFAULT 1 COMMENT 'Secuencia de servicio (tiempo) para agrupar ítems en la comanda. Por defecto es 1.';
 
 -- ######################################################################
 -- # 4. INSERCIÓN DE DATOS INICIALES (MENÚ COMPLETO)

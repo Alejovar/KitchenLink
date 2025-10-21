@@ -1,5 +1,5 @@
 <?php
-// pending_orders.php
+// pending_orders.php - CORREGIDO
 
 session_start();
 
@@ -70,37 +70,29 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
     </main>
 </div>
 
-<!-- PANEL DE DETALLES -->
-<aside id="orderDetailsPanel" class="details-panel">
-    <div class="details-header">
-        <h2>Detalles de la Orden</h2>
-        <button id="closeDetailsPanel" class="close-panel">&times;</button>
-    </div>
+<div id="orderDetailsPanel" class="details-panel">
     <div class="details-content">
-        <p><strong>Mesa:</strong> <span id="detailTableNumber"></span></p>
-        <p><strong>ID Orden:</strong> <span id="detailOrderId"></span></p>
-        <p><strong>Hora del lote:</strong> <span id="detailBatchTime"></span></p>
-        <div id="detailItemsList"></div>
+        <div class="details-header">
+            <h2>Detalles de la Orden</h2>
+            <button id="closeDetailsPanel" class="close-btn">&times;</button>
+        </div>
+        
+        <div class="order-info">
+            <p><strong>Mesa:</strong> <span id="detailTableNumber">--</span></p>
+            <p><strong>ID Orden:</strong> <span id="detailOrderId">--</span></p>
+            <p><strong>Hora del lote:</strong> <span id="detailBatchTime">--</span></p>
+        </div>
+
+        <div id="detailItemsList" class="items-list-container">
+            </div>
+
+        <div id="detailPanelFooter" class="details-footer">
+            </div>
+        
     </div>
-</aside>
+</div>
 
 
 <script src="/KitchenLink/src/js/pending_orders.js"></script>
-<script>
-// --- EVENT DELEGATION PARA BOTONES DE VER DETALLE ---
-document.addEventListener('DOMContentLoaded', () => {
-    const ordersGrid = document.getElementById('ordersGrid');
-
-    ordersGrid.addEventListener('click', (e) => {
-        if (e.target && e.target.classList.contains('btn-detail')) {
-            const { orderId, tableNumber, batchTime } = e.target.dataset;
-            if (window.displayOrderDetails) {
-                window.displayOrderDetails(orderId, tableNumber, batchTime);
-            }
-        }
-    });
-});
-</script>
-
 </body>
 </html>

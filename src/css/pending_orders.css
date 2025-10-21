@@ -399,3 +399,155 @@ h1 {
 #detailItemsList .item-status {
     text-align: right;
 }
+
+/* ============================================= */
+/* == ESTILOS PARA EL PANEL LATERAL DE DETALLES == */
+/* ============================================= */
+
+/* Contenedor de la lista de ítems */
+#detailItemsList {
+    margin-top: 20px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+
+/* Estilo base para cada fila (header y producto) */
+.detail-item {
+    display: grid;
+    grid-template-columns: 50px 1fr 70px 80px 110px; /* Columnas: Cant, Producto, Tiempo, Área, Estado */
+    gap: 10px;
+    align-items: center;
+    padding: 12px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+
+/* Fila de encabezado */
+.detail-header {
+    font-weight: bold;
+    color: #555;
+    background-color: #f9f9f9;
+    border-bottom: 2px solid #ddd;
+    padding: 10px;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+/* Celda para la cantidad */
+.detail-item .item-qty {
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+}
+
+/* Celda para el nombre del producto y notas */
+.detail-item .item-name {
+    font-weight: 500;
+    color: #222;
+}
+
+/* Estilo para las notas especiales (comentarios) */
+.detail-item .detail-notes {
+    display: block;
+    font-size: 12px;
+    color: #777;
+    margin-top: 2px;
+    font-style: italic;
+}
+
+/* Celda para el "Tiempo" */
+.detail-item .item-time {
+    text-align: center;
+    font-weight: bold;
+    color: #666;
+}
+
+/* Estilo base para las celdas de estado y área */
+.detail-item .item-status {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+}
+
+/* Colores específicos para el estado del ítem */
+.detail-item .status-state.status-ready {
+    background-color: #d4edda; /* Verde claro */
+    color: #155724;
+}
+.detail-item .status-state.status-preparing {
+    background-color: #fff3cd; /* Amarillo claro */
+    color: #856404;
+}
+.detail-item .status-state.status-pending {
+    background-color: #f8d7da; /* Rojo claro */
+    color: #721c24;
+}
+
+/* Colores específicos para el área de preparación */
+.detail-item .status-area.status-kitchen {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+.detail-item .status-area.status-bar {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+
+/* ======================================== */
+/* == ESTILOS PARA EL FOOTER Y EL BOTÓN  == */
+/* ======================================== */
+
+.details-footer {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    text-align: center;
+}
+
+.complete-btn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background-color: #28a745; /* Verde éxito */
+    color: white;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.complete-btn:hover {
+    background-color: #218838; /* Verde más oscuro */
+}
+
+.complete-btn:active {
+    transform: scale(0.98);
+}
+
+.complete-btn:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+}
+
+/* Nuevo estilo para el estado 'sin items' en las tarjetas de órdenes */
+.status-item.status-none {
+    opacity: 0.5; /* Lo hace un poco transparente para indicar que no hay actividad */
+}
+
+.status-item.status-none .status-text {
+    color: #6c757d; /* Un color gris neutral */
+}
+
+/* Añade esto a tu archivo de estilos CSS */
+
+#completeOrderBtn:disabled {
+    background-color: #999; /* Color gris */
+    border-color: #999;
+    cursor: not-allowed;      /* Cambia el cursor para indicar que no se puede clickear */
+    opacity: 0.7;
+}

@@ -10,7 +10,7 @@ $dbname = "llya_40123800_KichenLink";
 $conn = new mysqli($servername, $username_db, $password_db, $dbname);
 // 🟢 SOLUCIÓN FINAL PARA EL ERROR DE TIMEZONE
 // Usa el desplazamiento UTC-6, que es compatible con todos los servidores MySQL.
-$conn->query("SET time_zone = '-06:00'");
+$conn->query("SET time_zone = '-05:00'");
 // Verifica la conexión
 if ($conn->connect_error) {
     die("Error de conexión a la base de datos: " . $conn->connect_error);

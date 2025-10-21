@@ -1,115 +1,79 @@
 <?php
-// /KitchenLink/src/api/orders/pending_orders/get_order_details.php
+// get_order_details.php - CORRECCIÓN FINAL: BUSCA POR ID DE LOTE
+
 session_start();
-// Define el huso horario para PHP.
-date_default_timezone_set('America/Mexico_City'); 
 header('Content-Type: application/json; charset=utf-8');
+ini_set('display_errors', 0);
+error_reporting(E_ALL);
 
-// --- Seguridad: solo meseros (rol_id = 2)
-if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Acceso denegado.'], JSON_UNESCAPED_UNICODE);
-    exit();
-}
-
-// Conexión
-require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
+$response = ['success' => false, 'message' => 'Error desconocido.'];
+$conn = null;
 
 try {
-    // 🟢 ESTABLECER ZONA HORARIA: Necesario para que las consultas de fecha funcionen correctamente.
-    if (isset($conn)) {
-        // Usamos el offset UTC-6 para evitar el error de zona horaria desconocida.
-        $conn->query("SET time_zone = '-06:00'");
+    if (!isset($_SESSION['user_id'])) {
+        throw new Exception("Acceso no autorizado.");
     }
 
-    // --- Validar parámetros
-    $order_id = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
-    
-    // 🔑 RENOMBRAMOS la variable para reflejar que contiene el added_at del lote
-    $added_at_raw = isset($_GET['batch_timestamp']) ? $_GET['batch_timestamp'] : ''; 
+    $order_id = filter_input(INPUT_GET, 'order_id', FILTER_VALIDATE_INT);
+    // ✅ Ahora recibimos el ID del lote
+    $batch_id = filter_input(INPUT_GET, 'batch_id', FILTER_VALIDATE_INT);
 
-    // Limpiar el timestamp (decodificar y limpiar espacios)
-    $added_at_raw = trim(urldecode($added_at_raw)); 
-
-    // 🟢 CONVERTIR FORMATO: El JS envía formato ATOM, MySQL necesita DATETIME.
-    if (!empty($added_at_raw)) {
-        $dt = new DateTime($added_at_raw); 
-        $added_at_time = $dt->format('Y-m-d H:i:s');
-    } else {
-        throw new Exception('Parámetro de tiempo (added_at) faltante o inválido.');
+    if (!$order_id || !$batch_id) {
+        throw new Exception("Faltan parámetros: ID de orden o ID de lote.");
     }
 
-    if ($order_id <= 0 || empty($added_at_time)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Parámetros de entrada inválidos.'], JSON_UNESCAPED_UNICODE);
-        exit();
-    }
+    require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
-    // Verificar conexión
-    if (!$conn) {
-        throw new Exception("Conexión MySQLi no inicializada.");
-    }
+    // ✅ La consulta ahora es en dos pasos para ser 100% segura.
+    // 1. Obtener el timestamp exacto del lote usando el ID único.
+    $ts_stmt = $conn->prepare("SELECT batch_timestamp FROM order_details WHERE detail_id = ? LIMIT 1");
+    $ts_stmt->bind_param("i", $batch_id);
+    $ts_stmt->execute();
+    $ts_result = $ts_stmt->get_result();
+    $batch_row = $ts_result->fetch_assoc();
+    $ts_stmt->close();
 
-    // Consulta de los detalles de la orden
+    if (!$batch_row) {
+        throw new Exception("ID de lote no válido o no encontrado.");
+    }
+    $exact_batch_timestamp = $batch_row['batch_timestamp'];
+
+    // 2. Usar ese timestamp exacto para obtener todos los items del lote.
     $sql = "
         SELECT 
-            od.detail_id,
+            p.name AS product_name,
             od.quantity,
             od.special_notes,
             od.item_status,
             od.preparation_area,
-            p.name AS product_name,
-            m.modifier_name
+            od.service_time
         FROM order_details od
         JOIN products p ON od.product_id = p.product_id
-        LEFT JOIN modifiers m ON od.modifier_id = m.modifier_id
-        -- 🔑 CORRECCIÓN: Filtramos por od.added_at en lugar de od.batch_timestamp
-        WHERE od.order_id = ? AND od.added_at = ? 
-          AND od.is_cancelled = FALSE 
+        WHERE od.order_id = ? AND od.batch_timestamp = ?
           AND od.item_status != 'COMPLETADO' 
-        ORDER BY od.preparation_area DESC, od.item_status DESC
+          AND od.is_cancelled = 0
+        ORDER BY od.service_time, od.detail_id
     ";
 
     $stmt = $conn->prepare($sql);
-    if (!$stmt) throw new Exception('Error preparando consulta: ' . $conn->error); 
-
-    // 🔑 Bind con el added_at limpio
-    $stmt->bind_param("is", $order_id, $added_at_time);
+    $stmt->bind_param("is", $order_id, $exact_batch_timestamp);
     $stmt->execute();
     $result = $stmt->get_result();
-
+    
     $items = [];
     while ($row = $result->fetch_assoc()) {
-        $product_display_name = htmlspecialchars($row['product_name']);
-        if ($row['modifier_name']) {
-            $product_display_name .= " (" . htmlspecialchars($row['modifier_name']) . ")";
-        }
-        
-        $items[] = [
-            'product_name' => $product_display_name,
-            'quantity' => (int)$row['quantity'],
-            'special_notes' => ($row['special_notes'] && $row['special_notes'] !== '0') 
-                                ? htmlspecialchars($row['special_notes']) 
-                                : null,
-            'item_status' => $row['item_status'] ?: 'PENDIENTE',
-            'preparation_area' => $row['preparation_area'] ?: 'COCINA',
-        ];
+        $items[] = $row;
     }
-
     $stmt->close();
-    $conn->close();
 
-    echo json_encode([
-        'success' => true,
-        'items' => $items
-    ], JSON_UNESCAPED_UNICODE);
+    $response = ['success' => true, 'items' => $items];
 
 } catch (Throwable $e) {
-    if (isset($stmt)) $stmt->close();
-    if (isset($conn)) $conn->close();
-
-    // Enviamos el mensaje de error real para facilitar la depuración
-    http_response_code(500);
-    error_log("Error en get_order_details.php: " . $e->getMessage()); 
-    echo json_encode(['success' => false, 'message' => 'Error de servidor (SQL): ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    http_response_code(500); 
+    $response = ['success' => false, 'message' => 'Error en el servidor: ' . $e->getMessage()];
+} finally {
+    if ($conn) $conn->close();
 }
+
+echo json_encode($response, JSON_UNESCAPED_UNICODE);
+exit;

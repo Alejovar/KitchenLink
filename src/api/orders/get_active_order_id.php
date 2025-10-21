@@ -1,52 +1,66 @@
 <?php
+// /src/api/orders/get_active_order_id.php - Obtiene el ID de la orden activa para una mesa
+
+session_start();
 header('Content-Type: application/json; charset=utf-8');
+date_default_timezone_set('America/Mexico_City');
 
-// --- Cargar conexión y dependencias ---
-require '../../../../src/php/db_connection.php'; 
-
-if (!isset($conn) || !$conn instanceof PDO) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Error de conexión a BD.'], JSON_UNESCAPED_UNICODE);
-    exit;
-}
-
-$table_number = filter_input(INPUT_GET, 'table_number', FILTER_VALIDATE_INT);
-
-if (!$table_number) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Número de mesa inválido.'], JSON_UNESCAPED_UNICODE);
-    exit;
-}
+$response = ['success' => false, 'order_id' => null, 'server_time' => date('Y-m-d H:i:s')];
+$conn = null;
 
 try {
-    // CORRECCIÓN: Quitamos la restricción o.status = 'PENDING'
-    // Asumimos que la mesa solo puede tener una orden activa en orders.
-    $sql = "
-        SELECT 
-            o.order_id
-        FROM 
-            orders o
-        JOIN
-            restaurant_tables rt ON rt.table_id = o.table_id
-        WHERE 
-            rt.table_number = :table_number
-        LIMIT 1
-    ";
-    $stmt = $conn->prepare($sql);
-    $stmt->bindParam(':table_number', $table_number, PDO::PARAM_INT);
-    $stmt->execute();
-    $order_id = $stmt->fetchColumn();
-
-    if ($order_id) {
-        echo json_encode(['success' => true, 'order_id' => (int)$order_id], JSON_UNESCAPED_UNICODE);
-    } else {
-        http_response_code(200); 
-        echo json_encode(['success' => false, 'message' => 'No se encontró orden asociada a esta mesa.'], JSON_UNESCAPED_UNICODE);
+    // 🔑 Obtener y validar el parámetro
+    $table_number = isset($_GET['table_number']) ? (int)$_GET['table_number'] : 0;
+    if ($table_number <= 0) {
+        throw new Exception("Número de mesa inválido.");
     }
 
-} catch (PDOException $e) {
-    error_log("DB Error fetching order ID: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Error interno del servidor.'], JSON_UNESCAPED_UNICODE);
+    // Conexión
+    require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
+    if (!isset($conn) || !$conn instanceof mysqli || $conn->connect_error) {
+        throw new Exception("Error de conexión a la base de datos.");
+    }
+    
+    $conn->query("SET time_zone = '-06:00'");
+    
+    // CONSULTA CLAVE: Busca el order_id usando el table_number y el JOIN
+    $sql = "
+        SELECT 
+            o.order_id 
+        FROM 
+            orders o
+        JOIN 
+            restaurant_tables rt ON o.table_id = rt.table_id
+        WHERE 
+            rt.table_number = ?
+            AND o.status = 'PENDING' 
+        LIMIT 1
+    "; 
+    
+    $stmt = $conn->prepare($sql);
+    if ($stmt === false) {
+        throw new Exception("Error al preparar consulta: " . $conn->error);
+    }
+
+    $stmt->bind_param("i", $table_number);
+    $stmt->execute();
+    
+    // Usar get_result() para consistencia
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    $stmt->close();
+    
+    if ($row) {
+        $response['success'] = true;
+        $response['order_id'] = (int)$row['order_id'];
+    }
+
+} catch (Throwable $e) {
+    error_log("Excepción en get_active_order_id: " . $e->getMessage());
+    $response['message'] = "Error del servidor: " . $e->getMessage();
 }
-?>
+
+// Devolvemos el server_time y el resultado
+echo json_encode($response, JSON_UNESCAPED_UNICODE);
+if (isset($conn) && $conn instanceof mysqli) $conn->close();
+exit;

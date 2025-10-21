@@ -503,3 +503,29 @@ body {
     color: #7f00ff;
     font-weight: 700;
 }
+
+/* Estilo para el ítem bloqueado */
+.order-item.locked-item {
+    background-color: #f0f0f0; /* Fondo gris claro */
+    color: #888; /* Texto más opaco */
+    pointer-events: none; /* Deshabilita clics en toda la línea */
+    opacity: 0.7; /* Ligeramente transparente */
+    border-left: 5px solid #dc3545; /* Barra roja para indicar bloqueo */
+}
+
+/* Estilo para el candado */
+.order-item .item-locked {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px; /* Tamaño del candado */
+    height: 30px;
+    color: #dc3545; /* Color rojo o de alerta */
+    font-size: 1.2em;
+}
+
+/* Re-habilitar clics solo para ciertos elementos, si es necesario,
+   pero con "pointer-events: none" en el padre, esto podría ser omitido
+   a menos que quieras permitir clic en notas aunque no se puedan editar.
+   Para bloqueo estricto, el "pointer-events: none" es la mejor opción.
+*/
