@@ -80,7 +80,7 @@ Desde la selección de una mesa activa, el mesero puede:
 
 ---
 
-## 🍹 Interfaz de Barra (SE ESTA DESARROLLANDO)
+## 🍹 Interfaz de Barra (YA DISPONIBLE)
 
 La interfaz de barra funciona de forma análoga a la de cocina, pero únicamente muestra **productos pertenecientes a la barra**.  
 - Gestiona el estado de cada bebida en tiempo real (**Pendiente → Preparando → Listo**).  
