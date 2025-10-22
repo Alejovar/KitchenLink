@@ -1,10 +1,9 @@
 <?php
-// =====================================================
-// send_order.php - CORREGIDO PARA USAR UTC
-// =====================================================
+// ===================================================================
+// send_order.php - VERSIÓN FINAL CORREGIDA Y SEGURA
+// ===================================================================
 
 session_start();
-// ❗️ LÍNEA ELIMINADA: ya no se establece la zona horaria de PHP aquí.
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0); 
 error_reporting(E_ALL);
@@ -34,149 +33,127 @@ try {
     }
 
     // 🧩 Conexión a la base de datos
-    // db_connection.php ya establece la zona horaria a UTC
     require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
     if (!$conn || $conn->connect_errno) {
         throw new Exception('Error de conexión a la base de datos.');
     }
     
-    // Modelo de Menú
     require __DIR__ . '/MenuModel.php'; 
     $menuModel = new MenuModel($conn);
 
     $conn->begin_transaction();
 
-    // 🟢 CAMBIO: Generar la hora actual explícitamente en UTC
     $now_timestamp = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H:i:s');
     
     $table_id = 0;
     $order_id = 0;
 
-    // 1. BUSCAR O CREAR MESA (Lógica sin cambios)
-    $stmt = $conn->prepare("SELECT table_id FROM restaurant_tables WHERE table_number=? LIMIT 1");
-    $stmt->bind_param("i", $table_number);
-    $stmt->execute();
-    $res = $stmt->get_result();
-    
-    if ($row = $res->fetch_assoc()) {
-        $table_id = $row['table_id'];
-    } else {
-        $client_count = 1;
-        $stmt_insert_table = $conn->prepare("
-            INSERT INTO restaurant_tables (table_number, assigned_server_id, client_count, occupied_at)
-            VALUES (?, ?, ?, ?)
-        ");
-        $stmt_insert_table->bind_param("iiis", $table_number, $server_id, $client_count, $now_timestamp);
-        $stmt_insert_table->execute();
-        $table_id = $conn->insert_id;
-        $stmt_insert_table->close();
-        if (!$table_id) throw new Exception("Error al ocupar la mesa (restaurant_tables).");
-    }
-    $stmt->close();
-
-
-    // 2. BUSCAR O CREAR ORDEN ACTIVA (Lógica sin cambios)
-    $stmt = $conn->prepare("
-        SELECT order_id FROM orders 
-        WHERE table_id=? AND status NOT IN ('PAGADA','CANCELADA','CLOSED') 
-        LIMIT 1
+    // 1. OBTENER O CREAR MESA (Solución de concurrencia)
+    $client_count = 1; 
+    $stmt_insert_table = $conn->prepare("
+        INSERT IGNORE INTO restaurant_tables (table_number, assigned_server_id, client_count, occupied_at)
+        VALUES (?, ?, ?, ?)
     ");
-    $stmt->bind_param("i", $table_id);
-    $stmt->execute();
-    $res = $stmt->get_result();
+    $stmt_insert_table->bind_param("iiis", $table_number, $server_id, $client_count, $now_timestamp);
+    $stmt_insert_table->execute();
+    $stmt_insert_table->close();
 
-    if ($row = $res->fetch_assoc()) {
-        $order_id = $row['order_id'];
-    } else {
-        $stmt2 = $conn->prepare("
-            INSERT INTO orders (table_id, server_id, status, order_time)
-            VALUES (?, ?, 'PENDING', ?)
-        ");
-        $stmt2->bind_param("iis", $table_id, $server_id, $now_timestamp);
-        $stmt2->execute();
-        $order_id = $conn->insert_id;
-        $stmt2->close();
+    $stmt_get_table = $conn->prepare("SELECT table_id FROM restaurant_tables WHERE table_number = ? LIMIT 1");
+    $stmt_get_table->bind_param("i", $table_number);
+    $stmt_get_table->execute();
+    $res_table = $stmt_get_table->get_result();
+    if($row_table = $res_table->fetch_assoc()) {
+        $table_id = $row_table['table_id'];
     }
-    $stmt->close();
+    $stmt_get_table->close();
+    
+    if (!$table_id) {
+        throw new Exception("Error crítico: no se pudo obtener el ID de la mesa.");
+    }
+
+    // 2. BUSCAR O CREAR ORDEN ACTIVA
+    $stmt_order = $conn->prepare("SELECT order_id FROM orders WHERE table_id=? AND status NOT IN ('PAGADA','CANCELADA','CLOSED') LIMIT 1");
+    $stmt_order->bind_param("i", $table_id);
+    $stmt_order->execute();
+    $res_order = $stmt_order->get_result();
+
+    if ($row_order = $res_order->fetch_assoc()) {
+        $order_id = $row_order['order_id'];
+    } else {
+        $stmt_create_order = $conn->prepare("INSERT INTO orders (table_id, server_id, status, order_time) VALUES (?, ?, 'PENDING', ?)");
+        $stmt_create_order->bind_param("iis", $table_id, $server_id, $now_timestamp);
+        $stmt_create_order->execute();
+        $order_id = $conn->insert_id;
+        $stmt_create_order->close();
+    }
+    $stmt_order->close();
     if (!$order_id) throw new Exception('No se pudo crear o recuperar la orden.');
 
-    
-    // 5. INSERTAR ÍTEMS (Lógica sin cambios)
-    $inserted_times = []; 
+    // 3. INSERTAR ÍTEMS Y OBTENER PRECIOS DESDE LA BD
+    $stmt_get_price = $conn->prepare("SELECT price FROM products WHERE product_id = ?");
+    $sql_insert_detail = "INSERT INTO order_details (order_id, product_id, quantity, price_at_order, special_notes, modifier_id, preparation_area, batch_timestamp, service_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $stmt_insert_detail = $conn->prepare($sql_insert_detail);
 
     foreach ($times as $time_block) {
         $service_time = intval($time_block['service_time'] ?? 0);
         $items = $time_block['items'] ?? [];
-
-        if ($service_time <= 0 || empty($items)) {
-            continue; 
-        }
-        
-        $inserted_times[] = $service_time; 
+        if ($service_time <= 0 || empty($items)) continue; 
 
         foreach ($items as $item) {
             $product_id = intval($item['id'] ?? 0);
             if ($product_id <= 0) continue; 
 
+            // =========================================================================
+            // ✅ CAMBIO CLAVE: Obtener el precio desde la base de datos, no del cliente.
+            // =========================================================================
+            $stmt_get_price->bind_param("i", $product_id);
+            $stmt_get_price->execute();
+            $price_result = $stmt_get_price->get_result();
+            $product_row = $price_result->fetch_assoc();
+
+            if (!$product_row) {
+                throw new Exception("El producto con ID {$product_id} no fue encontrado.");
+            }
+            $authoritative_price = $product_row['price']; // Este es el precio real y seguro.
+
             $preparation_area = $menuModel->getPreparationAreaByProductId($product_id);
-            if (!in_array($preparation_area, ['COCINA', 'BARRA'])) {
-                throw new Exception("Área de preparación inválida para el producto ID {$product_id}.");
-            }
-
             $notes = trim($item['comment'] ?? '');
-            $modifier_id = intval($item['modifier_id'] ?? 0);
+            $modifier_id = !empty($item['modifier_id']) ? intval($item['modifier_id']) : null;
             $quantity = intval($item['quantity'] ?? 1);
-            $price = floatval($item['price']);
 
-            if ($modifier_id > 0) {
-                $sql_insert_int = "
-                    INSERT INTO order_details
-                    (order_id, product_id, quantity, price_at_order, special_notes, modifier_id, preparation_area, batch_timestamp, service_time)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ";
-                $stmt_int = $conn->prepare($sql_insert_int);
-                $stmt_int->bind_param(
-                    "iiidsissi", 
-                    $order_id, $product_id, $quantity, $price, $notes, $modifier_id, $preparation_area, $now_timestamp, $service_time
-                );
-                if (!$stmt_int->execute()) throw new Exception('Fallo en la ejecución (INT modifier): ' . $stmt_int->error);
-                $stmt_int->close();
-
-            } else {
-                $sql_insert_null = "
-                    INSERT INTO order_details
-                    (order_id, product_id, quantity, price_at_order, special_notes, modifier_id, preparation_area, batch_timestamp, service_time)
-                    VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)
-                ";
-                $stmt_null = $conn->prepare($sql_insert_null);
-                $stmt_null->bind_param(
-                    "iiidsssi", 
-                    $order_id, $product_id, $quantity, $price, $notes, $preparation_area, $now_timestamp, $service_time
-                );
-                if (!$stmt_null->execute()) throw new Exception('Fallo en la ejecución (NULL modifier): ' . $stmt_null->error);
-                $stmt_null->close();
-            }
+            $stmt_insert_detail->bind_param(
+                "iiidssisi", 
+                $order_id, $product_id, $quantity, $authoritative_price, $notes, $modifier_id, $preparation_area, $now_timestamp, $service_time
+            );
+            if (!$stmt_insert_detail->execute()) throw new Exception('Fallo al insertar detalle: ' . $stmt_insert_detail->error);
         } 
-    } 
+    }
+    $stmt_get_price->close();
+    $stmt_insert_detail->close();
+
+    // 4. ACTUALIZAR EL TOTAL DE LA ORDEN (Lógica corregida)
+    $stmt_update_total = $conn->prepare("
+        UPDATE orders o
+        SET o.total = (
+            SELECT SUM( (od.price_at_order + COALESCE(m.modifier_price, 0)) * od.quantity )
+            FROM order_details od
+            LEFT JOIN modifiers m ON od.modifier_id = m.modifier_id
+            WHERE od.order_id = ? AND od.is_cancelled = FALSE
+        )
+        WHERE o.order_id = ?
+    ");
+    $stmt_update_total->bind_param("ii", $order_id, $order_id);
+    $stmt_update_total->execute();
+    $stmt_update_total->close();
 
     $conn->commit();
 
-    $response = [
-        'success' => true,
-        'message' => "Comanda enviada con éxito. Tiempos procesados: " . implode(", ", array_unique($inserted_times)),
-        'service_times' => array_unique($inserted_times) 
-    ];
+    $response = ['success' => true, 'message' => "Comanda enviada con éxito."];
 
 } catch (Throwable $e) {
-    if (isset($conn) && $conn->connect_errno === 0) {
-        $conn->rollback();
-    }
-    
+    if (isset($conn) && $conn->ping()) $conn->rollback();
     http_response_code(500); 
-    $response = [
-        'success' => false, 
-        'message' => 'Error en el servidor: ' . $e->getMessage() . ' (Línea: ' . $e->getLine() . ')',
-    ];
+    $response = ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
 }
 
 if ($conn) $conn->close();

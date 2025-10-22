@@ -1,7 +1,8 @@
 <?php
+// /api/orders/tpv/get_current_order.php
 // =====================================================
-// get_current_order.php - VERSIÓN FINAL CORREGIDA
-// Se ajustaron los nombres de las columnas en el JOIN para que coincidan con la BD.
+// VERSIÓN COMPLETA Y CORREGIDA
+// Envía los productos de la orden y el total actual guardado en la base de datos.
 // =====================================================
 
 session_start();
@@ -19,13 +20,25 @@ try {
         throw new Exception("ID de orden no proporcionado o inválido.");
     }
 
-    // 2. Conexión a la base de datos (usará UTC desde db_connection.php)
+    // 2. Conexión a la base de datos
     require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
     if (!$conn || $conn->connect_errno) {
         throw new Exception('Error de conexión a la base de datos.');
     }
     
-    // 3. Consulta principal (CORREGIDA)
+    // 3. Consulta para obtener el total guardado de la orden
+    $total_from_db = 0;
+    $stmt_total = $conn->prepare("SELECT total FROM orders WHERE order_id = ?");
+    $stmt_total->bind_param("i", $order_id);
+    if ($stmt_total->execute()) {
+        $result_total = $stmt_total->get_result();
+        if ($row_total = $result_total->fetch_assoc()) {
+            $total_from_db = $row_total['total'];
+        }
+    }
+    $stmt_total->close();
+
+    // 4. Consulta principal para obtener los productos de la orden
     $sql = "
         SELECT
             od.detail_id,
@@ -39,9 +52,7 @@ try {
             od.service_time,
             m.modifier_name
         FROM order_details od
-        -- ✅ CORRECCIÓN 1: Unir con p.product_id en lugar de p.id
         JOIN products p ON od.product_id = p.product_id
-        -- ✅ CORRECCIÓN 2: Unir con m.modifier_id en lugar de m.id
         LEFT JOIN modifiers m ON od.modifier_id = m.modifier_id
         WHERE od.order_id = ?
         ORDER BY od.service_time ASC, od.batch_timestamp ASC, od.detail_id ASC
@@ -54,7 +65,7 @@ try {
 
     $items_by_time = [];
 
-    // 4. Procesar y agrupar los resultados
+    // 5. Procesar y agrupar los resultados
     while ($row = $result->fetch_assoc()) {
         $service_time = $row['service_time'];
         
@@ -81,9 +92,11 @@ try {
     }
     $stmt->close();
     
+    // 6. Enviar la respuesta JSON completa
     $response = [
         'success' => true,
         'order_id' => $order_id,
+        'total' => (float)$total_from_db, // <-- Se incluye el total de la BD
         'times' => array_values($items_by_time)
     ];
 
