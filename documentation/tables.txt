@@ -442,3 +442,41 @@ CREATE TABLE kitchen_production_history (
     INDEX idx_completed_date (timestamp_completed)
     
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ========= TABLA DE HISTORIAL DE PRODUCCIÓN DE BARRA =========
+-- Almacena un registro permanente de cada ítem que fue marcado como 'LISTO' 
+-- por el área de Barra. Es una copia estructural de la tabla de cocina.
+
+CREATE TABLE bar_production_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    
+    -- IDs para referencia y auditoría
+    original_detail_id INT NOT NULL COMMENT 'El ID del registro original en `order_details`',
+    order_id INT NOT NULL,
+
+    -- Datos clave para agrupar y mostrar en la tarjeta de comanda
+    table_number INT NOT NULL COMMENT 'El número de la mesa donde se ordenó',
+    batch_timestamp TIMESTAMP NOT NULL COMMENT 'Agrupa los ítems enviados juntos en la misma comanda',
+    service_time INT NOT NULL COMMENT 'El tiempo de servicio (1, 2, 3...) para agrupar en la comanda',
+    
+    -- Información descriptiva del producto
+    server_name VARCHAR(255) COMMENT 'El nombre del mesero que tomó la orden',
+    product_name VARCHAR(255) NOT NULL COMMENT 'El nombre del producto en el momento del pedido',
+    quantity INT NOT NULL,
+    special_notes TEXT,
+    
+    -- Marcas de tiempo para análisis de rendimiento
+    timestamp_added DATETIME NOT NULL COMMENT 'Hora en que el cliente pidió el producto',
+    timestamp_completed DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Hora en que se marcó como LISTO',
+    
+    -- Índice para que las búsquedas por fecha sean ultra rápidas
+    INDEX idx_completed_date (timestamp_completed)
+    
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Añade la columna para el nombre del modificador a ambas tablas de historial
+ALTER TABLE kitchen_production_history
+ADD COLUMN modifier_name VARCHAR(255) NULL DEFAULT NULL COMMENT 'Nombre del modificador seleccionado' AFTER product_name;
+
+ALTER TABLE bar_production_history
+ADD COLUMN modifier_name VARCHAR(255) NULL DEFAULT NULL COMMENT 'Nombre del modificador seleccionado' AFTER product_name;
