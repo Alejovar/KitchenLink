@@ -1,5 +1,5 @@
 <?php
-// /src/api/kitchen/update_item_status.php (VERSIÓN CON BIND_PARAM FINAL CORREGIDO)
+// /src/api/bar/update_item_status.php (VERSIÓN FINAL CORREGIDA)
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -22,13 +22,13 @@ try {
 
     if (empty($detail_id) || empty($new_status)) {
         http_response_code(400);
-        throw new Exception("Faltan parámetros.");
+        throw new Exception("Faltan parámetros: ID de detalle o nuevo estado.");
     }
     
     $allowed_statuses = ['EN_PREPARACION', 'LISTO'];
     if (!in_array($new_status, $allowed_statuses)) {
         http_response_code(400);
-        throw new Exception("Estado no válido.");
+        throw new Exception("Estado no válido proporcionado.");
     }
 
     require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
@@ -37,11 +37,12 @@ try {
         $conn->begin_transaction();
 
         try {
-            // La consulta SELECT está correcta
+            // 1. Obtenemos todos los datos necesarios para el historial.
             $sql_select = "
                 SELECT 
                     od.order_id, rt.table_number, od.batch_timestamp, od.service_time,
-                    p.name as product_name, m.modifier_name,
+                    p.name as product_name,
+                    m.modifier_name,
                     od.quantity, od.special_notes, 
                     u.name as server_name, od.added_at as timestamp_added, od.preparation_area
                 FROM order_details od
@@ -63,6 +64,7 @@ try {
             $history_table = ($item_data['preparation_area'] === 'COCINA') ? 'kitchen_production_history' : 'bar_production_history';
 
             if ($history_table) {
+                // 2. Insertamos el registro en la tabla de historial correspondiente.
                 $sql_insert = "
                     INSERT INTO $history_table 
                         (original_detail_id, order_id, table_number, batch_timestamp, service_time, server_name, product_name, modifier_name, quantity, special_notes, timestamp_added) 
@@ -70,24 +72,27 @@ try {
                 ";
                 $stmt_insert = $conn->prepare($sql_insert);
                 
-                // ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN FINAL! El 5to tipo ahora es 'i' para service_time.
+                // ✅ CAMBIO CLAVE: El octavo tipo de dato ahora es 's' (string).
                 $stmt_insert->bind_param(
-                    "iiisississs",
+                    "iiisssssiss",
                     $detail_id, $item_data['order_id'], $item_data['table_number'],
-                    $item_data['batch_timestamp'], $item_data['service_time'], // <-- Este era el error
-                    $item_data['server_name'], $item_data['product_name'], $item_data['modifier_name'],
-                    $item_data['quantity'], $item_data['special_notes'], $item_data['timestamp_added']
+                    $item_data['batch_timestamp'], $item_data['service_time'], $item_data['server_name'],
+                    $item_data['product_name'], $item_data['modifier_name'],
+                    $item_data['quantity'], $item_data['special_notes'],
+                    $item_data['timestamp_added']
                 );
                 $stmt_insert->execute();
                 $stmt_insert->close();
             }
             
+            // 3. Actualizamos el estado en la tabla original.
             $sql_update = "UPDATE order_details SET item_status = ?, completed_at = NOW() WHERE detail_id = ?";
             $stmt_update = $conn->prepare($sql_update);
             $stmt_update->bind_param("si", $new_status, $detail_id);
             $stmt_update->execute();
             $stmt_update->close();
 
+            // 4. Confirmamos la transacción.
             $conn->commit();
             $response = ['success' => true, 'message' => 'Ítem finalizado y guardado en historial.'];
 
@@ -97,6 +102,7 @@ try {
         }
 
     } else {
+        // Si el estado no es 'LISTO', solo hacemos la actualización simple.
         $sql = "UPDATE order_details SET item_status = ? WHERE detail_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("si", $new_status, $detail_id);

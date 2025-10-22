@@ -34,12 +34,12 @@ $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Jefe de Cocina');
             <ul>
                 <li>
                     <a href="/KitchenLink/src/php/kitchen_orders.php" class="active">
-                        <i class="fas fa-list-alt"></i> Órdenes de Producción
+                        <i class="fas fa-list-alt"></i> Órdenes de Cocina
                     </a>
                 </li>
                 <li>
                     <a href="/KitchenLink/src/php/kitchen_history.php">
-                        <i class="fas fa-history"></i> Historial
+                        <i class="fas fa-history"></i> Historial de Cocina
                     </a>
                 </li>
             </ul>

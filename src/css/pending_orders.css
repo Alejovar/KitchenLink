@@ -14,6 +14,7 @@
     --color-alert: #c62828;
     --color-gray-soft: #f1f3f4;
     --color-secondary: #007bff;
+    --color-accent-purple: #8A2BE2; /* Color para modificadores */
 }
 
 /* --- RESET Y BASE --- */
@@ -179,74 +180,8 @@ h1 {
 /* --- TARJETAS DE ÓRDENES PENDIENTES --- */
 .orders-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
-}
-
-.order-card, .no-orders {
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    padding: 1.5rem;
-}
-
-.order-card {
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.2s;
-}
-
-.order-card:hover { transform: translateY(-5px); }
-
-.order-card-header { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    border-bottom: 1px solid #eee; 
-    padding-bottom: 1rem; 
-    margin-bottom: 1rem; 
-}
-
-.order-card-header h2 { 
-    font-size: 1.5rem; 
-    color: var(--color-text-dark); 
-}
-
-.order-card-header .time-ago { 
-    font-size: 0.9rem; 
-    color: #888; 
-}
-
-.order-card-body ul { list-style: none; }
-
-.order-card-body li { 
-    font-size: 1rem; 
-    color: #555; 
-    padding: 0.5rem 0; 
-    border-bottom: 1px solid #f5f5f5; 
-}
-
-.order-card-body li:last-child { border-bottom: none; }
-
-.order-card-body .quantity { 
-    font-weight: bold; 
-    margin-right: 0.5rem; 
-    color: var(--color-secondary); 
-}
-
-.no-orders { 
-    text-align: center; 
-    font-size: 1.2rem; 
-    color: #777; 
-    padding: 3rem; 
-    grid-column: 1 / -1; 
-}
-
-.orders-grid {
-    display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
-    padding: 20px;
 }
 
 .order-card {
@@ -256,9 +191,12 @@ h1 {
     padding: 15px;
     transition: transform 0.2s;
     border-left: 5px solid #ccc; /* Default */
+    display: flex;
+    flex-direction: column;
 }
 
-/* Estilos de Estado */
+.order-card:hover { transform: translateY(-5px); }
+
 .order-card.status-pending-work {
     border-left-color: #ff9800; /* Naranja/Amarillo: En trabajo */
 }
@@ -267,24 +205,24 @@ h1 {
     box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3); /* Resaltar */
 }
 
-.order-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 8px;
+.order-card-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: baseline; 
+    border-bottom: 1px solid #eee; 
+    padding-bottom: 8px; 
+    margin-bottom: 10px; 
 }
 
-.order-card-header h2 {
-    font-size: 1.2rem;
-    color: #333;
+.order-card-header h2 { 
+    font-size: 1.2rem; 
+    color: #333; 
     margin: 0;
 }
 
-.time-ago {
-    font-size: 0.85rem;
-    color: #999;
+.order-card-header .time-ago { 
+    font-size: 0.85rem; 
+    color: #999; 
 }
 
 .area-statuses {
@@ -307,18 +245,28 @@ h1 {
     border-radius: 4px;
 }
 
-/* Colores de las etiquetas */
 .status-item.status-ready .status-text {
-    background-color: #e8f5e9; /* Fondo verde claro */
+    background-color: #e8f5e9;
     color: #4caf50;
 }
 .status-item.status-in-progress .status-text {
-    background-color: #fff3e0; /* Fondo naranja claro */
+    background-color: #fff3e0;
     color: #ff9800;
 }
 .status-item.status-completed .status-text {
     background-color: #f5f5f5;
     color: #616161;
+}
+
+.no-orders { 
+    text-align: center; 
+    font-size: 1.2rem; 
+    color: #777; 
+    padding: 3rem; 
+    grid-column: 1 / -1; 
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .btn-detail {
@@ -337,12 +285,12 @@ h1 {
     background-color: #f7e6ff;
 }
 
-/* Panel lateral de detalles */
+/* --- PANEL LATERAL DE DETALLES --- */
 .details-panel {
     position: fixed;
     top: 0;
-    right: -400px; /* fuera de pantalla */
-    width: 400px;
+    right: -450px; /* Un poco más ancho para la tabla */
+    width: 450px;
     height: 100%;
     background-color: #ffffff;
     box-shadow: -4px 0 15px rgba(0,0,0,0.2);
@@ -382,130 +330,9 @@ h1 {
     margin: 0.5rem 0;
 }
 
-#detailItemsList .detail-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #eee;
-    font-size: 0.95rem;
-}
-
-#detailItemsList .detail-header {
-    font-weight: bold;
-    border-bottom: 2px solid #ccc;
-    margin-bottom: 0.5rem;
-}
-
-#detailItemsList .item-status {
-    text-align: right;
-}
-
-/* ============================================= */
-/* == ESTILOS PARA EL PANEL LATERAL DE DETALLES == */
-/* ============================================= */
-
-/* Contenedor de la lista de ítems */
-#detailItemsList {
-    margin-top: 20px;
-    border-top: 1px solid #eee;
-    padding-top: 15px;
-}
-
-/* Estilo base para cada fila (header y producto) */
-.detail-item {
-    display: grid;
-    grid-template-columns: 50px 1fr 70px 80px 110px; /* Columnas: Cant, Producto, Tiempo, Área, Estado */
-    gap: 10px;
-    align-items: center;
-    padding: 12px 10px;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 14px;
-}
-
-/* Fila de encabezado */
-.detail-header {
-    font-weight: bold;
-    color: #555;
-    background-color: #f9f9f9;
-    border-bottom: 2px solid #ddd;
-    padding: 10px;
-    font-size: 13px;
-    text-transform: uppercase;
-}
-
-/* Celda para la cantidad */
-.detail-item .item-qty {
-    font-weight: bold;
-    color: #333;
-    text-align: center;
-}
-
-/* Celda para el nombre del producto y notas */
-.detail-item .item-name {
-    font-weight: 500;
-    color: #222;
-}
-
-/* Estilo para las notas especiales (comentarios) */
-.detail-item .detail-notes {
-    display: block;
-    font-size: 12px;
-    color: #777;
-    margin-top: 2px;
-    font-style: italic;
-}
-
-/* Celda para el "Tiempo" */
-.detail-item .item-time {
-    text-align: center;
-    font-weight: bold;
-    color: #666;
-}
-
-/* Estilo base para las celdas de estado y área */
-.detail-item .item-status {
-    text-align: center;
-    font-weight: bold;
-    font-size: 12px;
-    padding: 4px 8px;
-    border-radius: 12px;
-    text-transform: uppercase;
-}
-
-/* Colores específicos para el estado del ítem */
-.detail-item .status-state.status-ready {
-    background-color: #d4edda; /* Verde claro */
-    color: #155724;
-}
-.detail-item .status-state.status-preparing {
-    background-color: #fff3cd; /* Amarillo claro */
-    color: #856404;
-}
-.detail-item .status-state.status-pending {
-    background-color: #f8d7da; /* Rojo claro */
-    color: #721c24;
-}
-
-/* Colores específicos para el área de preparación */
-.detail-item .status-area.status-kitchen {
-    background-color: #e2e3e5;
-    color: #383d41;
-}
-.detail-item .status-area.status-bar {
-    background-color: #cce5ff;
-    color: #004085;
-}
-
-
-/* ======================================== */
-/* == ESTILOS PARA EL FOOTER Y EL BOTÓN  == */
-/* ======================================== */
-
 .details-footer {
-    margin-top: 20px;
-    padding-top: 20px;
+    padding: 1rem;
     border-top: 1px solid #eee;
-    text-align: center;
 }
 
 .complete-btn {
@@ -521,33 +348,94 @@ h1 {
     transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-.complete-btn:hover {
-    background-color: #218838; /* Verde más oscuro */
+.complete-btn:hover:not(:disabled) {
+    background-color: #218838;
 }
-
-.complete-btn:active {
+.complete-btn:active:not(:disabled) {
     transform: scale(0.98);
 }
-
 .complete-btn:disabled {
     background-color: #aaa;
     cursor: not-allowed;
+    opacity: 0.7;
 }
 
-/* Nuevo estilo para el estado 'sin items' en las tarjetas de órdenes */
 .status-item.status-none {
-    opacity: 0.5; /* Lo hace un poco transparente para indicar que no hay actividad */
+    opacity: 0.5;
 }
 
 .status-item.status-none .status-text {
-    color: #6c757d; /* Un color gris neutral */
+    color: #6c757d;
 }
 
-/* Añade esto a tu archivo de estilos CSS */
+/* =================================================================== */
+/* == ✅ NUEVOS ESTILOS PARA LA TABLA DE DETALLES (AÑADIR O REEMPLAZAR) == */
+/* =================================================================== */
 
-#completeOrderBtn:disabled {
-    background-color: #999; /* Color gris */
-    border-color: #999;
-    cursor: not-allowed;      /* Cambia el cursor para indicar que no se puede clickear */
-    opacity: 0.7;
+#detailItemsList {
+    width: 100%;
+    border-collapse: collapse; /* Une los bordes de las celdas */
+    margin-top: 20px;
 }
+
+#detailItemsList thead {
+    background-color: #f8f9fa; /* Un fondo sutil para el encabezado */
+}
+
+#detailItemsList th,
+#detailItemsList td {
+    padding: 12px 10px; /* Espaciado interno */
+    text-align: left;
+    border-bottom: 1px solid #e9ecef; /* Línea separadora suave */
+}
+
+#detailItemsList th {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--color-text-light);
+}
+
+#detailItemsList .item-qty,
+#detailItemsList .item-time {
+    text-align: center;
+    font-weight: bold;
+}
+
+#detailItemsList .item-name {
+    font-weight: 500;
+}
+
+.detail-modifier,
+.detail-notes {
+    display: block; /* Para que aparezcan en una línea nueva */
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+.detail-modifier {
+    color: var(--color-accent-purple); /* Color morado para destacar */
+    font-weight: 500;
+}
+
+.detail-notes {
+    color: var(--color-text-light); /* Un gris suave */
+    font-style: italic;
+}
+
+/* "Píldoras" de estado y área dentro de la tabla */
+.item-status {
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+}
+
+.status-state.status-ready { background-color: #d4edda; color: #155724; }
+.status-state.status-preparing { background-color: #fff3cd; color: #856404; }
+.status-state.status-pending { background-color: #f8d7da; color: #721c24; }
+
+.status-area.status-kitchen { background-color: #e2e3e5; color: #383d41; }
+.status-area.status-bar { background-color: #cce5ff; color: #004085; }

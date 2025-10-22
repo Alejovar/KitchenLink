@@ -1,5 +1,5 @@
 <?php
-// /src/api/kitchen/get_kitchen_orders.php (VERSIÓN CON MODIFICADORES)
+// /src/api/bar/get_bar_orders.php (VERSIÓN CON MODIFICADORES)
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -10,11 +10,11 @@ $response = ['success' => false, 'message' => 'Error desconocido.'];
 $conn = null;
 
 try {
-    if (!isset($_SESSION['user_id']) || !in_array($_SESSION['rol_id'], [3, 5])) {
+    if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 5) { 
         throw new Exception("Acceso no autorizado.");
     }
     
-    $area = ($_SESSION['rol_id'] == 3) ? 'COCINA' : 'BARRA';
+    $area = 'BARRA';
 
     require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
@@ -51,7 +51,7 @@ try {
     }
     $stmt->close();
     
-    $server_time = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H-i:s');
+    $server_time = (new DateTime('now', new DateTimeZone('UTC')))->format('Y-m-d H-i-s');
 
     $response = [
         'success' => true,

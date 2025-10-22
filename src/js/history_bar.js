@@ -1,12 +1,12 @@
 /*******************************************************
-* /src/js/history_kitchen.js - VERSIÓN CON HORA CORREGIDA
+* /src/js/history_bar.js - VERSIÓN CON HORA CORREGIDA
 ********************************************************/
 
 document.addEventListener('DOMContentLoaded', () => {
     const clockContainer = document.getElementById('liveClockContainer');
-    const historyGrid = document.getElementById('kitchenHistoryGrid');
+    const barHistoryGrid = document.getElementById('barHistoryGrid');
     const datePicker = document.getElementById('historyDate');
-    const API_ENDPOINT = '/KitchenLink/src/api/kitchen/get_kitchen_history.php';
+    const API_ENDPOINT = '/KitchenLink/src/api/bar/get_bar_history.php';
 
     // ✅ SE AÑADE LA FUNCIÓN DE CONVERSIÓN DE HORA
     function parseUTCTimestamp(sqlTimestamp) {
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function fetchAndDisplayHistory(date) {
-        historyGrid.innerHTML = '<p class="loading-msg">Cargando historial...</p>';
+        barHistoryGrid.innerHTML = '<p class="loading-msg">Cargando historial...</p>';
         try {
             const response = await fetch(`${API_ENDPOINT}?date=${date}`);
             if (!response.ok) throw new Error(`Error de red: ${response.status}`);
@@ -41,22 +41,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const groupedOrders = groupItemsByLote(data.production_items);
             renderHistoryItems(groupedOrders);
         } catch (error) {
-            console.error('Error al cargar el historial:', error);
-            historyGrid.innerHTML = `<p class="error-msg">Error: No se pudo cargar el historial.</p>`;
+            console.error('Error al cargar el historial de barra:', error);
+            barHistoryGrid.innerHTML = `<p class="error-msg">Error: No se pudo cargar el historial.</p>`;
         }
     }
 
     function renderHistoryItems(groupedOrders) {
-        historyGrid.innerHTML = ''; 
+        barHistoryGrid.innerHTML = ''; 
         if (!groupedOrders || groupedOrders.length === 0) {
-            historyGrid.innerHTML = '<p class="no-orders">No se encontró producción para esta fecha.</p>';
+            barHistoryGrid.innerHTML = '<p class="no-orders">No se encontró producción de barra para esta fecha.</p>';
             return;
         }
         groupedOrders.forEach(orderGroup => {
             const cardWrapper = document.createElement('div');
             cardWrapper.className = 'production-card history-card';
             cardWrapper.innerHTML = createHistoryCardHtml(orderGroup);
-            historyGrid.appendChild(cardWrapper);
+            barHistoryGrid.appendChild(cardWrapper);
         });
     }
 

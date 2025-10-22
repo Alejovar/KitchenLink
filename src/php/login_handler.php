@@ -9,26 +9,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $user = trim($_POST['user'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
-    // Validaciones de campos vacíos
+    // Validaciones de campos vacíos (sin cambios)
     if (empty($user) && empty($password)) {
-        echo json_encode([
-            "success" => false,
-            "message" => "Faltó ingresar usuario y contraseña."
-        ]);
+        echo json_encode(["success" => false, "message" => "Faltó ingresar usuario y contraseña."]);
         exit;
     }
     if (empty($user)) {
-        echo json_encode([
-            "success" => false,
-            "message" => "Faltó ingresar usuario."
-        ]);
+        echo json_encode(["success" => false, "message" => "Faltó ingresar usuario."]);
         exit;
     }
     if (empty($password)) {
-        echo json_encode([
-            "success" => false,
-            "message" => "Faltó ingresar contraseña."
-        ]);
+        echo json_encode(["success" => false, "message" => "Faltó ingresar contraseña."]);
         exit;
     }
 
@@ -60,13 +51,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     "success" => true,
                     "redirect" => "/KitchenLink/src/php/orders.php"
                 ]);
-            // 🟢 REDIRECCIÓN A COCINA (Rol 3)
+            // REDIRECCIÓN A COCINA (Rol 3)
             } elseif ($row['rol_id'] == 3) {
                 echo json_encode([
                     "success" => true,
                     "redirect" => "/KitchenLink/src/php/kitchen_orders.php"
                 ]);
-            // Cualquier otro usuario (incluyendo el Encargado de Barra rol 5, si no tiene interfaz propia aún)
+            
+            // ✅ NUEVA REDIRECCIÓN A BARRA (Rol 5)
+            } elseif ($row['rol_id'] == 5) {
+                echo json_encode([
+                    "success" => true,
+                    "redirect" => "/KitchenLink/src/php/bar_orders.php"
+                ]);
+
+            // Cualquier otro usuario
             } else {
                 echo json_encode([
                     "success" => true,

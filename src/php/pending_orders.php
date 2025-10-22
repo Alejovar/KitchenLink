@@ -80,7 +80,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
         <div class="order-info">
             <p><strong>Mesa:</strong> <span id="detailTableNumber">--</span></p>
             <p><strong>ID Orden:</strong> <span id="detailOrderId">--</span></p>
-            <p><strong>Hora del lote:</strong> <span id="detailBatchTime">--</span></p>
+            <p><strong>Hora de entrada:</strong> <span id="detailBatchTime">--</span></p>
         </div>
 
         <div id="detailItemsList" class="items-list-container">

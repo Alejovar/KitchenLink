@@ -1,17 +1,18 @@
 <?php
-// kitchen_history.php - Interfaz para el Historial de Producción de Cocina
+// bar_orders.php - Interfaz principal para la Barra
 
 session_start();
 
 // --- LÓGICA DE SEGURIDAD ---
-// Mantenemos la misma seguridad, ya que es para el mismo rol.
-if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 3) {
+// ✅ CAMBIO: Se ajusta el rol_id para el 'encargado de barra' (asumiendo que es el ID 5 según tu base de datos).
+if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 5) { 
     header('Location: /KitchenLink/login.html');
     exit();
 }
 
-$userName = htmlspecialchars($_SESSION['user_name'] ?? 'Jefe Cocina');
-$rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Jefe de Cocina'); 
+// ✅ CAMBIO: Variables de personalización para el usuario de barra.
+$userName = htmlspecialchars($_SESSION['user_name'] ?? 'Bartender');
+$rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Encargado de Barra'); 
 ?>
 
 <!DOCTYPE html>
@@ -19,9 +20,9 @@ $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Jefe de Cocina');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Cocina - KitchenLink</title>
+    <title>Órdenes de Barra - KitchenLink</title>
 
-    <link rel="stylesheet" href="/KitchenLink/src/css/kitchen_history.css"> 
+    <link rel="stylesheet" href="/KitchenLink/src/css/bar_styles.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
@@ -32,13 +33,13 @@ $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Jefe de Cocina');
             <h2>Restaurante</h2>
             <ul>
                 <li>
-                    <a href="/KitchenLink/src/php/kitchen_orders.php">
-                        <i class="fas fa-list-alt"></i> Órdenes de Cocina
+                    <a href="/KitchenLink/src/php/bar_orders.php" class="active">
+                        <i class="fas fa-martini-glass-citrus"></i> Órdenes de Barra
                     </a>
                 </li>
                 <li>
-                    <a href="/KitchenLink/src/php/kitchen_history.php" class="active">
-                        <i class="fas fa-history"></i> Historial de Cocina
+                    <a href="/KitchenLink/src/php/bar_history.php">
+                        <i class="fas fa-history"></i> Historial de Barra
                     </a>
                 </li>
             </ul>
@@ -62,21 +63,19 @@ $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Jefe de Cocina');
     <main class="content">
         <div id="liveClockContainer"></div>
 
-        <div class="history-header">
-            <h1>Historial de Cocina</h1>
-            <div class="date-selector">
-                <label for="historyDate">Seleccionar fecha:</label>
-                <input type="date" id="historyDate">
-            </div>
-        </div>
+        <h1>Órdenes de Producción</h1>
 
-        <div id="kitchenHistoryGrid" class="production-grid">
-            <p class="loading-msg">Cargando historial...</p>
+        <div class="production-areas">
+            <div id="barArea">
+                <h2>Barra <i class="fas fa-martini-glass-citrus"></i></h2>
+                <div id="barOrdersGrid" class="production-grid">
+                    <p class="loading-msg">Cargando órdenes de barra...</p>
+                </div>
+            </div>
         </div>
     </main>
 </div>
 
-<script src="/KitchenLink/src/js/history_kitchen.js"></script>
-
+<script src="/KitchenLink/src/js/bar_logic.js"></script>
 </body>
 </html>

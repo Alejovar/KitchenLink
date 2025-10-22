@@ -1,4 +1,4 @@
-// /js/pending_orders.js - VERSIÓN CORREGIDA CON VALIDACIÓN DE ENTREGA
+// /js/pending_orders.js - VERSIÓN FINAL CON TABLA DE DETALLES Y MODIFICADORES
 
 document.addEventListener('DOMContentLoaded', () => {
     const ordersGrid = document.getElementById('ordersGrid');
@@ -73,26 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
             orderCard.className = `order-card ${cardClass}`;
 
             const getStatusHtml = (ready, totalActive, areaName) => {
-                let statusClass = 'none';
-                let statusText = '--'; 
-
+                let statusClass = 'none', statusText = '--';
                 if (totalActive > 0) {
                     if (ready >= totalActive) {
-                        statusClass = 'ready';
-                        statusText = 'LISTO';
+                        statusClass = 'ready'; statusText = 'LISTO';
                     } else {
-                        statusClass = 'in-progress';
-                        statusText = 'PENDIENTE';
+                        statusClass = 'in-progress'; statusText = 'PENDIENTE';
                     }
                 }
-
-                return `
-                    <div class="status-item status-${statusClass}">
-                        <span class="area-name">${areaName}:</span>
-                        <span class="status-text">${statusText}</span>
-                        <span class="status-counts">(${ready}/${totalActive})</span>
-                    </div>
-                `;
+                return `<div class="status-item status-${statusClass}"><span class="area-name">${areaName}:</span><span class="status-text">${statusText}</span><span class="status-counts">(${ready}/${totalActive})</span></div>`;
             };
 
             const kitchenStatus = getStatusHtml(order.kitchen_ready, order.total_kitchen_active, 'Cocina');
@@ -104,19 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="time-ago">Hace ${timeDiffMinutes} min</span>
                 </div>
                 <div class="order-card-body">
-                    <div class="area-statuses">
-                        ${kitchenStatus}
-                        ${barStatus}
-                    </div>
-                    <button class="btn-detail primary-btn" 
-                            data-order-id="${order.order_id}" 
-                            data-table-number="${order.table_number}"
-                            data-batch-id="${order.batch_id}"
-                            data-batch-time="${order.batch_timestamp}"> 
-                        Ver Detalle
-                    </button>
-                </div>
-            `;
+                    <div class="area-statuses">${kitchenStatus}${barStatus}</div>
+                    <button class="btn-detail primary-btn" data-order-id="${order.order_id}" data-table-number="${order.table_number}" data-batch-id="${order.batch_id}" data-batch-time="${order.batch_timestamp}">Ver Detalle</button>
+                </div>`;
             ordersGrid.appendChild(orderCard);
         });
     }
@@ -129,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ✅ FUNCIÓN MODIFICADA
     async function displayOrderDetails(orderId, tableNumber, batchId, batchTime) {
         if (!detailsPanel) return;
         detailsPanel.classList.add('active'); 
@@ -150,18 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderDetailItems(data.items);
                 
                 if (data.items.length > 0) {
-                    // ✅ LÓGICA AGREGADA: Verificar si todos los items están listos
                     const allItemsReady = data.items.every(item => item.item_status === 'LISTO');
-                    
                     const completeButton = document.createElement('button');
                     completeButton.id = 'completeOrderBtn';
                     completeButton.className = 'primary-btn complete-btn';
                     completeButton.textContent = 'Marcar como Entregado';
-                    
-                    // ✅ LÓGICA AGREGADA: Deshabilitar el botón si no están todos listos
                     completeButton.disabled = !allItemsReady;
 
-                    // ✅ LÓGICA AGREGADA: Añadir un tooltip para explicar por qué está deshabilitado
                     if (!allItemsReady) {
                         completeButton.title = 'Todos los productos deben estar en estado "LISTO" para entregar.';
                     }
@@ -181,6 +154,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    /**
+     * ✅ FUNCIÓN CORREGIDA PARA CREAR UNA TABLA DE DETALLES CON MODIFICADORES
+     * @param {Array} items - La lista de productos de la orden.
+     */
     function renderDetailItems(items) {
         detailItemsList.innerHTML = '';
         if (items.length === 0) {
@@ -188,33 +165,47 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let itemsHtml = `
-            <div class="detail-item detail-header">
-                <span class="item-qty">Cant.</span>
-                <span class="item-name">Producto / Notas</span>
-                <span class="item-time">Tiempo</span>
-                <span class="item-status status-area">Área</span>
-                <span class="item-status status-state">Estado</span>
-            </div>
+        // 1. Creamos la estructura de la tabla con su encabezado
+        let tableHtml = `
+            <table id="detailItemsTable">
+                <thead>
+                    <tr>
+                        <th>Cant.</th>
+                        <th>Producto</th>
+                        <th>Tiempo</th>
+                        <th>Área</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
         `;
 
-        itemsHtml += items.map(item => {
+        // 2. Mapeamos cada ítem a una fila <tr> de la tabla
+        tableHtml += items.map(item => {
             const statusClass = item.item_status === 'LISTO' ? 'ready' : (item.item_status === 'EN_PREPARACION' ? 'preparing' : 'pending');
             const areaClass = item.preparation_area === 'BARRA' ? 'bar' : 'kitchen';
+            
+            const modifierHtml = item.modifier_name ? `<span class="detail-modifier">(${item.modifier_name})</span>` : '';
             const notesHtml = item.special_notes ? `<span class="detail-notes">(${item.special_notes})</span>` : '';
             
             return `
-                <div class="detail-item detail-status-${statusClass}">
-                    <span class="item-qty">${item.quantity}x</span>
-                    <span class="item-name">${item.product_name} ${notesHtml}</span>
-                    <span class="item-time">T${item.service_time}</span>
-                    <span class="item-status status-${areaClass}">${item.preparation_area}</span>
-                    <span class="item-status status-${statusClass}">${item.item_status.replace('_', ' ')}</span>
-                </div>
+                <tr>
+                    <td class="item-qty">${item.quantity}x</td>
+                    <td class="item-name">
+                        ${item.product_name}
+                        ${modifierHtml}
+                        ${notesHtml}
+                    </td>
+                    <td class="item-time">T${item.service_time}</td>
+                    <td><span class="item-status status-area status-${areaClass}">${item.preparation_area}</span></td>
+                    <td><span class="item-status status-state status-${statusClass}">${item.item_status.replace('_', ' ')}</span></td>
+                </tr>
             `;
         }).join('');
         
-        detailItemsList.innerHTML = itemsHtml;
+        // 3. Cerramos la tabla y la inyectamos en el DOM
+        tableHtml += `</tbody></table>`;
+        detailItemsList.innerHTML = tableHtml;
     }
 
     async function handleCompleteOrder(orderId, batchId) {

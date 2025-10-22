@@ -1,5 +1,5 @@
 <?php
-// get_order_details.php - CORRECCIÓN FINAL: BUSCA POR ID DE LOTE
+// get_order_details.php - VERSIÓN CORREGIDA CON MODIFICADORES
 
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -15,7 +15,6 @@ try {
     }
 
     $order_id = filter_input(INPUT_GET, 'order_id', FILTER_VALIDATE_INT);
-    // ✅ Ahora recibimos el ID del lote
     $batch_id = filter_input(INPUT_GET, 'batch_id', FILTER_VALIDATE_INT);
 
     if (!$order_id || !$batch_id) {
@@ -24,8 +23,7 @@ try {
 
     require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
-    // ✅ La consulta ahora es en dos pasos para ser 100% segura.
-    // 1. Obtener el timestamp exacto del lote usando el ID único.
+    // Paso 1: Obtener el timestamp del lote (sin cambios)
     $ts_stmt = $conn->prepare("SELECT batch_timestamp FROM order_details WHERE detail_id = ? LIMIT 1");
     $ts_stmt->bind_param("i", $batch_id);
     $ts_stmt->execute();
@@ -38,10 +36,12 @@ try {
     }
     $exact_batch_timestamp = $batch_row['batch_timestamp'];
 
-    // 2. Usar ese timestamp exacto para obtener todos los items del lote.
+    // ✅ CAMBIO: La consulta ahora incluye un LEFT JOIN a la tabla 'modifiers'
+    // y selecciona el 'modifier_name'.
     $sql = "
         SELECT 
             p.name AS product_name,
+            m.modifier_name, -- Se añade esta línea
             od.quantity,
             od.special_notes,
             od.item_status,
@@ -49,6 +49,7 @@ try {
             od.service_time
         FROM order_details od
         JOIN products p ON od.product_id = p.product_id
+        LEFT JOIN modifiers m ON od.modifier_id = m.modifier_id -- Se añade esta línea
         WHERE od.order_id = ? AND od.batch_timestamp = ?
           AND od.item_status != 'COMPLETADO' 
           AND od.is_cancelled = 0

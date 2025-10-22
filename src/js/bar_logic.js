@@ -1,13 +1,13 @@
 /*******************************************************
-* /src/js/kitchen_logic.js - Versión con Modificadores
+* /src/js/bar_logic.js - Versión con Modificadores
 ********************************************************/
 
 document.addEventListener('DOMContentLoaded', () => {
     const clockContainer = document.getElementById('liveClockContainer');
-    const kitchenGrid = document.getElementById('kitchenOrdersGrid');
+    const barGrid = document.getElementById('barOrdersGrid');
     
-    const API_ENDPOINT = '/KitchenLink/src/api/kitchen/get_kitchen_orders.php'; 
-    const API_ACTION_ENDPOINT = '/KitchenLink/src/api/kitchen/update_item_status.php';
+    const API_ENDPOINT = '/KitchenLink/src/api/bar/get_bar_orders.php'; 
+    const API_ACTION_ENDPOINT = '/KitchenLink/src/api/bar/update_item_status.php';
 
     function parseUTCTimestamp(sqlTimestamp) {
         if (!sqlTimestamp) return new Date(NaN);
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             if (data.success) {
-                fetchAndDisplayProductionOrders();
+                fetchAndDisplayBarOrders(); 
             } else {
                 alert('Error al actualizar estado: ' + data.message);
             }
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function fetchAndDisplayProductionOrders() {
+    async function fetchAndDisplayBarOrders() {
         try {
             const response = await fetch(API_ENDPOINT + `?t=${Date.now()}`);
             if (!response.ok) throw new Error(`Error de red: ${response.status}`);
@@ -58,8 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const groupedOrders = groupItemsByLote(data.production_items);
             renderProductionItems(groupedOrders); 
         } catch (error) {
-            console.error('Error al cargar órdenes de producción:', error);
-            kitchenGrid.innerHTML = `<p class="error-msg">Error: No se pudieron cargar las órdenes.</p>`;
+            console.error('Error al cargar órdenes de barra:', error);
+            barGrid.innerHTML = `<p class="error-msg">Error: No se pudieron cargar las órdenes.</p>`;
         }
     }
 
@@ -108,14 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 cardWrapper.className = 'production-card';
                 cardWrapper.dataset.loteKey = loteKey;
                 cardWrapper.innerHTML = newCardHtml;
-                kitchenGrid.appendChild(cardWrapper);
+                barGrid.appendChild(cardWrapper);
             }
         });
 
-        if (kitchenGrid.childElementCount === 0) {
-            kitchenGrid.innerHTML = '<p class="no-orders">¡Todas las órdenes listas!</p>';
+        if (barGrid.childElementCount === 0) {
+            barGrid.innerHTML = '<p class="no-orders">¡Todas las bebidas listas!</p>';
         } else {
-            kitchenGrid.querySelector('.no-orders, .loading-msg')?.remove();
+            barGrid.querySelector('.no-orders, .loading-msg')?.remove();
         }
     }
     
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    kitchenGrid.addEventListener('click', (e) => {
+    barGrid.addEventListener('click', (e) => {
         const productItem = e.target.closest('.product-item');
         if (!productItem) return;
         const detailId = productItem.dataset.detailId;
@@ -187,6 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateClock();
     setInterval(updateClock, 1000);
-    fetchAndDisplayProductionOrders();
-    setInterval(fetchAndDisplayProductionOrders, 5000);
+    fetchAndDisplayBarOrders();
+    setInterval(fetchAndDisplayBarOrders, 5000);
 });

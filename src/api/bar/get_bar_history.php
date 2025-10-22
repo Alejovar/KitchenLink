@@ -1,5 +1,5 @@
 <?php
-// /src/api/kitchen/get_kitchen_history.php
+// /src/api/bar/get_bar_history.php
 
 header('Content-Type: application/json; charset=utf-8');
 $response = ['success' => false, 'production_items' => []];
@@ -13,23 +13,23 @@ try {
         throw new Exception("Formato de fecha no válido.");
     }
     
-    // Se añade la columna 'modifier_name' a la selección
+    // Se añade 'modifier_name' y se consulta la tabla de barra
     $sql = "
         SELECT 
-            kph.order_id, kph.table_number, kph.server_name,
-            kph.batch_timestamp AS added_at,
-            kph.timestamp_added AS order_time,
-            kph.service_time, kph.product_name, 
-            kph.modifier_name,
-            kph.quantity, kph.special_notes,
+            bph.order_id, bph.table_number, bph.server_name,
+            bph.batch_timestamp AS added_at,
+            bph.timestamp_added AS order_time,
+            bph.service_time, bph.product_name, 
+            bph.modifier_name,
+            bph.quantity, bph.special_notes,
             'LISTO' as item_status,
-            kph.original_detail_id as detail_id
+            bph.original_detail_id as detail_id
         FROM 
-            kitchen_production_history kph
+            bar_production_history bph
         WHERE 
-            DATE(kph.timestamp_completed) = ?
+            DATE(bph.timestamp_completed) = ?
         ORDER BY 
-            kph.batch_timestamp ASC, kph.service_time ASC
+            bph.batch_timestamp ASC, bph.service_time ASC
     ";
     
     $stmt = $conn->prepare($sql);
@@ -47,7 +47,7 @@ try {
 
 } catch (Exception $e) {
     http_response_code(500);
-    $response['error'] = 'Error al obtener el historial de producción.';
+    $response['error'] = 'Error al obtener el historial de barra.';
     $response['details'] = $e->getMessage();
 } finally {
     if ($conn) {
