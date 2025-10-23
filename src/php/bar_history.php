@@ -1,16 +1,28 @@
 <?php
 // bar_history.php - Interfaz para el Historial de Producción de Barra
+
+// 1. Incluimos el check_session universal.
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
+// --- LÓGICA DE SEGURIDAD (RESTRINGIR POR ROL) ---
+define('BARRA_ROLE_ID', 5); // ID 5 corresponde al rol 'encargado de barra'
 
-// --- LÓGICA DE SEGURIDAD ---
-// ✅ CAMBIO: Se ajusta al rol de 'encargado de barra' (ID 5).
-if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 5) {
-    header('Location: /KitchenLink/index.html');
+// 🔑 Verificación Crítica: Si el rol de la sesión NO es el requerido (5), se deniega el acceso.
+if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != BARRA_ROLE_ID) {
+    
+    // 💥 CORRECCIÓN CRÍTICA: Destruir la sesión para forzar el logout
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+        session_destroy();
+    }
+    
+    // Redirigir al inicio y forzar el login
+    header('Location: /KitchenLink/index.html?error=acceso_no_barra');
     exit();
 }
+// Si el script llega aquí, el usuario es un Encargado de Barra válido.
 
-// ✅ CAMBIO: Variables de personalización para el usuario de barra.
+// Variables de personalización
 $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Bartender');
 $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Encargado de Barra'); 
 ?>

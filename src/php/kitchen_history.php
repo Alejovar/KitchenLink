@@ -1,17 +1,29 @@
 <?php
 // kitchen_history.php - Interfaz para el Historial de Producción de Cocina
-
+// AL COMIENZO DEL ARCHIVO DE INTERFAZ DE COCINA/BARRA
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
-// --- LÓGICA DE SEGURIDAD ---
-// Mantenemos la misma seguridad, ya que es para el mismo rol.
-if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 3) {
-    header('Location: /KitchenLink/index.html');
+// --- LÓGICA DE SEGURIDAD (RESTRINGIR POR ROL) ---
+define('COCINA_ROLE_ID', 3); // ID 3 es 'jefe de cocina'
+
+// 🔑 Verificación Crítica: Si el rol de la sesión NO es el requerido (3), se deniega el acceso.
+if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != COCINA_ROLE_ID) {
+    
+    // 💥 CORRECCIÓN CRÍTICA: Destruir la sesión para forzar el logout
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+        session_destroy();
+    }
+    
+    // Redirigir al inicio y forzar el login
+    header('Location: /KitchenLink/index.html?error=acceso_no_cocina');
     exit();
 }
+// Si el script llega aquí, el usuario es un Jefe de Cocina válido.
 
+// Variables de personalización
 $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Jefe Cocina');
-$rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Jefe de Cocina'); 
+$rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Jefe de Cocina');
 ?>
 
 <!DOCTYPE html>

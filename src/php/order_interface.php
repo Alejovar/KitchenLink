@@ -1,28 +1,45 @@
 <?php
-// order_interface.php - VERSIÓN FINAL CON HORA DEL SERVIDOR
+// order_interface.php - VERSIÓN FINAL Y ROBUSTA
 
-ini_set('display_errors', 1); // Quitar cuando todo funcione
-error_reporting(E_ALL);     // Quitar cuando todo funcione
+// Quitar la visualización de errores solo si la quieres ver en el HTML,
+// pero es mejor mantenerlos en 0 para producción y usar logs.
+// ini_set('display_errors', 1); 
+// error_reporting(E_ALL);     
 
+// 1. Seguridad (Verifica login/token y obtiene $_SESSION['rol_id'])
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
-// 1. Seguridad
-if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
-    header('Location: /KitchenLink/index.html');
+// 2. Definición del rol
+define('MESERO_ROLE_ID', 2);
+
+// 🔑 VERIFICACIÓN DE ROL: Si no es mesero, redirige.
+if ($_SESSION['rol_id'] != MESERO_ROLE_ID) {
+    
+    // 💥 CORRECCIÓN CRÍTICA: Destruir la sesión para forzar el logout
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+        session_destroy();
+    }
+    
+    header('Location: /KitchenLink/index.html?error=acceso_no_mesero');
     exit();
 }
+// ⚠️ Se eliminó la verificación redundante de !isset($_SESSION['user_id'])
 
-// 2. Obtener y validar la mesa
+
+// 3. Obtener y validar la mesa
 $table_number = filter_input(INPUT_GET, 'table', FILTER_VALIDATE_INT);
 if (!$table_number) {
     header('Location: /KitchenLink/src/php/orders.php');
     exit();
 }
 
-// 3. Conexión a DB
-require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
+// 4. Conexión a DB (Ya está abierta por check_session.php, solo verificamos)
+if (!isset($conn) || $conn->connect_error) {
+    die("Error fatal de conexión a la base de datos."); // Detenemos la ejecución si la conexión falló
+}
 
-// 4. Consulta de Categorías
+// 5. Consulta de Categorías
 $categories = [];
 try {
     $sql_categories = "SELECT category_id, category_name FROM menu_categories ORDER BY display_order ASC";
@@ -35,7 +52,7 @@ try {
     error_log("DB Error fetching categories: " . $e->getMessage());
 }
 
-// 5. Consulta de items
+// 6. Consulta de items
 $existing_items = [];
 try {
     $sql_all_items = "
@@ -52,6 +69,10 @@ try {
         ORDER BY od.added_at ASC, od.detail_id ASC";
 
     $stmt_items = $conn->prepare($sql_all_items);
+    if ($stmt_items === false) {
+        throw new \Exception("Error al preparar la consulta de ítems: " . $conn->error);
+    }
+    
     $stmt_items->bind_param("i", $table_number);
     $stmt_items->execute();
     $items_result = $stmt_items->get_result();
@@ -76,7 +97,7 @@ try {
     die("Error fatal al consultar los detalles de la orden: " . $e->getMessage());
 }
 
-// CAMBIO CLAVE: Preparamos un objeto que contiene los items Y la hora actual del servidor.
+// 7. Preparar JSON de datos iniciales
 $initial_data = [
     'server_time' => (new DateTime())->format(DateTime::ATOM),
     'items' => $existing_items
@@ -132,6 +153,7 @@ $initial_order_json = json_encode($initial_data);
                 <h2>Productos</h2> 
                 <div id="productGrid"><p id="productLoading">Seleccione una categoría.</p></div>
             </section>
+            
             <aside class="order-summary-area">
                 <h3>Resumen de Orden</h3>
                 <div id="orderItems"><p class="text-center">Aún no hay productos.</p></div>

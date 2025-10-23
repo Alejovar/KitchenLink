@@ -1,27 +1,55 @@
 <?php
 // orders.php - Tu archivo principal en el servidor
+
+// 1. Incluye el check_session universal.
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
 // --- LÓGICA DE SEGURIDAD CRÍTICA ---
-if (!isset($_SESSION['user_id'])) {
-    header('Location: /KitchenLink/index.html'); 
+define('MESERO_ROLE_ID', 2);
+
+// 🔑 Verificación Crítica: Si el rol de la sesión NO es el requerido (2), se deniega el acceso.
+if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != MESERO_ROLE_ID) {
+    
+    // 💥 CORRECCIÓN CRÍTICA: Destrucción Total (PHP + Token de DB)
+    
+    // 1. Borrar el token de la base de datos
+    // Usamos $conn que fue abierta por check_session.php
+    if (isset($conn) && isset($_SESSION['user_id'])) {
+        try {
+            $clean_stmt = $conn->prepare("UPDATE users SET session_token = NULL WHERE id = ?");
+            $clean_stmt->bind_param("i", $_SESSION['user_id']);
+            $clean_stmt->execute();
+            $clean_stmt->close();
+        } catch (\Throwable $e) {
+            // Manejo de error si falla la limpieza del token (opcional)
+        }
+    }
+    
+    // 2. Destruir la sesión PHP
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+        session_destroy();
+    }
+    
+    header('Location: /KitchenLink/index.html?error=acceso_no_mesero_pendientes');
     exit();
 }
+// Si el script llega aquí, el usuario es un Mesero válido.
 
 // Variables de Personalización
-$userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
+$userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero'); 
 ?>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestión de Mesas</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Mesas</title>
 
-<link rel="stylesheet" href="/KitchenLink/src/css/orders.css">
-<link rel="stylesheet" href="/KitchenLink/src/css/modal_advanced_options.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/KitchenLink/src/css/orders.css">
+    <link rel="stylesheet" href="/KitchenLink/src/css/modal_advanced_options.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 

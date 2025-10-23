@@ -1,15 +1,42 @@
 <?php
+// reservations.php - Interfaz principal para Hostess
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
-// Redirige al login si no hay una sesión activa
-if (!isset($_SESSION['user_id'])) {
-    header("Location: /KitchenLink/index.html");
-    exit(); 
+
+// --- LÓGICA DE SEGURIDAD CRÍTICA ---
+define('HOSTESS_ROLE_ID', 4); // ID 4 según tu base de datos
+
+// 🔑 Verificación Crítica: Si el rol de la sesión NO es el requerido (4), se deniega el acceso.
+if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != HOSTESS_ROLE_ID) {
+    
+    // 💥 CORRECCIÓN CRÍTICA: Destrucción Total (PHP + Token de DB)
+    
+    // 1. Borrar el token de la base de datos
+    // Usamos $conn que fue abierta por check_session.php
+    if (isset($conn) && isset($_SESSION['user_id'])) {
+        try {
+            $clean_stmt = $conn->prepare("UPDATE users SET session_token = NULL WHERE id = ?");
+            $clean_stmt->bind_param("i", $_SESSION['user_id']);
+            $clean_stmt->execute();
+            $clean_stmt->close();
+        } catch (\Throwable $e) {
+            // Manejo de error si falla la limpieza del token (opcional)
+        }
+    }
+    
+    // 2. Destruir la sesión PHP
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+        session_destroy();
+    }
+    
+    header('Location: /KitchenLink/index.html?error=acceso_no_hostess_lista');
+    exit();
 }
-// Menu principal de la hostess, en este se pueden realizar reservaciones, cancelarlas y aceptarlas, en cualquier 
-// caso se elimina de la tabla principal y se mandan a la tabla de historial para futuros reportes
-// Tambien permite la asignacion de mesas a clientes que vayan llegando sin reservacion, 
+// Si el script llega aquí, el usuario es una Hostess válida.
+
 $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -45,7 +72,6 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
 
     <main class="content">
         <h1>Gestión de Mesas y Reservaciones</h1>
-        <!--Formulario principal de reservaciones--->
         <section class="form-section">
             <h3>Nueva reservación</h3>
             <form id="reservaForm">
@@ -57,13 +83,11 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
                         <span style="color: #999; font-size: 14px; align-self: center;">Seleccione fecha y hora...</span>
                     </div>
                 </div>
-                <!--Validaciones para evitar que el usuario ingrese datos no deseados-->
                 <div class="form-row">
                     <input type="text" name="number_of_people" placeholder="N° de personas" required pattern="[0-9]+">
                     <input type="text" name="customer_name" placeholder="Nombre del cliente" required pattern="[a-zA-Z\s]+">
                     <input type="tel" name="customer_phone" placeholder="Teléfono (opcional)" pattern="[0-9]+">
                 </div>
-                <!-- AHORA CON LIMITE DE 500 -->
                 <textarea name="special_requests" placeholder="Solicitudes especiales (opcional)" maxlength="500"></textarea>
                 
                 <div id="hiddenTableInputs"></div>
@@ -72,7 +96,6 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
                 <button type="submit">Registrar reservación</button>
             </form>
         </section>
-        <!--muestra las mesas disponibles-->
         <div class="main-view">
             <section class="table-status-container">
                 <h3>Estado Actual de Mesas</h3>

@@ -1,14 +1,40 @@
 <?php
-// Clase principal para la interfaz de lista de espera, segunda interfaz de la hostess, sirve para agregar nuevos
-// nuevos clientes a la lista de espera, de igual forma, para eliminarlos de la misma, y mandarlos a una mesa en caso 
-// que haya mesas disponibles, luego de eso el registro se borra de la tabla principal y se manda a una de historial 
-// para hacer futuros reportes
+// Clase principal para la interfaz de lista de espera
+
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
-// Redirige al login si no hay una sesión activa
-if (!isset($_SESSION['user_id'])) {
-    header("Location: /KitchenLink/index.html");
+
+// --- LÓGICA DE SEGURIDAD CRÍTICA ---
+define('HOSTESS_ROLE_ID', 4); // ID 4 según tu base de datos
+
+// 🔑 Verificación Crítica: Si el rol de la sesión NO es el requerido (4), se deniega el acceso.
+if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != HOSTESS_ROLE_ID) {
+    
+    // 💥 CORRECCIÓN CRÍTICA: Destrucción Total (PHP + Token de DB)
+    
+    // 1. Borrar el token de la base de datos
+    // Usamos $conn que fue abierta por check_session.php
+    if (isset($conn) && isset($_SESSION['user_id'])) {
+        try {
+            $clean_stmt = $conn->prepare("UPDATE users SET session_token = NULL WHERE id = ?");
+            $clean_stmt->bind_param("i", $_SESSION['user_id']);
+            $clean_stmt->execute();
+            $clean_stmt->close();
+        } catch (\Throwable $e) {
+            // Manejo de error si falla la limpieza del token (opcional)
+        }
+    }
+    
+    // 2. Destruir la sesión PHP
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_unset();
+        session_destroy();
+    }
+    
+    header('Location: /KitchenLink/index.html?error=acceso_no_hostess_lista');
     exit();
 }
+// Si el script llega aquí, el usuario es una Hostess válida.
+
 $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
 ?>
 <!DOCTYPE html>
@@ -52,14 +78,13 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
                     <h3>Clientes en espera</h3>
                     <div class="estimated-time">
                         <i class="fas fa-clock"></i>
-                        <!--Muestra tiempo de espera estimado para que se desocupe una mesa-->
                         <span>Espera estimada: <strong id="estimatedTime">-- min</strong></span>
                     </div>
                 </div>
                 <div id="waitingList">
                     </div>
             </section>
-        <!--Validaciones para evitar que el usuario ingrese datos no deseados-->
+        
             <section class="form-section">
                 <h3>Agregar a la lista</h3>
                 <form id="waitlistForm" method="POST">
@@ -95,7 +120,6 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
             </section>
         </div>
     </main>
-    <!--Asignar mesa a cliente en lista de espera-->
     <div id="seatClientModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <button class="modal-close" title="Cerrar">&times;</button>
