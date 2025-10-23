@@ -1,7 +1,7 @@
 <?php
 // create_table.php - Endpoint AJAX final para crear mesas
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json');
 
 // CRÍTICO: Incluye tu archivo de conexión MySQLi

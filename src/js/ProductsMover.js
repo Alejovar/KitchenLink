@@ -1,4 +1,5 @@
 // ProductsMover.js
+
 export class ProductsMover {
     constructor(advancedModalInstance) {
         this.advancedModal = advancedModalInstance;
@@ -15,13 +16,18 @@ export class ProductsMover {
         // Estado
         this.sourceTableNumber = null;
         this.sourceOrderID = null; 
-        this.selectedItems = new Map(); // Mapa para guardar {detailId: quantity}
+        this.selectedItems = new Map();
 
         // Endpoints de la API
         this.api = {
             GET_DATA: '/KitchenLink/src/api/orders/advanced_options/get_move_data.php',
             EXECUTE_MOVE: '/KitchenLink/src/api/orders/advanced_options/execute_move.php'
         };
+        
+        // 🔑 ENLACES (BINDS) PARA PODER ELIMINAR LOS LISTENERS
+        this._handleSubmitBound = this._handleSubmit.bind(this);
+        this._handleProductListClickBound = this._handleProductListClick.bind(this);
+        this._checkCanMoveBound = this._checkCanMove.bind(this); // Para el listener de 'change'
     }
 
     // Inicializa la pestaña al abrirse
@@ -32,8 +38,23 @@ export class ProductsMover {
         this._setupEventListeners();
         this._loadMoveData();
     }
+    
+    // 💡 MÉTODO CLAVE: Elimina todos los listeners para evitar duplicados
+    dispose() {
+        // 1. Elimina el listener del formulario
+        this.moveProductsForm.removeEventListener('submit', this._handleSubmitBound);
+        
+        // 2. Elimina el listener delegado de la lista de productos
+        this.sourceProductsList.removeEventListener('click', this._handleProductListClickBound);
+        
+        // 3. Elimina el listener del selector de mesa destino
+        this.destinationTableSelect.removeEventListener('change', this._checkCanMoveBound);
+        
+        // 4. Limpia el estado para la próxima apertura
+        this._resetState();
+    }
 
-    // Limpia todas las variables de estado
+    // Limpia todas las variables de estado y DOM
     _resetState() {
         this.selectedItems.clear();
         this.sourceOrderID = null;
@@ -45,23 +66,26 @@ export class ProductsMover {
         this.moveErrorMsg.textContent = '';
     }
 
-    // Configura listeners para el formulario y la lista de productos
+    // Configura listeners (añade los listeners)
     _setupEventListeners() {
-        this.moveProductsForm.removeEventListener('submit', this._handleSubmitBound);
-        this._handleSubmitBound = this._handleSubmit.bind(this);
+        // Formulario
         this.moveProductsForm.addEventListener('submit', this._handleSubmitBound);
 
-        // Listener dinámico para la lista de productos (delegación)
-        this.sourceProductsList.addEventListener('click', e => {
-            const itemElement = e.target.closest('.product-item');
-            if (itemElement) {
-                this._handleItemSelection(itemElement);
-            }
-        });
+        // Listener delegado de la lista de productos
+        this.sourceProductsList.addEventListener('click', this._handleProductListClickBound);
 
         // Listener para verificar si se puede habilitar el botón de mover
-        this.destinationTableSelect.addEventListener('change', () => this._checkCanMove());
+        this.destinationTableSelect.addEventListener('change', this._checkCanMoveBound);
     }
+    
+    // 💡 NUEVO: Manejador de clics delegado
+    _handleProductListClick(e) {
+        const itemElement = e.target.closest('.product-item');
+        if (itemElement) {
+            this._handleItemSelection(itemElement);
+        }
+    }
+
 
     // Carga inicial de productos y mesas destino
     async _loadMoveData() {

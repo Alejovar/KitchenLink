@@ -1,7 +1,7 @@
 <?php
 // /api/orders/pending_orders/mark_as_completed.php - VERSIÓN CORREGIDA Y ROBUSTA
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(E_ALL);

@@ -1,7 +1,7 @@
 <?php
 // /src/api/orders/get_active_order_id.php - Obtiene el ID de la orden activa para una mesa
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 date_default_timezone_set('America/Mexico_City');
 

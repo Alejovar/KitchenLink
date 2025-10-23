@@ -3,10 +3,10 @@
 // nuevos clientes a la lista de espera, de igual forma, para eliminarlos de la misma, y mandarlos a una mesa en caso 
 // que haya mesas disponibles, luego de eso el registro se borra de la tabla principal y se manda a una de historial 
 // para hacer futuros reportes
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 // Redirige al login si no hay una sesión activa
 if (!isset($_SESSION['user_id'])) {
-    header("Location: /KitchenLink/login.html");
+    header("Location: /KitchenLink/index.html");
     exit();
 }
 $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
@@ -111,7 +111,7 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
             </div>
         </div>
     </div>
-
+    <script src="/KitchenLink/src/js/session_interceptor.js"></script>
     <script src="/KitchenLink/src/js/waiting_list.js"></script>
 </body>
 </html>

@@ -1,19 +1,29 @@
 <?php
 // /src/api/kitchen/get_kitchen_history.php
 
+// 1. Incluye seguridad. ESTO YA ABRE Y DEFINE $conn (si la sesión es válida)
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+
 header('Content-Type: application/json; charset=utf-8');
 $response = ['success' => false, 'production_items' => []];
-$conn = null;
+
+// ⚠️ Se eliminó: $conn = null;
+// ⚠️ Se eliminó: require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
 try {
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
+    // 2. Comprueba que $conn ha sido definida por el archivo de seguridad.
+    if (!isset($conn) || $conn->connect_error) {
+        // Si hay un error, el archivo de seguridad debió haber hecho exit(500), pero lo verificamos aquí.
+        throw new Exception("Error de conexión a la base de datos.");
+    }
+    
     $selected_date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
     
     if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $selected_date)) {
         throw new Exception("Formato de fecha no válido.");
     }
     
-    // Se añade la columna 'modifier_name' a la selección
+    // El SQL es correcto y usa la conexión $conn abierta.
     $sql = "
         SELECT 
             kph.order_id, kph.table_number, kph.server_name,
@@ -50,9 +60,8 @@ try {
     $response['error'] = 'Error al obtener el historial de producción.';
     $response['details'] = $e->getMessage();
 } finally {
-    if ($conn) {
-        $conn->close();
-    }
+    // ⚠️ Se eliminó el cierre de la conexión ($conn->close()). 
+    // Ahora, $conn permanece abierta para la siguiente API o hasta que la solicitud termine.
 }
 
 echo json_encode($response, JSON_UNESCAPED_UNICODE);

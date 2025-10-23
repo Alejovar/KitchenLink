@@ -3,7 +3,7 @@
 // CHANGE_TABLE.PHP - Renombramiento de Mesa con MySQLi
 // =====================================================
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 
 // =====================================================

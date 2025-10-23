@@ -1,19 +1,28 @@
 <?php
 // /src/api/bar/get_bar_history.php
 
+// 1. Incluye seguridad. ESTO YA ABRE Y DEFINE $conn (si la sesión es válida)
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+
 header('Content-Type: application/json; charset=utf-8');
 $response = ['success' => false, 'production_items' => []];
-$conn = null;
+
+// ⚠️ ELIMINAR: $conn = null;
+// ⚠️ ELIMINAR: require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
 try {
-    require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
+    // 2. Comprueba que $conn ha sido definida por el archivo de seguridad.
+    if (!isset($conn) || $conn->connect_error) {
+        throw new Exception("Error de conexión a la base de datos.");
+    }
+    
     $selected_date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
     
     if (!preg_match("/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/", $selected_date)) {
         throw new Exception("Formato de fecha no válido.");
     }
     
-    // Se añade 'modifier_name' y se consulta la tabla de barra
+    // El SQL utiliza la conexión $conn abierta.
     $sql = "
         SELECT 
             bph.order_id, bph.table_number, bph.server_name,
@@ -50,9 +59,8 @@ try {
     $response['error'] = 'Error al obtener el historial de barra.';
     $response['details'] = $e->getMessage();
 } finally {
-    if ($conn) {
-        $conn->close();
-    }
+    // ⚠️ ELIMINAR: if ($conn) { $conn->close(); }
+    // Dejamos que PHP cierre la conexión al final.
 }
 
 echo json_encode($response, JSON_UNESCAPED_UNICODE);

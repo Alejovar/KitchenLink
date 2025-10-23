@@ -46,6 +46,10 @@ export class ModalAdvancedOptions {
 
         this.passwordForm.addEventListener('submit', e => this._handlePasswordVerification(e));
         this.cancelPasswordBtn.addEventListener('click', () => this.passwordModal.close());
+        
+        // 🔑 AGREGAMOS EL LISTENER PARA LIMPIAR LAS CLASES CUANDO EL MODAL SE CIERRA
+        // Asumimos que 'modal:closed' es un evento emitido por tu clase Modal.js
+        this.advancedModal.modalElement.addEventListener('modal:closed', () => this._disposeAdvancedOptions());
     }
 
     async _handlePasswordVerification(event) {
@@ -90,11 +94,29 @@ export class ModalAdvancedOptions {
         const currentServerName = this.selectedTableElement.dataset.serverName || ''; 
 
         // Inicializar todas las opciones con el número de mesa actual
+        // Esto añade los nuevos listeners
         this.tableNumberChanger.initialize(tableNumber, currentOrderID);
         this.guestCountChanger.initialize(tableNumber); 
         this.productsMover.initialize(tableNumber); 
         this.productsCanceler.initialize(tableNumber); 
         this.serverChanger.initialize(tableNumber, currentServerName); 
+    }
+    
+    /**
+     * Llama al método dispose() de todas las clases que manejan Event Listeners.
+     * Esta función es CRÍTICA para que la selección funcione la segunda vez.
+     */
+    _disposeAdvancedOptions() {
+        // Llama a dispose() en cada clase que implementamos.
+        // Asumimos que TableNumberChanger, GuestCountChanger, y ServerChanger también tienen dispose().
+        this.tableNumberChanger.dispose();
+        this.guestCountChanger.dispose();
+        this.productsMover.dispose();     // 🔑 Limpia los listeners de mover
+        this.productsCanceler.dispose();  // 🔑 Limpia los listeners de cancelar
+        this.serverChanger.dispose();
+        
+        // Limpiar la referencia a la mesa seleccionada
+        this.selectedTableElement = null;
     }
 
     _setupTabs() {
@@ -108,9 +130,6 @@ export class ModalAdvancedOptions {
         }
 
         menuItems.forEach(menuItem => {
-            // 🚨 FILTRAR LOS BOTONES DE MENÚ QUE FUERON ELIMINADOS (No es necesario, pero es un buen hábito)
-            // Ya que el HTML fue limpiado, este JS solo maneja lo que existe.
-
             menuItem.addEventListener('click', e => {
                 e.preventDefault();
                 menuItems.forEach(item => item.classList.remove('active'));

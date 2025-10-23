@@ -1,6 +1,7 @@
 <?php
 // src/api/seat_client.php
 // Preparamos la respuesta en formato JSON.
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json');
 // Incluimos la conexión a la BD.
 require '../php/db_connection.php';

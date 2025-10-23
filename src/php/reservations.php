@@ -1,8 +1,8 @@
 <?php
-session_start(); 
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 // Redirige al login si no hay una sesión activa
 if (!isset($_SESSION['user_id'])) {
-    header("Location: /KitchenLink/login.html");
+    header("Location: /KitchenLink/index.html");
     exit(); 
 }
 // Menu principal de la hostess, en este se pueden realizar reservaciones, cancelarlas y aceptarlas, en cualquier 
@@ -88,7 +88,7 @@ $hostess_name = htmlspecialchars($_SESSION['user_name'] ?? 'Hostess');
             </section>
         </div>
     </main>
-
+    <script src="/KitchenLink/src/js/session_interceptor.js"></script>
     <script src="/KitchenLink/src/js/reservations.js"></script>
 </body>
 </html>

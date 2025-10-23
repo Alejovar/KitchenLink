@@ -2,6 +2,7 @@
 // =====================================================
 // EXECUTE_MOVE.PHP - Ejecuta la transacción de mover productos (MySQLi)
 // =====================================================
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 
 // --- Cargar conexión ---

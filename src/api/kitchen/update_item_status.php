@@ -1,7 +1,8 @@
 <?php
-// /src/api/kitchen/update_item_status.php (VERSIÓN CON BIND_PARAM FINAL CORREGIDO)
+// /src/api/kitchen/update_item_status.php (VERSIÓN CORREGIDA FINAL)
 
-session_start();
+// 1. Incluye seguridad.
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $response = ['success' => false, 'message' => 'Error desconocido.'];
@@ -37,7 +38,7 @@ try {
         $conn->begin_transaction();
 
         try {
-            // La consulta SELECT está correcta
+            // 1. La consulta SELECT obtiene todos los datos (incluido modifier_name).
             $sql_select = "
                 SELECT 
                     od.order_id, rt.table_number, od.batch_timestamp, od.service_time,
@@ -60,9 +61,11 @@ try {
 
             if (!$item_data) { throw new Exception("No se encontró el ítem."); }
 
+            // Verifica el área de preparación para determinar la tabla de historial.
             $history_table = ($item_data['preparation_area'] === 'COCINA') ? 'kitchen_production_history' : 'bar_production_history';
 
             if ($history_table) {
+                // 2. Insertamos el registro en la tabla de historial correspondiente.
                 $sql_insert = "
                     INSERT INTO $history_table 
                         (original_detail_id, order_id, table_number, batch_timestamp, service_time, server_name, product_name, modifier_name, quantity, special_notes, timestamp_added) 
@@ -70,24 +73,30 @@ try {
                 ";
                 $stmt_insert = $conn->prepare($sql_insert);
                 
-                // ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN FINAL! El 5to tipo ahora es 'i' para service_time.
+                // ✅ CADENA DE TIPOS CORREGIDA: Asumiendo que batch_timestamp, service_time, y timestamp_added son strings/timestamps.
+                // iiisssssiss (i, i, i, s, s, s, s, s, i, s, s) 
+                // El 8vo parámetro (modifier_name) es 's' para string.
                 $stmt_insert->bind_param(
-                    "iiisississs",
+                    "iiisssssiss",
                     $detail_id, $item_data['order_id'], $item_data['table_number'],
-                    $item_data['batch_timestamp'], $item_data['service_time'], // <-- Este era el error
-                    $item_data['server_name'], $item_data['product_name'], $item_data['modifier_name'],
-                    $item_data['quantity'], $item_data['special_notes'], $item_data['timestamp_added']
+                    $item_data['batch_timestamp'], $item_data['service_time'],
+                    $item_data['server_name'], $item_data['product_name'], 
+                    $item_data['modifier_name'], // <-- ¡Aquí se garantiza que es un string!
+                    $item_data['quantity'], $item_data['special_notes'], 
+                    $item_data['timestamp_added']
                 );
                 $stmt_insert->execute();
                 $stmt_insert->close();
             }
             
+            // 3. Actualizamos el estado en la tabla original.
             $sql_update = "UPDATE order_details SET item_status = ?, completed_at = NOW() WHERE detail_id = ?";
             $stmt_update = $conn->prepare($sql_update);
             $stmt_update->bind_param("si", $new_status, $detail_id);
             $stmt_update->execute();
             $stmt_update->close();
 
+            // 4. Confirmamos la transacción.
             $conn->commit();
             $response = ['success' => true, 'message' => 'Ítem finalizado y guardado en historial.'];
 
@@ -97,6 +106,7 @@ try {
         }
 
     } else {
+        // Si el estado no es 'LISTO', solo hacemos la actualización simple.
         $sql = "UPDATE order_details SET item_status = ? WHERE detail_id = ?";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("si", $new_status, $detail_id);
@@ -117,3 +127,5 @@ try {
 
 echo json_encode($response, JSON_UNESCAPED_UNICODE);
 exit;
+
+?>

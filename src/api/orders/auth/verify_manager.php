@@ -1,18 +1,18 @@
 <?php
 // =====================================================
-// VERIFY_MANAGER.PHP - versión estable corregida (Adellya)
+// VERIFY_MANAGER.PHP - Versión FINAL y ESTABLE
 // =====================================================
 
-// Evita que errores HTML rompan el JSON
+// 1. Incluimos el archivo de sesión/conexión
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+
+// Limpieza de buffer y headers
 ob_clean();
 header('Content-Type: application/json; charset=utf-8');
-header("Access-Control-Allow-Origin: *");
+// Solo usa este header si es estrictamente necesario y estás en testing
+// header("Access-Control-Allow-Origin: *"); 
 
-// Activar errores solo durante pruebas
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
-session_start();
+// NOTA: session_start() y ini_set() ya están en check_session_api.php
 
 define('MANAGER_ROLE_ID', 1);
 
@@ -35,35 +35,18 @@ if (empty($password)) {
 }
 
 // =====================================================
-// 2. Conexión a la Base de Datos
+// 2. Verificación de Conexión (Usamos la conexión global $conn)
 // =====================================================
 try {
-    // Detectamos DOCUMENT_ROOT real
-    $rootPath = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-
-    // En Adellya normalmente public_html es el root, por eso probamos ambos
-    $dbPath1 = $rootPath . '/KitchenLink/src/php/db_connection.php';
-    $dbPath2 = $rootPath . '/src/php/db_connection.php';
-
-    if (file_exists($dbPath1)) {
-        require $dbPath1;
-    } elseif (file_exists($dbPath2)) {
-        require $dbPath2;
-    } else {
-        throw new Exception("No se encontró db_connection.php en:\n$dbPath1\n$dbPath2");
+    if (!isset($conn) || !$conn || $conn->connect_errno) {
+        throw new Exception("Error al conectar con la base de datos.");
     }
-
-    if (!isset($conn) || !$conn) {
-        throw new Exception("La variable \$conn no está definida o la conexión falló.");
-    }
-
 } catch (Throwable $e) {
     http_response_code(500);
     $response = [
         'success' => false,
-        'message' => 'Error al conectar con la base de datos.',
-        'error_details' => $e->getMessage(),
-        'root' => $_SERVER['DOCUMENT_ROOT']
+        'message' => 'Error de conexión con el servidor.',
+        'error_details' => $e->getMessage()
     ];
     echo json_encode($response);
     exit();
@@ -73,14 +56,14 @@ try {
 // 3. Verificación de la contraseña
 // =====================================================
 try {
-    $sql = "SELECT password FROM users WHERE rol_id = ?";
+    // Usamos LIMIT 1 porque solo necesitamos la contraseña del gerente (rol_id=1)
+    $sql = "SELECT password FROM users WHERE rol_id = ? LIMIT 1"; 
     $stmt = $conn->prepare($sql);
 
     if ($stmt === false) {
         throw new Exception("Error al preparar la consulta SQL: " . $conn->error);
     }
 
-    // ✅ Corrección: pasar variable, no constante, a bind_param
     $roleId = MANAGER_ROLE_ID;
     $stmt->bind_param("i", $roleId);
 
@@ -89,10 +72,10 @@ try {
 
     $is_verified = false;
 
-    while ($manager = $result->fetch_assoc()) {
+    // Solo necesitamos verificar la primera (y única) contraseña del gerente.
+    if ($manager = $result->fetch_assoc()) {
         if (password_verify($password, $manager['password'])) {
             $is_verified = true;
-            break;
         }
     }
 
@@ -117,12 +100,9 @@ try {
 }
 
 // =====================================================
-// 4. Cerrar conexión y responder
+// 4. Responder
 // =====================================================
-if (isset($conn)) {
-    $conn->close();
-}
-
+// ⚠️ NO CERRAMOS LA CONEXIÓN. Ya eliminamos el bloque de cierre antes.
 echo json_encode($response);
 exit();
 ?>

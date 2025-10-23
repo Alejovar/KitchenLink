@@ -1,7 +1,7 @@
 <?php
 // /src/api/bar/update_item_status.php (VERSIÓN FINAL CORREGIDA)
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $response = ['success' => false, 'message' => 'Error desconocido.'];

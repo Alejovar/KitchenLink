@@ -1,11 +1,11 @@
 <?php
 // pending_orders.php - CORREGIDO
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
 // --- LÓGICA DE SEGURIDAD ---
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /KitchenLink/login.html');
+    header('Location: /KitchenLink/index.html');
     exit();
 }
 
@@ -92,7 +92,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
     </div>
 </div>
 
-
+<script src="/KitchenLink/src/js/session_interceptor.js"></script>
 <script src="/KitchenLink/src/js/pending_orders.js"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
 <?php
 // orders.php - Tu archivo principal en el servidor
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
 // --- LÓGICA DE SEGURIDAD CRÍTICA ---
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /KitchenLink/login.html'); 
+    header('Location: /KitchenLink/index.html'); 
     exit();
 }
 
@@ -83,7 +83,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
     // Incluimos el archivo que contiene nuestros modales desde la carpeta de componentes.
     include $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/components/advanced_options_modals.php';
 ?>
-
+<script src="/KitchenLink/src/js/session_interceptor.js"></script>
 <script type="module" src="/KitchenLink/src/js/orders.js"></script>
 
 </body>

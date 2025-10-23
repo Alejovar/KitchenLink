@@ -4,11 +4,11 @@
 ini_set('display_errors', 1); // Quitar cuando todo funcione
 error_reporting(E_ALL);     // Quitar cuando todo funcione
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
 // 1. Seguridad
 if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
-    header('Location: /KitchenLink/login.html');
+    header('Location: /KitchenLink/index.html');
     exit();
 }
 
@@ -178,7 +178,7 @@ $initial_order_json = json_encode($initial_data);
     </div>
     
     <script id="initialOrderData" type="application/json"><?php echo $initial_order_json; ?></script>
-    
+    <script src="/KitchenLink/src/js/session_interceptor.js"></script>
     <script src="/KitchenLink/src/js/tpv.js"></script> 
 </body>
 </html>

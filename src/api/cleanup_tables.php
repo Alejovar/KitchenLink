@@ -2,7 +2,7 @@
 // Ojo: Este script no es para que lo visite un usuario.
 // Está pensado para ejecutarse automáticamente cada cierto tiempo (un "cron job").
 // Su única misión es hacer limpieza en la base de datos.
-
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 // Incluimos la conexión a la base de datos.
 require_once __DIR__ . '/../php/db_connection.php';
 

@@ -1,7 +1,7 @@
 <?php
 // /api/orders/get_tables.php - API para obtener las mesas y su tiempo de ocupación
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json');
 
 // 1. VERIFICAR AUTENTICACIÓN

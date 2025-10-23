@@ -1,5 +1,6 @@
 <?php
 // Le decimos al cliente que le vamos a responder con JSON.
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json');
 // Incluimos la conexión a la base de datos.
 require '../php/db_connection.php';

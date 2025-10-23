@@ -5,7 +5,7 @@
 // Envía los productos de la orden y el total actual guardado en la base de datos.
 // =====================================================
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(E_ALL);

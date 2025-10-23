@@ -2,6 +2,7 @@
 // =====================================================
 // GET_SERVER_LIST.PHP - Obtiene la lista de meseros (MySQLi)
 // =====================================================
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 
 // --- Cargar conexión ---

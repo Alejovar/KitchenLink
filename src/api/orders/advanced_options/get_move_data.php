@@ -2,6 +2,7 @@
 // =====================================================
 // GET_MOVE_DATA.PHP - Carga los productos y mesas destino (MySQLi)
 // =====================================================
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 
 // --- Cargar conexión ---

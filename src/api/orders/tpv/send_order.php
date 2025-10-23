@@ -3,7 +3,7 @@
 // send_order.php - VERSIÓN FINAL CORREGIDA Y SEGURA
 // ===================================================================
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0); 
 error_reporting(E_ALL);
@@ -122,7 +122,7 @@ try {
             $quantity = intval($item['quantity'] ?? 1);
 
             $stmt_insert_detail->bind_param(
-                "iiidssisi", 
+                "iiidssssi", 
                 $order_id, $product_id, $quantity, $authoritative_price, $notes, $modifier_id, $preparation_area, $now_timestamp, $service_time
             );
             if (!$stmt_insert_detail->execute()) throw new Exception('Fallo al insertar detalle: ' . $stmt_insert_detail->error);

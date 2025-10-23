@@ -1,12 +1,12 @@
 <?php
 // kitchen_orders.php - Interfaz principal para la Cocina (Área Única)
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
 // --- LÓGICA DE SEGURIDAD ---
 // Asumo rol_id 3 (Jefe de Cocina) es el usuario principal de esta interfaz.
 if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 3) {
-    header('Location: /KitchenLink/login.html');
+    header('Location: /KitchenLink/index.html');
     exit();
 }
 
@@ -75,7 +75,7 @@ $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Jefe de Cocina');
         </div>
     </main>
 </div>
-
+<script src="/KitchenLink/src/js/session_interceptor.js"></script>
 <script src="/KitchenLink/src/js/kitchen_logic.js"></script>
 </body>
 </html>

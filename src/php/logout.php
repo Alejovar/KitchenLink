@@ -1,15 +1,23 @@
 <?php
-// Clase de PRUEBA, para cerrar sesion
-// Iniciar la sesión para poder acceder a ella.
 session_start();
 
-// Eliminar todas las variables de sesión.
-$_SESSION = array();
+// Si hay un usuario en la sesión, limpiamos su token en la BD.
+if (isset($_SESSION['user_id'])) {
+    require 'db_connection.php';
+    
+    // ✅ Pone el token en NULL, "liberando la habitación".
+    $stmt = $conn->prepare("UPDATE users SET session_token = NULL WHERE id = ?");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $stmt->close();
+    $conn->close();
+}
 
-// Destruir la sesión por completo.
+// Destruimos la sesión actual.
+session_unset();
 session_destroy();
 
-// Redirigir al usuario a la página de inicio de sesión.
-header("Location: /KitchenLink/index.html"); // Asegúrate de que esta ruta sea correcta
+// Redirigimos al login.
+header("Location: /KitchenLink/index.html"); // O tu página de login
 exit();
 ?>

@@ -34,6 +34,7 @@ CREATE TABLE users (
     CONSTRAINT fk_users_roles FOREIGN KEY (rol_id) REFERENCES roles(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+ALTER TABLE users ADD session_token VARCHAR(255) NULL DEFAULT NULL;
 
 -- ========= TABLA DE MESAS =========
 -- Contiene las mesas físicas del restaurante y su estado actual.

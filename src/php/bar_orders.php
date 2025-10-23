@@ -1,12 +1,12 @@
 <?php
 // bar_orders.php - Interfaz principal para la Barra
 
-session_start();
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
 // --- LÓGICA DE SEGURIDAD ---
 // ✅ CAMBIO: Se ajusta el rol_id para el 'encargado de barra' (asumiendo que es el ID 5 según tu base de datos).
 if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 5) { 
-    header('Location: /KitchenLink/login.html');
+    header('Location: /KitchenLink/index.html');
     exit();
 }
 
@@ -75,7 +75,7 @@ $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Encargado de Barra');
         </div>
     </main>
 </div>
-
+<script src="/KitchenLink/src/js/session_interceptor.js"></script>
 <script src="/KitchenLink/src/js/bar_logic.js"></script>
 </body>
 </html>

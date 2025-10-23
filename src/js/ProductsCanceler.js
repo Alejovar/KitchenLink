@@ -15,13 +15,18 @@ export class ProductsCanceler {
         // Estado
         this.sourceTableNumber = null;
         this.sourceOrderID = null; 
-        this.selectedItems = new Map(); // Mapa para guardar {detailId: quantity}
+        this.selectedItems = new Map();
 
         // Endpoints de la API
         this.api = {
             GET_PRODUCTS: '/KitchenLink/src/api/orders/advanced_options/get_cancel_data.php',
             EXECUTE_CANCEL: '/KitchenLink/src/api/orders/advanced_options/execute_cancel.php'
         };
+
+        // 🔑 ENLACES (BINDS) PARA PODER AÑADIR/ELIMINAR LISTENERS CORRECTAMENTE
+        this._handleSubmitBound = this._handleSubmit.bind(this);
+        this._handleProductListClickBound = this._handleProductListClick.bind(this);
+        this._checkCanCancelBound = this._checkCanCancel.bind(this);
     }
 
     initialize(sourceTableNumber) {
@@ -30,6 +35,21 @@ export class ProductsCanceler {
         this.sourceTableDisplay.textContent = sourceTableNumber;
         this._setupEventListeners();
         this._loadProducts();
+    }
+    
+    // 💡 MÉTODO CLAVE: Implementación de la limpieza (Dispose)
+    dispose() {
+        // 1. Elimina el listener del formulario
+        this.cancelProductsForm.removeEventListener('submit', this._handleSubmitBound);
+        
+        // 2. Elimina el listener delegado de la lista de productos
+        this.productsList.removeEventListener('click', this._handleProductListClickBound);
+        
+        // 3. Elimina el listener del input de razón
+        this.cancellationReason.removeEventListener('input', this._checkCanCancelBound);
+        
+        // 4. Limpia el estado
+        this._resetState();
     }
 
     _resetState() {
@@ -43,19 +63,22 @@ export class ProductsCanceler {
     }
 
     _setupEventListeners() {
-        this.cancelProductsForm.removeEventListener('submit', this._handleSubmitBound);
-        this._handleSubmitBound = this._handleSubmit.bind(this);
+        // 1. Formulario (Ya ligado en el constructor)
         this.cancelProductsForm.addEventListener('submit', this._handleSubmitBound);
 
-        this.productsList.addEventListener('click', e => {
-            const itemElement = e.target.closest('.product-item');
-            if (itemElement) {
-                this._handleItemSelection(itemElement);
-            }
-        });
+        // 2. Listener delegado para la lista de productos
+        this.productsList.addEventListener('click', this._handleProductListClickBound);
 
-        // Habilitar botón al escribir razón y seleccionar ítems
-        this.cancellationReason.addEventListener('input', () => this._checkCanCancel());
+        // 3. Listener para verificar si se puede habilitar el botón de cancelar
+        this.cancellationReason.addEventListener('input', this._checkCanCancelBound);
+    }
+    
+    // 💡 NUEVO: Manejador de clics delegado
+    _handleProductListClick(e) {
+        const itemElement = e.target.closest('.product-item');
+        if (itemElement) {
+            this._handleItemSelection(itemElement);
+        }
     }
 
     async _loadProducts() {
@@ -108,7 +131,6 @@ export class ProductsCanceler {
             return;
         }
 
-        // Usamos el mismo formato estético de ProductsMover
         const listHtml = products.map(p => {
             return `
                 <div class="product-item" 
@@ -128,7 +150,8 @@ export class ProductsCanceler {
     
     _checkCanCancel() {
         const hasSelection = this.selectedItems.size > 0;
-        const hasReason = this.cancellationReason.value.trim().length > 5; // Mínimo de 5 caracteres
+        // La condición de hasReason se mantiene en el manejador del input para ser más eficiente
+        const hasReason = this.cancellationReason.value.trim().length > 5; 
         this.executeCancelBtn.disabled = !(hasSelection && hasReason);
     }
     

@@ -1,12 +1,12 @@
 <?php
 // bar_history.php - Interfaz para el Historial de Producción de Barra
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
-session_start();
 
 // --- LÓGICA DE SEGURIDAD ---
 // ✅ CAMBIO: Se ajusta al rol de 'encargado de barra' (ID 5).
 if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 5) {
-    header('Location: /KitchenLink/login.html');
+    header('Location: /KitchenLink/index.html');
     exit();
 }
 
@@ -75,7 +75,7 @@ $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Encargado de Barra');
         </div>
     </main>
 </div>
-
+<script src="/KitchenLink/src/js/session_interceptor.js"></script>
 <script src="/KitchenLink/src/js/history_bar.js"></script>
 
 </body>
