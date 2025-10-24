@@ -3,7 +3,7 @@ export class ProductsCanceler {
     constructor(advancedModalInstance) {
         this.advancedModal = advancedModalInstance;
 
-        // Elementos del DOM (de tu HTML para Cancelar Productos)
+        // Elementos del DOM
         this.sourceTableDisplay = document.getElementById('cancelSourceTableDisplay');
         this.productsList = document.getElementById('cancelProductsList');
         this.selectedCountDisplay = document.getElementById('cancelSelectedCount');
@@ -23,7 +23,7 @@ export class ProductsCanceler {
             EXECUTE_CANCEL: '/KitchenLink/src/api/orders/advanced_options/execute_cancel.php'
         };
 
-        // 🔑 ENLACES (BINDS) PARA PODER AÑADIR/ELIMINAR LISTENERS CORRECTAMENTE
+        // Enlaces (binds)
         this._handleSubmitBound = this._handleSubmit.bind(this);
         this._handleProductListClickBound = this._handleProductListClick.bind(this);
         this._checkCanCancelBound = this._checkCanCancel.bind(this);
@@ -37,18 +37,10 @@ export class ProductsCanceler {
         this._loadProducts();
     }
     
-    // 💡 MÉTODO CLAVE: Implementación de la limpieza (Dispose)
     dispose() {
-        // 1. Elimina el listener del formulario
         this.cancelProductsForm.removeEventListener('submit', this._handleSubmitBound);
-        
-        // 2. Elimina el listener delegado de la lista de productos
         this.productsList.removeEventListener('click', this._handleProductListClickBound);
-        
-        // 3. Elimina el listener del input de razón
         this.cancellationReason.removeEventListener('input', this._checkCanCancelBound);
-        
-        // 4. Limpia el estado
         this._resetState();
     }
 
@@ -63,17 +55,11 @@ export class ProductsCanceler {
     }
 
     _setupEventListeners() {
-        // 1. Formulario (Ya ligado en el constructor)
         this.cancelProductsForm.addEventListener('submit', this._handleSubmitBound);
-
-        // 2. Listener delegado para la lista de productos
         this.productsList.addEventListener('click', this._handleProductListClickBound);
-
-        // 3. Listener para verificar si se puede habilitar el botón de cancelar
         this.cancellationReason.addEventListener('input', this._checkCanCancelBound);
     }
     
-    // 💡 NUEVO: Manejador de clics delegado
     _handleProductListClick(e) {
         const itemElement = e.target.closest('.product-item');
         if (itemElement) {
@@ -124,6 +110,9 @@ export class ProductsCanceler {
         this._updateTotalSelection();
     }
     
+    // =================================================================
+    // MÉTODO MODIFICADO
+    // =================================================================
     _renderProducts(products) {
         this.productsList.innerHTML = '';
         if (products.length === 0) {
@@ -132,13 +121,24 @@ export class ProductsCanceler {
         }
 
         const listHtml = products.map(p => {
+            // NUEVO: Genera el HTML para el modificador solo si existe.
+            const modifierHtml = p.modifier_name
+                ? `<small class="item-modifier">${p.modifier_name}</small>`
+                : '';
+
             return `
                 <div class="product-item" 
                      data-detail-id="${p.detail_id}" 
                      data-quantity="${p.quantity}" 
                      title="Clic para cancelar ${p.product_name}">
+                    
                     <span class="item-qty">${p.quantity}x</span>
-                    <span class="item-name">${p.product_name}</span>
+                    
+                    <div class="item-details">
+                        <span class="item-name">${p.product_name}</span>
+                        ${modifierHtml}
+                    </div>
+
                     <span class="item-price">$${p.price_at_order.toFixed(2)}</span>
                     <i class="selection-icon fas fa-check-circle"></i>
                 </div>
@@ -150,12 +150,12 @@ export class ProductsCanceler {
     
     _checkCanCancel() {
         const hasSelection = this.selectedItems.size > 0;
-        // La condición de hasReason se mantiene en el manejador del input para ser más eficiente
         const hasReason = this.cancellationReason.value.trim().length > 5; 
         this.executeCancelBtn.disabled = !(hasSelection && hasReason);
     }
     
     async _handleSubmit(event) {
+        // ... (Este método no necesita cambios)
         event.preventDefault();
         this.cancelErrorMsg.style.display = 'none';
 

@@ -1,6 +1,5 @@
 class TableNumberChanger {
     constructor(advancedModalInstance) {
-        // La instancia del modal avanzado para cerrarlo tras el éxito
         this.advancedModal = advancedModalInstance; 
         
         this.form = document.getElementById('changeTableNumberForm');
@@ -9,19 +8,43 @@ class TableNumberChanger {
         this.currentTableDisplay = document.getElementById('currentTableDisplay');
 
         this.currentTableNumber = null;
-        
-        // Asegúrate de que esta ruta sea correcta para el script de renombrar
         this.apiEndpoint = '/KitchenLink/src/api/orders/advanced_options/change_table.php';
+
+        // NUEVO: Vinculamos el método de formateo para usarlo en el event listener.
+        this._handleInputFormatting = this._formatInput.bind(this);
     }
 
-    // Método para inicializar el form y sus listeners
+    // NUEVO: Método para formatear la entrada del usuario en tiempo real.
+    _formatInput() {
+        let value = this.input.value;
+
+        // 1. Elimina cualquier caracter que no sea un dígito.
+        let numericValue = value.replace(/[^0-9]/g, '');
+
+        // 2. Si el valor es '0', lo borra para forzar que el número empiece en 1.
+        if (numericValue === '0') {
+            numericValue = '';
+        }
+        
+        // 3. El maxlength="4" del HTML ya se encarga del límite, pero esto es un refuerzo.
+        if (numericValue.length > 4) {
+            numericValue = numericValue.slice(0, 4);
+        }
+
+        // 4. Actualiza el valor del input.
+        this.input.value = numericValue;
+    }
+
     initialize(currentTableNumber, currentOrderID) { 
         this.input.value = '';
         this.errorMsg.style.display = 'none';
-
         this.currentTableNumber = parseInt(currentTableNumber, 10);
-        
         this.currentTableDisplay.textContent = currentTableNumber;
+
+        // MODIFICADO: Añadimos el listener para la validación en tiempo real.
+        // Lo removemos primero para evitar duplicados si se llama a initialize varias veces.
+        this.input.removeEventListener('input', this._handleInputFormatting);
+        this.input.addEventListener('input', this._handleInputFormatting);
 
         if (this.form) {
             this.form.removeEventListener('submit', this._handleSubmitBound);
@@ -36,8 +59,9 @@ class TableNumberChanger {
 
         const newTableNumber = parseInt(this.input.value, 10);
         
-        if (isNaN(newTableNumber) || newTableNumber <= 0) {
-            this._showError('Por favor, ingrese un número de mesa válido.');
+        // MODIFICADO: Validación más estricta para el rango de 1 a 9999.
+        if (isNaN(newTableNumber) || newTableNumber < 1 || newTableNumber > 9999) {
+            this._showError('Por favor, ingrese un número de mesa entre 1 y 9999.');
             return;
         }
 
@@ -47,7 +71,6 @@ class TableNumberChanger {
         }
 
         try {
-            // Se envían solo los dos números de mesa
             const res = await fetch(this.apiEndpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -61,10 +84,7 @@ class TableNumberChanger {
             if (result.success) {
                 alert(`${result.message}`);
                 this.advancedModal.close();
-                
-                // 🚀 DISPARA EVENTO DE RECARGA: orders.js lo escuchará
                 window.dispatchEvent(new CustomEvent('table-list-update')); 
-                
             } else {
                 this._showError(result.message || 'Error desconocido al reasignar la mesa.');
             }
@@ -80,6 +100,5 @@ class TableNumberChanger {
     }
 }
 
-// 🚨 EXPORTACIÓN FINAL 🚨
-// Exportamos la clase para que ModalAdvancedOptions la pueda importar.
+// EXPORTACIÓN FINAL
 export { TableNumberChanger };

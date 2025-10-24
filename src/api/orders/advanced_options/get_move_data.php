@@ -26,20 +26,18 @@ if (!$source_table_number || $source_table_number <= 0) {
 $response = ['success' => false, 'message' => ''];
 
 try {
-    // Definir estados finales que NO permiten movimiento
     $final_statuses = ['COBRADO', 'CLOSED', 'CANCELADO']; 
     $status_placeholders = str_repeat('?,', count($final_statuses) - 1) . '?';
     $status_types = str_repeat('s', count($final_statuses));
 
-    // --- A. Obtener Order ID de Origen y datos de productos ---
-    // NOTA: Se ha ELIMINADO la restricción de STATUS y solo se busca la orden activa (la que tiene productos).
     $sql_products = "
         SELECT 
             o.order_id, 
             od.detail_id, 
             od.quantity, 
             od.price_at_order,
-            p.name AS product_name
+            p.name AS product_name,
+            m.modifier_name AS modifier_name -- <-- CORRECCIÓN: La columna se llama 'modifier_name'
         FROM 
             orders o
         JOIN 
@@ -48,16 +46,17 @@ try {
             order_details od ON od.order_id = o.order_id
         JOIN
             products p ON p.product_id = od.product_id
+        LEFT JOIN
+            modifiers m ON m.modifier_id = od.modifier_id
         WHERE 
             rt.table_number = ? 
-            AND o.status NOT IN ({$status_placeholders}) -- Excluir estados finales
+            AND o.status NOT IN ({$status_placeholders})
     ";
     
     $stmt = $conn->prepare($sql_products);
     
-    // Bind: 1 (mesa) + N (estados finales)
     $bind_params = array_merge([$source_table_number], $final_statuses);
-    $stmt->bind_param("i" . $status_types, ...$bind_params); // i (int) + sss (strings)
+    $stmt->bind_param("i" . $status_types, ...$bind_params);
     $stmt->execute();
     $result = $stmt->get_result();
 
@@ -67,10 +66,11 @@ try {
     while ($row = $result->fetch_assoc()) {
         $source_order_id = $row['order_id'];
         $products[] = [
-            'detail_id' => (int)$row['detail_id'],
-            'quantity' => (int)$row['quantity'],
+            'detail_id'      => (int)$row['detail_id'],
+            'quantity'       => (int)$row['quantity'],
             'price_at_order' => (float)$row['price_at_order'],
-            'product_name' => $row['product_name']
+            'product_name'   => $row['product_name'],
+            'modifier_name'  => $row['modifier_name']
         ];
     }
     $stmt->close();
@@ -81,11 +81,9 @@ try {
         exit;
     }
 
-    // --- B. Obtener todas las Mesas Destino ---
     $sql_tables = "
         SELECT 
             table_number, 
-            client_count, 
             CASE WHEN (SELECT COUNT(o.order_id) FROM orders o WHERE o.table_id = rt.table_id AND o.status NOT IN ({$status_placeholders})) > 0 THEN 'Ocupada (con orden)' ELSE 'Disponible' END AS status
         FROM 
             restaurant_tables rt
@@ -100,7 +98,6 @@ try {
     $tables_result = $stmt->get_result();
     $available_tables = $tables_result->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
-
 
     $response['success'] = true;
     $response['source_order_id'] = (int)$source_order_id;

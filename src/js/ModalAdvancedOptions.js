@@ -17,7 +17,6 @@ export class ModalAdvancedOptions {
         this.passwordModal = new Modal('managerPasswordModal');
         this.advancedModal = new Modal('advancedOptionsModal');
         
-        // INSTANCIAS DE FUNCIONALIDAD AVANZADA
         this.tableNumberChanger = new TableNumberChanger(this.advancedModal);
         this.guestCountChanger = new GuestCountChanger(this.advancedModal);
         this.productsMover = new ProductsMover(this.advancedModal); 
@@ -29,6 +28,12 @@ export class ModalAdvancedOptions {
         if (!this.triggerButton) return;
         this._setupEventListeners();
         this._setupTabs();
+    }
+
+    // NUEVO: Método para formatear la entrada de la contraseña en tiempo real.
+    _formatPasswordInput() {
+        // Elimina cualquier caracter de espacio en blanco.
+        this.passwordInput.value = this.passwordInput.value.replace(/\s/g, '');
     }
 
     _setupEventListeners() {
@@ -44,22 +49,28 @@ export class ModalAdvancedOptions {
             }
         });
 
+        // MODIFICADO: Añadimos un listener para el evento 'input'
+        // Esto llama a _formatPasswordInput cada vez que el usuario escribe algo.
+        this.passwordInput.addEventListener('input', () => this._formatPasswordInput());
+
         this.passwordForm.addEventListener('submit', e => this._handlePasswordVerification(e));
         this.cancelPasswordBtn.addEventListener('click', () => this.passwordModal.close());
         
-        // 🔑 AGREGAMOS EL LISTENER PARA LIMPIAR LAS CLASES CUANDO EL MODAL SE CIERRA
-        // Asumimos que 'modal:closed' es un evento emitido por tu clase Modal.js
         this.advancedModal.modalElement.addEventListener('modal:closed', () => this._disposeAdvancedOptions());
     }
 
     async _handlePasswordVerification(event) {
         event.preventDefault();
         this.passwordErrorMsg.style.display = 'none';
+        
+        // La validación en tiempo real asegura que aquí no lleguen espacios.
+        const password = this.passwordInput.value;
+
         try {
             const res = await fetch('/KitchenLink/src/api/orders/auth/verify_manager.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: this.passwordInput.value })
+                body: JSON.stringify({ password: password }) // Enviamos el valor ya limpio
             });
             const result = await res.json();
 
@@ -78,9 +89,6 @@ export class ModalAdvancedOptions {
         }
     }
     
-    /**
-     * Prepara todas las opciones avanzadas con el contexto de la mesa seleccionada.
-     */
     _prepareAdvancedOptions() {
         if (!this.selectedTableElement) return;
         
@@ -90,11 +98,8 @@ export class ModalAdvancedOptions {
         mainTitle.textContent = `Opciones Avanzadas (Mesa ${tableNumber})`;
 
         const currentOrderID = null; 
-        
         const currentServerName = this.selectedTableElement.dataset.serverName || ''; 
 
-        // Inicializar todas las opciones con el número de mesa actual
-        // Esto añade los nuevos listeners
         this.tableNumberChanger.initialize(tableNumber, currentOrderID);
         this.guestCountChanger.initialize(tableNumber); 
         this.productsMover.initialize(tableNumber); 
@@ -102,20 +107,14 @@ export class ModalAdvancedOptions {
         this.serverChanger.initialize(tableNumber, currentServerName); 
     }
     
-    /**
-     * Llama al método dispose() de todas las clases que manejan Event Listeners.
-     * Esta función es CRÍTICA para que la selección funcione la segunda vez.
-     */
     _disposeAdvancedOptions() {
-        // Llama a dispose() en cada clase que implementamos.
-        // Asumimos que TableNumberChanger, GuestCountChanger, y ServerChanger también tienen dispose().
-        this.tableNumberChanger.dispose();
-        this.guestCountChanger.dispose();
-        this.productsMover.dispose();     // 🔑 Limpia los listeners de mover
-        this.productsCanceler.dispose();  // 🔑 Limpia los listeners de cancelar
-        this.serverChanger.dispose();
+        // Asumiendo que las clases tienen un método dispose para limpiar listeners
+        if (this.tableNumberChanger.dispose) this.tableNumberChanger.dispose();
+        if (this.guestCountChanger.dispose) this.guestCountChanger.dispose();
+        if (this.productsMover.dispose) this.productsMover.dispose();
+        if (this.productsCanceler.dispose) this.productsCanceler.dispose();
+        if (this.serverChanger.dispose) this.serverChanger.dispose();
         
-        // Limpiar la referencia a la mesa seleccionada
         this.selectedTableElement = null;
     }
 
@@ -123,7 +122,6 @@ export class ModalAdvancedOptions {
         const menuItems = document.querySelectorAll('.advanced-options-menu .menu-item');
         const contentTabs = document.querySelectorAll('.advanced-options-content .content-tab');
         
-        // Establecer el primer tab como activo por defecto si no hay ninguno
         if (!document.querySelector('.advanced-options-menu .menu-item.active')) {
             menuItems[0]?.classList.add('active');
             document.querySelector(menuItems[0]?.getAttribute('href'))?.classList.add('active');
