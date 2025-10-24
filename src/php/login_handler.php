@@ -9,7 +9,7 @@ header('Content-Type: application/json');
 
 // --- Definiciones de Rate Limiting ---
 define('MAX_ATTEMPTS_DEVICE', 5); // Límite de intentos por dispositivo
-define('LOCKOUT_DURATION_MINUTES', 60); // Tiempo de bloqueo en minutos (ej. 60 minutos)
+define('LOCKOUT_DURATION_MINUTES', 3); // Tiempo de bloqueo en minutos (ej. 60 minutos)
 
 // 🔑 DEFINICIÓN DE LA FUNCIÓN DE IP
 function getClientIp() {
