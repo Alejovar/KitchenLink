@@ -16,7 +16,7 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != BARRA_ROLE_ID) {
     }
     
     // Redirigir al inicio y forzar el login
-    header('Location: /KitchenLink/index.html?error=acceso_no_barra');
+    header('Location: /KitchenLink/index.php?error=acceso_no_barra');
     exit();
 }
 

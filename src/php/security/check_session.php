@@ -48,7 +48,7 @@ if (!$user_row || $user_row['session_token'] !== ($_SESSION['session_token'] ?? 
         $conn->close();
     }
 
-    header('Location: /KitchenLink/index.html?error=session_expired');
+    header('Location: /KitchenLink/index.php?error=session_expired');
     exit;
 }
 

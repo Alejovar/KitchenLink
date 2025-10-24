@@ -16,7 +16,7 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != COCINA_ROLE_ID) {
     }
     
     // Redirigir al inicio y forzar el login
-    header('Location: /KitchenLink/index.html?error=acceso_no_cocina');
+    header('Location: /KitchenLink/index.php?error=acceso_no_cocina');
     exit();
 }
 // Si el script llega aquí, el usuario es un Jefe de Cocina válido.

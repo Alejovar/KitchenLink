@@ -30,7 +30,7 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != MESERO_ROLE_ID) {
         session_destroy();
     }
     
-    header('Location: /KitchenLink/index.html?error=acceso_no_mesero_pendientes');
+    header('Location: /KitchenLink/index.php?error=acceso_no_mesero_pendientes');
     exit();
 }
 // Si el script llega aquí, el usuario es un Mesero válido.

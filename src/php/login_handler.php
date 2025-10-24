@@ -1,8 +1,8 @@
 <?php
-// Logica de la intefaz de login (ACTUALIZADA CON BLOQUEO DE SESIÓN CONCURRENTE)
+// Logica de la intefaz de login (CORREGIDA: Limpieza de Token Fantasma)
 
 session_start();
-require 'db_connection.php';
+require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php'; // Usamos ruta absoluta
 
 header('Content-Type: application/json');
 
@@ -10,37 +10,41 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $user = trim($_POST['user'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
-    // Validaciones de campos vacíos (sin cambios)
+    // Validaciones de campos vacíos
     if (empty($user) || empty($password)) {
         echo json_encode(["success" => false, "message" => "Faltó ingresar usuario y/o contraseña."]);
         exit;
     }
 
-    // ✅ PASO CLAVE 1: Pedimos también el session_token para revisarlo
+    // ✅ PASO 1: Obtener toda la información, incluido el session_token
     $stmt = $conn->prepare("SELECT id, password, name, rol_id, session_token FROM users WHERE user = ?");
     $stmt->bind_param("s", $user);
     $stmt->execute();
     $result = $stmt->get_result();
 
-    if ($result && $result->num_rows > 0) {
+    if ($result && $result->num_rows === 1) {
         $row = $result->fetch_assoc();
         $hashed_password = $row['password'];
 
         if (password_verify($password, $hashed_password)) {
             
-            // ✅ PASO CLAVE 2: LA VERIFICACIÓN DEL "HOTEL"
-            // Antes de hacer nada, revisamos si la habitación (el token) ya está ocupada.
+            // 🔑 PASO 2: VERIFICACIÓN Y LIMPIEZA DE TOKEN FANTASMA
+            
+            // Si el token NO está vacío, significa que hay un token fantasma (sesión PHP anterior muerta).
             if (!empty($row['session_token'])) {
-                // Si el token NO está vacío, significa que ya hay una sesión activa.
-                // Rechazamos el nuevo inicio de sesión.
-                echo json_encode([
-                    "success" => false,
-                    "message" => "Este usuario ya tiene una sesión activa en otro dispositivo."
-                ]);
-                exit; // Detenemos el script aquí.
+                
+                // 💥 CORRECCIÓN CRÍTICA: Borrar el token inmediatamente.
+                // Asumimos que el usuario actual es legítimo porque pasó el password_verify.
+                $stmt_clear = $conn->prepare("UPDATE users SET session_token = NULL WHERE id = ?");
+                $stmt_clear->bind_param("i", $row['id']);
+                $stmt_clear->execute();
+                $stmt_clear->close();
+                
+                // Nota: No salimos con error. Simplemente limpiamos y continuamos con el login normal.
             }
+            // Si el token era NULL, simplemente continuamos.
 
-            // Si llegamos aquí, significa que la "habitación" está libre y podemos proceder.
+            // 3. GENERAR NUEVO TOKEN Y ACTUALIZAR DB
             $session_token = bin2hex(random_bytes(32));
 
             $update_stmt = $conn->prepare("UPDATE users SET session_token = ? WHERE id = ?");
@@ -48,23 +52,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $update_stmt->execute();
             $update_stmt->close();
 
+            // 4. ESTABLECER VARIABLES DE SESIÓN
             $_SESSION['loggedin'] = true;
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['user_name'] = $row['name'];
             $_SESSION['rol_id'] = $row['rol_id'];
             $_SESSION['session_token'] = $session_token;
             
-            // Lógica de redirección (sin cambios)
-            $redirect_url = "/KitchenLink/dashboard.php"; // URL por defecto
-            if ($row['rol_id'] == 4) {
-                $redirect_url = "/KitchenLink/src/php/reservations.php";
-            } elseif ($row['rol_id'] == 2) {
-                $redirect_url = "/KitchenLink/src/php/orders.php";
-            } elseif ($row['rol_id'] == 3) {
-                $redirect_url = "/KitchenLink/src/php/kitchen_orders.php";
-            } elseif ($row['rol_id'] == 5) {
-                $redirect_url = "/KitchenLink/src/php/bar_orders.php";
+            // 5. Lógica de redirección por rol
+            $redirect_url = "/KitchenLink/dashboard.php"; 
+            
+            switch ($row['rol_id']) {
+                case 4:
+                    $redirect_url = "/KitchenLink/src/php/reservations.php";
+                    break;
+                case 2:
+                    $redirect_url = "/KitchenLink/src/php/orders.php";
+                    break;
+                case 3:
+                    $redirect_url = "/KitchenLink/src/php/kitchen_orders.php";
+                    break;
+                case 5:
+                    $redirect_url = "/KitchenLink/src/php/bar_orders.php";
+                    break;
+                // Nota: Puedes añadir el caso 1 para gerente aquí si lo necesitas.
             }
+
             echo json_encode(["success" => true, "redirect" => $redirect_url]);
 
         } else {
@@ -74,7 +87,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         echo json_encode(["success" => false, "message" => "Usuario no existente."]);
     }
 
-    $stmt->close();
+    // El primer $stmt ya se cerró arriba, cerramos solo la conexión aquí.
+    $conn->close();
 }
-$conn->close();
 exit;

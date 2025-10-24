@@ -29,7 +29,7 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != HOSTESS_ROLE_ID) {
         session_destroy();
     }
     
-    header('Location: /KitchenLink/index.html?error=acceso_no_hostess_lista');
+    header('Location: /KitchenLink/index.php?error=acceso_no_hostess_lista');
     exit();
 }
 // Si el script llega aquí, el usuario es una Hostess válida.

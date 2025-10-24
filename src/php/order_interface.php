@@ -21,7 +21,7 @@ if ($_SESSION['rol_id'] != MESERO_ROLE_ID) {
         session_destroy();
     }
     
-    header('Location: /KitchenLink/index.html?error=acceso_no_mesero');
+    header('Location: /KitchenLink/index.php?error=acceso_no_mesero');
     exit();
 }
 // ⚠️ Se eliminó la verificación redundante de !isset($_SESSION['user_id'])
