@@ -120,6 +120,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 case 2: $redirect_url = "/KitchenLink/src/php/orders.php"; break;
                 case 3: $redirect_url = "/KitchenLink/src/php/kitchen_orders.php"; break;
                 case 5: $redirect_url = "/KitchenLink/src/php/bar_orders.php"; break;
+                case 6: $redirect_url = "/KitchenLink/src/php/cashier.php"; break;
             }
 
             echo json_encode(["success" => true, "redirect" => $redirect_url]);
