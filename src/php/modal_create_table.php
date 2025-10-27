@@ -9,13 +9,13 @@
             
             <div class="form-group">
                 <label for="mesaNumber">Número de Mesa:</label>
-                <input type="number" id="mesaNumber" required min="1" max="9999"> 
+                <input type="number" id="mesaNumber" required min="1" max="9999" maxlength="4"> 
                 <p class="validation-message" id="mesaNumberError"></p>
             </div>
             
             <div class="form-group">
                 <label for="clientCount">Número de Personas:</label>
-                <input type="number" id="clientCount" required min="1" max="99"> 
+                <input type="number" id="clientCount" required min="1" max="99" maxlength="2"> 
                 <p class="validation-message" id="clientCountError"></p>
             </div>
             

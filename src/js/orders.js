@@ -1,19 +1,19 @@
 // /js/orders.js - VERSIÓN FINAL INTEGRADA Y FUNCIONAL
 
-// =======================================================
-// AÑADIDO: Importamos la clase al principio del archivo
 import { ModalAdvancedOptions } from './ModalAdvancedOptions.js';
-// =======================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- REFERENCIAS DEL DOM ---
+    // --- REFERENCIAS DEL DOM (SIN CAMBIOS) ---
     const tableGridContainer = document.getElementById('tableGridContainer');
     const clockContainer = document.getElementById('liveClockContainer');
     const fab = document.getElementById('fab');
     const modal = document.getElementById('newTableModal');
     const newTableForm = document.getElementById('newTableForm');
-    const controlButtons = document.querySelectorAll('.action-btn'); // Ahora solo incluye los dos botones restantes
+    const controlButtons = document.querySelectorAll('.action-btn');
     const mainContent = document.querySelector('main');
+    
+    const inputTableNumber = document.getElementById('mesaNumber');
+    const inputClientCount = document.getElementById('clientCount');
     const tableNumberError = document.getElementById('mesaNumberError');
     const clientCountError = document.getElementById('clientCountError');
     
@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- FUNCIONES ---
+
     function updateClock() {
         const now = new Date();
         const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -47,9 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateControlButtons() {
         const shouldEnable = selectedTable !== null;
-        
-        // 🚨 CÓDIGO LIMPIADO: Ya que solo quedan dos botones, simplemente los deshabilitamos.
-        // No necesitamos el if (button.id !== 'btn-exit') porque 'btn-exit' fue eliminado del HTML.
         controlButtons.forEach(button => {
             button.disabled = !shouldEnable;
         });
@@ -102,6 +100,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (clientCountError) clientCountError.textContent = '';
     }
 
+    // =======================================================
+    // LÓGICA DE VALIDACIÓN (CON LA CORRECCIÓN)
+    // =======================================================
+    
+    function formatNumericInput(input, maxLength) {
+        if (!input) return;
+        let value = input.value;
+        let numericValue = value.replace(/[^0-9]/g, '');
+
+        // === CORRECCIÓN AÑADIDA AQUÍ ===
+        // Si el valor después de limpiar es exactamente "0", lo borramos.
+        if (numericValue === '0') {
+            numericValue = '';
+        }
+        // ===============================
+        
+        if (numericValue.length > maxLength) {
+            numericValue = numericValue.slice(0, maxLength);
+        }
+        
+        input.value = numericValue;
+    }
+    
+    if (inputTableNumber) {
+        inputTableNumber.addEventListener('input', () => {
+            formatNumericInput(inputTableNumber, 4);
+        });
+    }
+
+    if (inputClientCount) {
+        inputClientCount.addEventListener('input', () => {
+            formatNumericInput(inputClientCount, 2);
+        });
+    }
+
+    // =======================================================
+    // FIN DE LA LÓGICA DE VALIDACIÓN
+    // =======================================================
+
     fab.addEventListener('click', () => {
         modal.classList.add('visible');
         mainContent.classList.add('blurred');
@@ -140,27 +177,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = `order_interface.php?table=${tableNumber}`;
     });
 
-    // El botón 'btn-exit' fue eliminado del HTML, pero mantenemos el listener si el elemento es re-añadido.
-    // document.getElementById('btn-exit').addEventListener('click', () => {
-    //     window.location.href = '/KitchenLink/src/php/logout.php';
-    // });
-
     // --- INICIALIZACIÓN ---
     updateClock();
     setInterval(updateClock, 1000);
-
     updateControlButtons();
     fetchAndRenderTables(); 
     setInterval(fetchAndRenderTables, 60000);
-
-    // =======================================================
-    // LISTENER DE RECARGA: Carga los datos cuando TableNumberChanger dispara el evento
     window.addEventListener('table-list-update', fetchAndRenderTables);
-    // =======================================================
-    
-    // =======================================================
-    // Inicialización de la lógica de opciones avanzadas
     const optionsManager = new ModalAdvancedOptions('#btn-advanced-options');
     optionsManager.initialize();
-    // =======================================================
 });

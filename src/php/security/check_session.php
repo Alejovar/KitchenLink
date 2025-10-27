@@ -8,7 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 1. Si no hay ID de usuario, redirige inmediatamente a login.
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /KitchenLink/index.html'); 
+    header('Location: /KitchenLink/index.php'); 
     exit;
 }
 
