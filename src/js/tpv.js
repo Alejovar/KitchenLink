@@ -494,6 +494,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sendOrderBtn.addEventListener('click', sendOrderToKitchen);
 
+    // ✨ --- BLOQUE DE VALIDACIÓN AÑADIDO --- ✨
+    if (quantitySelector) {
+        quantitySelector.addEventListener('input', () => {
+            let value = quantitySelector.value;
+            // 1. Solo permite dígitos
+            value = value.replace(/[^0-9]/g, '');
+            // 2. Si el valor es '0', lo borra
+            if (value === '0') {
+                value = '';
+            }
+            // 3. Limita a 2 dígitos
+            if (value.length > 2) {
+                value = value.substring(0, 2);
+            }
+            // 4. Previene que sea mayor a 99
+            if (parseInt(value, 10) > 99) {
+                value = '99';
+            }
+            quantitySelector.value = value;
+        });
+
+        quantitySelector.addEventListener('blur', () => {
+            // Si el campo queda vacío o es menor a 1, lo establece en 1
+            if (quantitySelector.value === '' || parseInt(quantitySelector.value, 10) < 1) {
+                quantitySelector.value = '1';
+            }
+        });
+    }
+    // --- FIN DEL BLOQUE DE VALIDACIÓN ---
+
     categoryList.addEventListener('click', (e) => {
         const categoryItem = e.target.closest('.category-item');
         if (categoryItem) {
