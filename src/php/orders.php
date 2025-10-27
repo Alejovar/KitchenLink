@@ -64,20 +64,20 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
         </div>
         
        <div class="user-info">
-                <div class="user-details">
-                    <i class="fas fa-user-circle user-avatar"></i>
-                    
-                    <div class="user-text-container">
-                        <div class="user-name-text"><?php echo $userName; ?></div>
-                        <div class="session-status-text">Sesión activa</div>
-                    </div>
-                </div>
+            <div class="user-details">
+                <i class="fas fa-user-circle user-avatar"></i>
                 
-                <a href="/KitchenLink/src/php/logout.php" class="logout-btn" title="Cerrar Sesión">
-                    <i class="fas fa-sign-out-alt"></i>
-                </a>
+                <div class="user-text-container">
+                    <div class="user-name-text"><?php echo $userName; ?></div>
+                    <div class="session-status-text">Sesión activa</div>
+                </div>
             </div>
-        </aside>
+            
+            <a href="/KitchenLink/src/php/logout.php" class="logout-btn" title="Cerrar Sesión">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </aside>
 
     <main class="content">
         <div id="liveClockContainer"></div>
@@ -111,8 +111,8 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Mesero');
     // Incluimos el archivo que contiene nuestros modales desde la carpeta de componentes.
     include $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/components/advanced_options_modals.php';
 ?>
-<script src="/KitchenLink/src/js/session_interceptor.js"></script>
-<script type="module" src="/KitchenLink/src/js/orders.js"></script>
 
-</body>
+<div id="notification-container"></div> <script src="/KitchenLink/src/js/session_interceptor.js"></script>
+<script type="module" src="/KitchenLink/src/js/orders.js"></script>
+<script type="module" src="/KitchenLink/src/js/notifications.js"></script> </body>
 </html>

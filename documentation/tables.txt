@@ -271,6 +271,9 @@ CREATE TABLE IF NOT EXISTS order_details (
 
 ALTER TABLE order_details
 ADD COLUMN service_time INT NOT NULL DEFAULT 1 COMMENT 'Secuencia de servicio (tiempo) para agrupar ítems en la comanda. Por defecto es 1.';
+ALTER TABLE order_details
+ADD COLUMN notified_waiter BOOLEAN NOT NULL DEFAULT FALSE 
+COMMENT 'FALSE=No notificado, TRUE=Ya notificado al mesero';
 
 -- ######################################################################
 -- # 4. INSERCIÓN DE DATOS INICIALES (MENÚ COMPLETO)
