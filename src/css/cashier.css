@@ -499,3 +499,142 @@ h1, h3 {
 #removeDiscountBtn:hover {
     color: #c0392b; /* Rojo más oscuro */
 }
+
+/* --- ESTILOS PARA LA IMPRESIÓN DEL TICKET --- */
+@media print {
+    /* Definición de página: Ancho seguro y sin márgenes */
+    @page {
+        size: 52mm auto; 
+        margin: 0; 
+        padding: 0;
+    }
+
+    /* Ocultar contenido externo y hacer visible el ticket */
+    body > *:not(.ticket-container) {
+        display: none;
+    }
+
+    body.ticket-body, .ticket-container {
+        visibility: visible;
+    }
+
+    body {
+        width: 52mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        
+        /* Margen izquierdo para centrar y reducir el desperdicio vertical */
+        padding-left: 3mm !important;
+        padding-right: 2mm !important;
+        padding-top: 2mm !important; 
+        padding-bottom: 0 !important; /* 💥 CRÍTICO: Eliminamos padding inferior del body */
+
+        box-sizing: border-box; 
+        
+        font-family: 'Courier New', monospace;
+        font-size: 6pt;
+        color: #000;
+    }
+
+    .ticket-container {
+        width: 100%; 
+        margin: 0;
+        padding: 0;
+        padding-bottom: 0; 
+    }
+
+    /* ----------------------------------------------------- */
+    /* Encabezado y Pie de página */
+    /* ----------------------------------------------------- */
+
+    .ticket-header, .ticket-footer {
+        text-align: center; 
+    }
+
+    .ticket-header {
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+
+    .ticket-header h1 {
+        font-size: 8pt; 
+        margin: 3px 0;
+        text-align: center; 
+    }
+
+    .ticket-header p, .ticket-footer p {
+        font-size: 6pt; 
+        margin: 1px 0; /* 💥 CRÍTICO: Reducción máxima del margen vertical */
+    }
+
+    /* ----------------------------------------------------- */
+    /* Tabla de items y Totales (Se mantienen) */
+    /* ----------------------------------------------------- */
+
+    .ticket-items table {
+        width: 85%;
+        margin: 3px auto 0;
+        border-collapse: collapse;
+        table-layout: fixed; 
+        font-size: 5pt; 
+    }
+
+    .ticket-items th, .ticket-items td {
+        padding: 0; 
+        word-break: break-word; 
+        white-space: normal; 
+        font-size: 7pt;
+    }
+
+    .ticket-items th {
+        text-align: left; 
+        border-top: 1px dashed #000;
+        border-bottom: 1px dashed #000;
+        padding-top: 1px;
+        padding-bottom: 1px;
+    }
+
+    .ticket-items .qty { width: 15%; text-align: center; }
+    .ticket-items .desc { width: 50%; text-align: left; padding-left: 1mm; }
+    .ticket-items .price { width: 35%; text-align: right; }
+
+    .ticket-totals {
+        width: 85%;
+        margin: 3px auto 0;
+        font-size: 5pt;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between; 
+        padding: 0;
+        font-size: 7pt;
+    }
+
+    .total-row.grand-total {
+        font-weight: bold;
+        font-size: 8pt;
+        margin-top: 3px;
+        border-top: 1px solid #000;
+        padding-top: 3px;
+        padding-bottom: 0;
+    }
+
+    /* 💥 CRÍTICO: Eliminación de espacio en el pie de página */
+    .ticket-footer {
+        margin: 0; 
+        padding: 0;
+        text-align: center;
+    }
+    
+    .ticket-footer p {
+        /* Margen inferior mínimo para el mensaje de gracias */
+        margin: 3px 0 3px 0; 
+        font-size: 6pt;
+    }
+    
+    /* Reglas de display que ocultan el resto de la página */
+    body > *:not(.ticket-container) {
+        display: none !important;
+    }
+}

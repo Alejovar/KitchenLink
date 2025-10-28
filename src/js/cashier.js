@@ -99,24 +99,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /**
-     * ✨ CORREGIDO: El IVA ahora se calcula sobre el subtotal menos el descuento.
-     */
     function renderAccountDetails(details) {
-        const itemsHtml = details.items.map(item => {
+        const groupedItems = {};
+        details.items.forEach(item => {
+            const key = item.was_cancelled 
+                ? `cancelled-${item.detail_id}` 
+                : `${item.product_name}-${item.modifier_name || 'none'}`;
+
+            if (groupedItems[key]) {
+                groupedItems[key].quantity += item.quantity;
+            } else {
+                groupedItems[key] = { ...item };
+            }
+        });
+        const finalItemsToRender = Object.values(groupedItems);
+
+        const itemsHtml = finalItemsToRender.map(item => {
             const itemTotal = item.quantity * item.price_at_order;
             const modifierHtml = item.modifier_name ? ` <span class="modifier-text">(${item.modifier_name})</span>` : '';
             const cancelledClass = item.was_cancelled ? 'cancelled' : '';
-            return `<div class="item-row ${cancelledClass}"><span class="item-qty">${item.quantity}</span><span class="item-name">${item.product_name}${modifierHtml}</span><span class="item-price">${formatCurrency(item.price_at_order)}</span><span class="item-total">${formatCurrency(itemTotal)}</span></div>`;
+            
+            return `<div class="item-row ${cancelledClass}">
+                        <span class="item-qty">${item.quantity}</span>
+                        <span class="item-name">${item.product_name}${modifierHtml}</span>
+                        <span class="item-price">${formatCurrency(item.price_at_order)}</span>
+                        <span class="item-total">${formatCurrency(itemTotal)}</span>
+                    </div>`;
         }).join('');
 
         const subtotal = parseFloat(details.subtotal);
-        
-        // **LÓGICA CORREGIDA**
-        const taxableBase = Math.max(0, subtotal - discountAmount); // La base para el impuesto
-        const tax = taxableBase * 0.16; // El IVA es sobre la base gravable
+        const taxableBase = Math.max(0, subtotal - discountAmount);
+        const tax = taxableBase * 0.16;
         const finalTotal = taxableBase + tax;
-        
         totalDue = finalTotal;
 
         const removeDiscountButtonHtml = discountAmount > 0 ? `<button id="removeDiscountBtn" title="Quitar descuento">❌</button>` : '';
@@ -318,6 +332,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- LÓGICA DE IMPRESIÓN (CORREGIDA) ---
+    function printTicket() {
+        if (!selectedOrderId) {
+            alert("Por favor, seleccione una cuenta para imprimir el ticket.");
+            return;
+        }
+        
+        const ticketUrl = `/KitchenLink/src/php/ticket_template.php?order_id=${selectedOrderId}&discount=${discountAmount}`;
+
+        // 💥 CORRECCIÓN: Usar '_blank' en lugar de 'Print' y asegurar el foco.
+        // Esto resuelve el problema de que el botón dejara de funcionar.
+        const printWindow = window.open(ticketUrl, '_blank', 'width=700,height=800');
+        
+        if (printWindow) {
+            printWindow.focus();
+        } else {
+            alert("El navegador bloqueó la ventana emergente de impresión. Por favor, permítala.");
+        }
+    }
+
     // --- VALIDACIONES DE ENTRADA ---
     function validateNumericInput(event) {
         const input = event.target;
@@ -348,6 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (value === '0') {
             value = '';
         }
+        if (parseFloat(value) > 999999) {
+            value = '999999';
+        }
         input.value = value;
     }
 
@@ -372,6 +409,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     cashReceivedInput.addEventListener('input', calculateChange);
     btnFinalizePayment.addEventListener('click', finalizePayment);
+
+    // Conectar el botón de imprimir
+    btnPrintTicket.addEventListener('click', printTicket);
 
     [paymentAmountInput, cashReceivedInput].forEach(input => {
         input.addEventListener('input', validateNumericInput);

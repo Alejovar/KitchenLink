@@ -47,7 +47,7 @@ body{
 }
 
 .container button{
-    background-color: #1a73e8;
+    background-color: #7f00ff;
     color: #fff;
     font-size: 12px;
     padding: 10px 45px;
@@ -161,9 +161,9 @@ body{
 }
 
 .toggle{
-    background-color: #1a73e8;
+    background-color: #6b21a8;
     height: 100%;
-    background: linear-gradient(to right, #9129d6, #1a73e8);
+    background: linear-gradient(to right, #9129d6, #7f00ff);
     color: #fff;
     position: relative;
     left: -100%;
@@ -387,4 +387,28 @@ body{
   font-size: 0.8rem;
   margin-top: 5px;
   min-height: 16px; /* deja espacio aunque no haya error */
+}
+
+/* REDUCCIÓN DE ESPACIOS ENTRE ELEMENTOS DEL PANEL DERECHO */
+.toggle-panel.toggle-right h1 {
+    /* Reduce el margen inferior del título */
+    margin-bottom: 5px; 
+    /* Si tenías un margin-top, asegúrate de que esté en 0 o un valor pequeño */
+    margin-top: 20px; 
+}
+
+.toggle-panel.toggle-right img {
+    /* Reduce el margen superior y/o inferior de la imagen */
+    margin-top: 10px !important; 
+    margin-bottom: 10px;
+}
+
+.toggle-panel.toggle-right p {
+    /* Reduce el margen superior e inferior del párrafo */
+    margin: 10px 0; 
+}
+
+/* Opcional: Si el botón tiene mucho espacio */
+.toggle-panel.toggle-right button {
+    margin-top: 5px;
 }
