@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =======================================================
-    // LÓGICA DE VALIDACIÓN (CON LA CORRECCIÓN)
+    // LÓGICA DE VALIDACIÓN 
     // =======================================================
     
     function formatNumericInput(input, maxLength) {
@@ -109,12 +109,10 @@ document.addEventListener('DOMContentLoaded', () => {
         let value = input.value;
         let numericValue = value.replace(/[^0-9]/g, '');
 
-        // === CORRECCIÓN AÑADIDA AQUÍ ===
         // Si el valor después de limpiar es exactamente "0", lo borramos.
         if (numericValue === '0') {
             numericValue = '';
         }
-        // ===============================
         
         if (numericValue.length > maxLength) {
             numericValue = numericValue.slice(0, maxLength);
@@ -177,12 +175,19 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = `order_interface.php?table=${tableNumber}`;
     });
 
-    // --- INICIALIZACIÓN ---
+    // --- INICIALIZACIÓN Y POLLING ---
+    const POLLING_INTERVAL_MS = 5000; // 💡 Intervalo de 5 segundos para actualización rápida
+
     updateClock();
     setInterval(updateClock, 1000);
     updateControlButtons();
+    
+    // 1. Carga inicial
     fetchAndRenderTables(); 
-    setInterval(fetchAndRenderTables, 60000);
+    
+    // 2. Polling (Actualización automática)
+    setInterval(fetchAndRenderTables, POLLING_INTERVAL_MS);
+
     window.addEventListener('table-list-update', fetchAndRenderTables);
     const optionsManager = new ModalAdvancedOptions('#btn-advanced-options');
     optionsManager.initialize();

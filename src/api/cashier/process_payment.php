@@ -19,13 +19,13 @@ try {
     $payments = $input['payments'] ?? [];
     $tip_amount_card = $input['tip_amount_card'] ?? 0;
     $discount_amount = $input['discount_amount'] ?? 0;
-    $is_courtesy = $input['is_courtesy'] ?? false; // ✅ RECIBIMOS LA BANDERA DE CORTESÍA
+    $is_courtesy = $input['is_courtesy'] ?? false; 
 
     if (!$order_id || empty($payments)) {
         throw new Exception("Missing required payment data.", 400);
     }
 
-    // 2. Obtener datos de la orden y la mesa (sin cambios)
+    // 2. Obtener datos de la orden y la mesa.
     $sql_get_order = "SELECT o.*, rt.table_number, rt.client_count, rt.occupied_at, u.name as server_name 
                       FROM orders o
                       JOIN restaurant_tables rt ON o.table_id = rt.table_id
@@ -37,7 +37,13 @@ try {
     $order_data = $stmt_get->get_result()->fetch_assoc();
     $stmt_get->close();
 
-    // 3. Obtener los detalles (productos) de la orden (sin cambios)
+    if (!$order_data) {
+        throw new Exception("Order or table occupation record not found.", 404);
+    }
+    
+    $rt_table_id = $order_data['table_id']; // ID de la fila en restaurant_tables
+    
+    // 3. Obtener los detalles (productos) de la orden 
     $sql_get_details = "SELECT od.*, p.name as product_name, m.modifier_name
                         FROM order_details od
                         JOIN products p ON od.product_id = p.product_id
@@ -50,7 +56,7 @@ try {
     $order_details_array = $order_details_result->fetch_all(MYSQLI_ASSOC);
     $stmt_details->close();
     
-    // Calcular totales (sin cambios)
+    // Calcular totales
     $subtotal = 0;
     foreach ($order_details_array as $item) {
         if (!$item['is_cancelled']) {
@@ -60,13 +66,13 @@ try {
     $tax_amount = $subtotal * 0.16;
     $grand_total = ($subtotal + $tax_amount - $discount_amount) + $tip_amount_card;
 
-    // 4. ✅ INSERTAR en 'sales_history' INCLUYENDO LA CORTESÍA
+    // 4. ✅ INSERTAR en 'sales_history' 
     $sql_insert_sale = "INSERT INTO sales_history 
                         (original_order_id, table_number, client_count, server_name, time_occupied, subtotal, tax_amount, discount_amount, tip_amount_card, grand_total, is_courtesy, payment_methods) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt_sale = $conn->prepare($sql_insert_sale);
     $payment_methods_json = json_encode($payments);
-    // El tipo 'i' al final es para el booleano 'is_courtesy' (0 o 1)
+    
     $stmt_sale->bind_param("iiisssddddis", 
         $order_id, 
         $order_data['table_number'], 
@@ -78,14 +84,13 @@ try {
         $discount_amount,
         $tip_amount_card, 
         $grand_total,
-        $is_courtesy, // <-- Aquí se guarda la bandera de cortesía
+        $is_courtesy, 
         $payment_methods_json
     );
     $stmt_sale->execute();
     $new_sale_id = $conn->insert_id;
     $stmt_sale->close();
 
-    // El resto del script (pasos 5, 6, 7, 8, 9) no necesita cambios...
     // 5. INSERTAR en sales_history_details
     $sql_insert_details = "INSERT INTO sales_history_details (sale_id, product_name, modifier_name, quantity, price_at_order, was_cancelled) VALUES (?, ?, ?, ?, ?, ?)";
     $stmt_sale_details = $conn->prepare($sql_insert_details);
@@ -95,26 +100,38 @@ try {
     }
     $stmt_sale_details->close();
 
-    // 6. ELIMINAR la mesa de restaurant_tables
-    $sql_delete_table = "DELETE FROM restaurant_tables WHERE table_id = ?";
-    $stmt_delete_table = $conn->prepare($sql_delete_table);
-    $stmt_delete_table->bind_param("i", $order_data['table_id']);
-    $stmt_delete_table->execute();
-    $stmt_delete_table->close();
+    // -----------------------------------------------------
+    // 💥 BORRADO DIRECTO DE TABLAS ACTIVAS (Limpieza total)
+    // -----------------------------------------------------
+    
+    // 6. ELIMINAR los detalles de la orden **(EXPLÍCITO y primero para evitar problemas de FK)**
+    $sql_delete_details = "DELETE FROM order_details WHERE order_id = ?";
+    $stmt_delete_details = $conn->prepare($sql_delete_details);
+    $stmt_delete_details->bind_param("i", $order_id);
+    $stmt_delete_details->execute();
+    $stmt_delete_details->close();
 
-    // 7. ELIMINAR la orden de la tabla orders
+    // 7. ELIMINAR la orden principal de orders
     $sql_delete_order = "DELETE FROM orders WHERE order_id = ?";
     $stmt_delete_order = $conn->prepare($sql_delete_order);
     $stmt_delete_order->bind_param("i", $order_id);
     $stmt_delete_order->execute();
     $stmt_delete_order->close();
+    
+    // 8. ELIMINAR la ocupación de restaurant_tables
+    $sql_delete_table = "DELETE FROM restaurant_tables WHERE table_id = ?";
+    $stmt_delete_table = $conn->prepare($sql_delete_table);
+    $stmt_delete_table->bind_param("i", $rt_table_id);
+    $stmt_delete_table->execute();
+    $stmt_delete_table->close();
 
-    // 8. CONFIRMAR la transacción
+
+    // 9. CONFIRMAR la transacción
     $conn->commit();
     $response = ['success' => true, 'message' => 'Account closed and archived successfully.', 'new_sale_id' => $new_sale_id];
 
 } catch (Throwable $e) {
-    // 9. REVERTIR todos los cambios
+    // 10. REVERTIR todos los cambios
     $conn->rollback();
     http_response_code($e->getCode() ?: 500);
     $response['message'] = 'Transaction failed: ' . $e->getMessage();
@@ -124,4 +141,4 @@ try {
 
 echo json_encode($response, JSON_UNESCAPED_UNICODE);
 exit;
-?> 
+?>

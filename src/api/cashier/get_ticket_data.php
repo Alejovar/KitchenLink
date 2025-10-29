@@ -69,7 +69,7 @@ try {
         'success' => true,
         'data' => [
             'header' => [
-                'restaurant_name' => 'KitchenLink Restaurant', // Puedes cambiar este nombre
+                'restaurant_name' => 'KitchenLink', // Puedes cambiar este nombre
                 'order_id' => $summary['order_id'],
                 'date' => date('d/m/Y H:i:s'),
                 'table_number' => $summary['table_number'],

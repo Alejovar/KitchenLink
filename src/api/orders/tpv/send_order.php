@@ -1,6 +1,6 @@
 <?php
 // ===================================================================
-// send_order.php - VERSIÓN FINAL CORREGIDA Y SEGURA
+// send_order.php - VERSIÓN FINAL CORREGIDA Y SEGURA CON BLOQUEO DE MESA CERRADA
 // ===================================================================
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
@@ -33,7 +33,8 @@ try {
     }
 
     // 🧩 Conexión a la base de datos
-    require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
+    // Asumimos que esta ruta contiene la lógica de conexión $conn
+    require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php'; 
     if (!$conn || $conn->connect_errno) {
         throw new Exception('Error de conexión a la base de datos.');
     }
@@ -48,31 +49,37 @@ try {
     $table_id = 0;
     $order_id = 0;
 
-    // 1. OBTENER O CREAR MESA (Solución de concurrencia)
-    $client_count = 1; 
-    $stmt_insert_table = $conn->prepare("
-        INSERT IGNORE INTO restaurant_tables (table_number, assigned_server_id, client_count, occupied_at)
-        VALUES (?, ?, ?, ?)
-    ");
-    $stmt_insert_table->bind_param("iiis", $table_number, $server_id, $client_count, $now_timestamp);
-    $stmt_insert_table->execute();
-    $stmt_insert_table->close();
-
-    $stmt_get_table = $conn->prepare("SELECT table_id FROM restaurant_tables WHERE table_number = ? LIMIT 1");
-    $stmt_get_table->bind_param("i", $table_number);
-    $stmt_get_table->execute();
-    $res_table = $stmt_get_table->get_result();
-    if($row_table = $res_table->fetch_assoc()) {
-        $table_id = $row_table['table_id'];
-    }
-    $stmt_get_table->close();
+    // 1. VERIFICACIÓN Y OBTENCIÓN DE MESA ACTIVA (BLOQUEO CRÍTICO)
     
-    if (!$table_id) {
-        throw new Exception("Error crítico: no se pudo obtener el ID de la mesa.");
+    // Preparamos la consulta para obtener el registro de ocupación
+    $stmt_check_active = $conn->prepare("
+        SELECT table_id, assigned_server_id FROM restaurant_tables WHERE table_number = ?
+    ");
+    $stmt_check_active->bind_param("i", $table_number);
+    $stmt_check_active->execute();
+    $active_table_res = $stmt_check_active->get_result();
+    $stmt_check_active->close();
+    
+    if ($active_table_res->num_rows == 0) {
+        // 🛑 BLOQUEO: La mesa no está activa en restaurant_tables. Fue pagada y eliminada.
+        // El script se termina aquí y devuelve el error al JS del mesero.
+        $conn->rollback(); // Aseguramos que no haya transacciones pendientes
+        http_response_code(410); // Código 410 GONE (El recurso ya no existe)
+        echo json_encode([
+            'success' => false, 
+            'message' => 'MESA CERRADA: El cajero ya cerró esta cuenta. Por favor, actualiza la lista de mesas.',
+            'code' => 'CLOSED_BY_CASHIER'
+        ]);
+        exit;
     }
-
+    
+    // Si llegamos aquí, la mesa está OCUPADA.
+    $active_table_row = $active_table_res->fetch_assoc();
+    $table_id = $active_table_row['table_id']; // ID de la fila en restaurant_tables (ocupación activa)
+    
     // 2. BUSCAR O CREAR ORDEN ACTIVA
-    $stmt_order = $conn->prepare("SELECT order_id FROM orders WHERE table_id=? AND status NOT IN ('PAGADA','CANCELADA','CLOSED') LIMIT 1");
+    // La búsqueda debe ser rigurosa y excluir órdenes PAGADAS o CERRADAS (las que el cajero archivó)
+    $stmt_order = $conn->prepare("SELECT order_id FROM orders WHERE table_id=? AND status NOT IN ('PAID', 'CLOSED') LIMIT 1");
     $stmt_order->bind_param("i", $table_id);
     $stmt_order->execute();
     $res_order = $stmt_order->get_result();
@@ -80,6 +87,7 @@ try {
     if ($row_order = $res_order->fetch_assoc()) {
         $order_id = $row_order['order_id'];
     } else {
+        // La mesa está ocupada, pero no hay orden activa (Error lógico o primera vez). Creamos la orden.
         $stmt_create_order = $conn->prepare("INSERT INTO orders (table_id, server_id, status, order_time) VALUES (?, ?, 'PENDING', ?)");
         $stmt_create_order->bind_param("iis", $table_id, $server_id, $now_timestamp);
         $stmt_create_order->execute();
@@ -103,9 +111,7 @@ try {
             $product_id = intval($item['id'] ?? 0);
             if ($product_id <= 0) continue; 
 
-            // =========================================================================
-            // ✅ CAMBIO CLAVE: Obtener el precio desde la base de datos, no del cliente.
-            // =========================================================================
+            // Obtener el precio autoritativo
             $stmt_get_price->bind_param("i", $product_id);
             $stmt_get_price->execute();
             $price_result = $stmt_get_price->get_result();
@@ -114,7 +120,7 @@ try {
             if (!$product_row) {
                 throw new Exception("El producto con ID {$product_id} no fue encontrado.");
             }
-            $authoritative_price = $product_row['price']; // Este es el precio real y seguro.
+            $authoritative_price = $product_row['price']; 
 
             $preparation_area = $menuModel->getPreparationAreaByProductId($product_id);
             $notes = trim($item['comment'] ?? '');
@@ -131,7 +137,7 @@ try {
     $stmt_get_price->close();
     $stmt_insert_detail->close();
 
-    // 4. ACTUALIZAR EL TOTAL DE LA ORDEN (Lógica corregida)
+    // 4. ACTUALIZAR EL TOTAL DE LA ORDEN
     $stmt_update_total = $conn->prepare("
         UPDATE orders o
         SET o.total = (

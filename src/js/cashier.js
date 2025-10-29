@@ -296,18 +296,29 @@ document.addEventListener('DOMContentLoaded', () => {
         btnFinalizePayment.disabled = effectiveCash < dueInCash - 0.001;
     }
 
+    // --- LÓGICA DEL MODAL DE PAGO (FUNCIÓN FINALIZE PAYMENT) ---
     async function finalizePayment() {
         if (btnFinalizePayment.disabled) return;
         
         const totalTipAmount = paymentsRegistered.reduce((sum, p) => sum + p.tip, 0);
         const isCourtesy = paymentsRegistered.some(p => p.method === 'Cortesía') && (paymentsRegistered.reduce((sum, p) => sum + p.amount, 0) >= totalDue);
 
+        // Calculamos el cambio y el efectivo recibido para el recibo final
+        const cashReceived = parseFloat(cashReceivedInput.value.replace(',', '.')) || 0;
+        const totalCashPaid = paymentsRegistered.filter(p => p.method === 'Efectivo').reduce((sum, p) => sum + p.amount, 0);
+        const paidWithOtherMethods = paymentsRegistered.filter(p => p.method !== 'Efectivo').reduce((sum, p) => sum + p.amount, 0);
+        const dueInCash = totalDue - paidWithOtherMethods;
+        const effectiveCash = cashReceived > totalCashPaid ? cashReceived : totalCashPaid;
+        const cash_change = Math.max(0, effectiveCash - dueInCash);
+
+
         const payload = {
             order_id: selectedOrderId,
             payments: paymentsRegistered.map(({ method, amount }) => ({ method, amount })),
             tip_amount_card: totalTipAmount,
             discount_amount: discountAmount,
-            is_courtesy: isCourtesy
+            is_courtesy: isCourtesy,
+            cash_change: cash_change // 💡 AÑADIMOS EL CAMBIO AL PAYLOAD
         };
 
         try {
@@ -319,6 +330,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             if (result.success) {
                 alert(`Cuenta cerrada exitosamente. Movimiento #${result.new_sale_id}`);
+                
+                // 💥 LÓGICA: Abrir el Recibo Final
+                const saleId = result.new_sale_id;
+                const received = cashReceived; // Efectivo que el cliente dio
+
+                // Abrimos el recibo final con el ID de la venta y los parámetros necesarios
+                const receiptUrl = `/KitchenLink/src/php/ticket_final_template.php?sale_id=${saleId}&discount=${discountAmount}&cash_received=${received}&change=${cash_change}`;
+
+                // Usamos un tamaño grande para asegurar la visibilidad de los botones de impresión
+                const printWindow = window.open(receiptUrl, '_blank', 'width=700,height=800,scrollbars=yes,resizable=yes');
+                if (printWindow) {
+                    printWindow.focus();
+                }
+
+                // Continuar con el cierre del modal y la actualización de la interfaz
                 closePaymentModal();
                 fetchOpenAccounts();
                 accountDetailsContent.innerHTML = '<p class="placeholder-text">Seleccione una cuenta para ver los detalles.</p>';
@@ -332,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- LÓGICA DE IMPRESIÓN (CORREGIDA) ---
+    // --- LÓGICA DE IMPRESIÓN (PRE-TICKET) ---
     function printTicket() {
         if (!selectedOrderId) {
             alert("Por favor, seleccione una cuenta para imprimir el ticket.");
@@ -341,9 +367,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const ticketUrl = `/KitchenLink/src/php/ticket_template.php?order_id=${selectedOrderId}&discount=${discountAmount}`;
 
-        // 💥 CORRECCIÓN: Usar '_blank' en lugar de 'Print' y asegurar el foco.
-        // Esto resuelve el problema de que el botón dejara de funcionar.
-        const printWindow = window.open(ticketUrl, '_blank', 'width=700,height=800');
+        // Usamos un tamaño grande para asegurar la visibilidad de los botones de impresión
+        const printWindow = window.open(ticketUrl, '_blank', 'width=700,height=800,scrollbars=yes,resizable=yes');
         
         if (printWindow) {
             printWindow.focus();
@@ -372,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function validateDiscountInput(event) {
         const input = event.target;
-        let value = input.value.replace(/[^0-9.,%]/g, '');
+        let value = input.value.trim().replace(/[^0-9.,%]/g, '');
         value = value.replace(',', '.');
         value = value.replace(/%(?!$)/g, '');
         value = value.replace(/(\..*)\./g, '$1');
@@ -382,6 +407,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (value === '0') {
             value = '';
         }
+        if (value.includes('%') && parseFloat(value.replace('%', '')) > 100) {
+            value = '100%';
+        }
         if (parseFloat(value) > 999999) {
             value = '999999';
         }
@@ -389,9 +417,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- INICIALIZACIÓN Y EVENTOS ---
+    const POLLING_INTERVAL_MS = 10000; // 💡 10 segundos para actualizar la lista
+
     updateClock();
     setInterval(updateClock, 1000);
-    fetchOpenAccounts();
+    
+    // 💥 Polling para actualización automática de la lista de cuentas
+    fetchOpenAccounts(); 
+    setInterval(fetchOpenAccounts, POLLING_INTERVAL_MS);
 
     btnProcessPayment.addEventListener('click', openPaymentModal);
     closeModalButton.addEventListener('click', closePaymentModal);

@@ -527,13 +527,15 @@ h1, h3 {
         padding-left: 3mm !important;
         padding-right: 2mm !important;
         padding-top: 2mm !important; 
-        padding-bottom: 0 !important; /* 💥 CRÍTICO: Eliminamos padding inferior del body */
+        padding-bottom: 0 !important; 
 
         box-sizing: border-box; 
         
         font-family: 'Courier New', monospace;
         font-size: 6pt;
         color: #000;
+        
+        overflow: visible !important;
     }
 
     .ticket-container {
@@ -541,6 +543,7 @@ h1, h3 {
         margin: 0;
         padding: 0;
         padding-bottom: 0; 
+        overflow: visible !important;
     }
 
     /* ----------------------------------------------------- */
@@ -558,25 +561,25 @@ h1, h3 {
 
     .ticket-header h1 {
         font-size: 8pt; 
-        margin: 3px 0;
+        margin: 3px 0 1px 0; 
         text-align: center; 
     }
 
     .ticket-header p, .ticket-footer p {
         font-size: 6pt; 
-        margin: 1px 0; /* 💥 CRÍTICO: Reducción máxima del margen vertical */
+        margin: 1px 0;
     }
 
     /* ----------------------------------------------------- */
-    /* Tabla de items y Totales (Se mantienen) */
+    /* Tabla de items (90% de ancho - REFERENCIA DE ALINEACIÓN) */
     /* ----------------------------------------------------- */
 
     .ticket-items table {
-        width: 85%;
+        width: 90%; 
         margin: 3px auto 0;
         border-collapse: collapse;
         table-layout: fixed; 
-        font-size: 5pt; 
+        font-size: 7pt;
     }
 
     .ticket-items th, .ticket-items td {
@@ -598,43 +601,96 @@ h1, h3 {
     .ticket-items .desc { width: 50%; text-align: left; padding-left: 1mm; }
     .ticket-items .price { width: 35%; text-align: right; }
 
-    .ticket-totals {
-        width: 85%;
-        margin: 3px auto 0;
-        font-size: 5pt;
-    }
+    /* ----------------------------------------------------- */
+    /* Totales y Pagos (Alineación y Compresión OBLIGATORIA) */
+    /* ----------------------------------------------------- */
 
     .total-row {
+        /* CRÍTICO: Las filas deben estar dentro del 90% */
+        width: 90%; 
+        margin: 0 auto; /* Alineación con la tabla */
         display: flex;
         justify-content: space-between; 
         padding: 0;
         font-size: 7pt;
     }
 
-    .total-row.grand-total {
-        font-weight: bold;
-        font-size: 8pt;
-        margin-top: 3px;
-        border-top: 1px solid #000;
-        padding-top: 3px;
-        padding-bottom: 0;
+    /* 💥 CRÍTICO: Ajuste del ancho y fuente del concepto (Subtotal, Descuento, IVA, etc.) */
+    .total-row span:first-child {
+        width: 70%; /* Damos el 70% a la etiqueta de concepto */
+        font-size: 5pt; /* 💥 Fuente del concepto más pequeña para que quepa (5pt) */
+        text-align: left;
+    }
+    
+    .total-row span:last-child {
+        width: 30%; /* 30% para el valor numérico */
+        font-size: 7pt; /* El valor numérico se mantiene legible */
+        text-align: right;
     }
 
-    /* 💥 CRÍTICO: Eliminación de espacio en el pie de página */
-    .ticket-footer {
-        margin: 0; 
-        padding: 0;
+    /* Ajuste para el TOTAL PAGADO (Destacado) */
+    .total-row.grand-total span:first-child {
+        width: 55%; 
+        font-size: 7pt;
+    }
+    
+    .total-row.grand-total span:last-child {
+        width: 40%;
+        font-size: 8pt;
+    }
+
+    /* Los bloques de Totales y Pagos deben tener el mismo ancho que la tabla */
+    .ticket-totals {
+        width: 90%; /* Mismo ancho que la tabla */
+        margin: 3px auto 0;
+        font-size: 5pt;
+    }
+
+    .summary-separator {
         text-align: center;
+        font-size: 5pt;
+        margin: 3px 0;
+        width: 90%; 
+        margin: 3px auto; 
+    }
+
+    .summary-separator-bold {
+        text-align: center;
+        font-weight: bold;
+        font-size: 5pt;
+        margin: 3px auto;
+        width: 90%;
+    }
+
+    .payment-row {
+        width: 90%; 
+        margin: 0 auto; /* CRÍTICO: Mismo ancho y centrado que la tabla */
+        display: flex;
+        justify-content: space-between;
+        font-size: 7pt;
+        padding: 0;
     }
     
-    .ticket-footer p {
-        /* Margen inferior mínimo para el mensaje de gracias */
-        margin: 3px 0 3px 0; 
-        font-size: 6pt;
+    .payment-row span:first-child {
+        width: 70%; /* 70% para el concepto de pago */
+        text-align: left;
+        font-size: 6pt; 
     }
+    .payment-row span:last-child {
+        width: 30%; /* 30% para el valor de pago */
+        text-align: right;
+        font-size: 7pt;
+    }
+
+    .payment-row.cash-received { font-style: italic; margin-top: 3px; }
+    .payment-row.cash-change { font-weight: bold; font-size: 8pt; margin-top: 3px; }
     
-    /* Reglas de display que ocultan el resto de la página */
-    body > *:not(.ticket-container) {
-        display: none !important;
-    }
+    /* ----------------------------------------------------- */
+    
+    .ticket-footer { margin: 0; padding: 0; text-align: center; }
+    .ticket-footer p { margin: 3px 0 3px 0; font-size: 6pt; }
+    
+    .ticket-footer:after { content: ""; display: table; clear: both; }
+    
+    body > *:not(.ticket-container) { display: none !important; }
 }
