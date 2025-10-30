@@ -1,4 +1,4 @@
-// /js/orders.js - VERSIÓN FINAL INTEGRADA Y FUNCIONAL
+// /js/orders.js - VERSIÓN FINAL INTEGRADA Y FUNCIONAL (con alerta visual)
 
 import { ModalAdvancedOptions } from './ModalAdvancedOptions.js';
 
@@ -69,6 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const tableButton = document.createElement('button');
                     tableButton.className = 'table-btn';
                     tableButton.dataset.tableNumber = table.table_number;
+                    
+                    // 💡 LÓGICA DE ALERTA VISUAL: Si el pre_bill_status es REQUESTED
+                    if (table.pre_bill_status === 'REQUESTED') {
+                        tableButton.classList.add('prebill-requested'); 
+                    }
+                    
                     tableButton.innerHTML = `
                         <span class="table-number">${table.table_number}</span>
                         <div class="table-info">
@@ -176,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- INICIALIZACIÓN Y POLLING ---
-    const POLLING_INTERVAL_MS = 5000; // 💡 Intervalo de 5 segundos para actualización rápida
+    const POLLING_INTERVAL_MS = 5000; // Intervalo de 5 segundos para actualización rápida
 
     updateClock();
     setInterval(updateClock, 1000);

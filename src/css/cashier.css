@@ -230,11 +230,21 @@ h1, h3 {
     padding: 0;
 }
 
+/* --- Reglas de CSS Críticas para el Botón (cashier.css) --- */
+
 .account-item {
+    /* 1. Mantenemos el flexbox original */
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
+    
+    /* 💥 CRÍTICO: Necesario para que el botón se posicione en relación a este elemento */
+    position: relative; 
+    
+    /* 2. RESERVAMOS ESPACIO para el botón (170px de padding derecho) */
+    padding: 15px; 
+    padding-right: 170px; 
+    
     margin-bottom: 10px;
     background-color: #f8f9fa;
     border: 1px solid #dee2e6;
@@ -242,6 +252,41 @@ h1, h3 {
     cursor: pointer;
     transition: background-color 0.2s, box-shadow 0.2s;
 }
+
+/* Contenedor Flex para la info y el total (para que se vean alineados) */
+.account-details-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+
+/* 💥 Contenedor que alberga el botón y lo posiciona en el espacio reservado */
+.account-actions-box {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 170px; /* El mismo ancho que el padding-right */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-right: 10px; 
+}
+
+/* Estilo del botón de cancelar */
+.cancel-prebill-btn {
+    background-color: #dc3545; 
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    z-index: 20; 
+}
+
 .account-item:hover {
     background-color: #e9ecef;
 }
@@ -694,3 +739,32 @@ h1, h3 {
     
     body > *:not(.ticket-container) { display: none !important; }
 }
+
+
+/* --- Reglas de CSS Críticas para el Botón (cashier.css) --- */
+
+/* 💥 CRÍTICO: ESTILO DEL BOTÓN DE CANCELAR SOLICITUD */
+.cancel-prebill-btn {
+    /* 3. Posicionar el botón de forma absoluta en el espacio reservado */
+    position: absolute;
+    top: 50%;
+    right: 15px; /* Lo movemos 15px del borde derecho */
+    transform: translateY(-50%);
+    
+    /* Estilos visuales */
+    background-color: #dc3545; /* Rojo para cancelar */
+    color: white;
+    border: none;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    cursor: pointer;
+    z-index: 20; 
+    display: block; 
+}
+
+/* Si la mesa está solicitada, ajustamos el color de fondo para el botón sea legible */
+.account-item.prebill-requested {
+    background-color: #ffaa00; /* Color de alerta */
+}
+

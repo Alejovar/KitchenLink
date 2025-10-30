@@ -12,9 +12,11 @@ try {
         throw new Exception("Unauthorized access.");
     }
     
+    // La consulta SQL modificada
     $sql = "SELECT 
                 o.order_id,
                 rt.table_number,
+                rt.pre_bill_status, -- <-- 1. AÑADIR ESTA LÍNEA
                 u.name AS server_name,
                 o.order_time,
                 (SELECT SUM(od2.quantity * od2.price_at_order) FROM order_details od2 WHERE od2.order_id = o.order_id AND od2.is_cancelled = FALSE) AS calculated_total
@@ -38,6 +40,7 @@ try {
             'server_name' => $row['server_name'],
             'order_time' => $row['order_time'],
             'total_amount' => number_format($total, 2, '.', ''),
+            'pre_bill_status' => $row['pre_bill_status'] // <-- 2. AÑADIR ESTA CLAVE Y VALOR
         ];
     }
 

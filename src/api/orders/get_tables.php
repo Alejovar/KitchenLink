@@ -16,15 +16,16 @@ require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
 $server_id = $_SESSION['user_id']; 
 
-// 2. CONSULTA SQL MEJORADA
-// Obtiene todos los datos necesarios y calcula los minutos transcurridos
+// 2. CONSULTA SQL MEJORADA (Incluye el estado de pre-cuenta)
 $sql = "
     SELECT 
         table_id,
         table_number,
         client_count,
         occupied_at,
-        TIMESTAMPDIFF(MINUTE, occupied_at, NOW()) AS minutes_occupied
+        TIMESTAMPDIFF(MINUTE, occupied_at, NOW()) AS minutes_occupied,
+        -- 💥 CRÍTICO: Incluir el estado de la pre-cuenta
+        pre_bill_status 
     FROM 
         restaurant_tables
     WHERE
@@ -40,7 +41,6 @@ try {
     $stmt->execute();
     
     $result = $stmt->get_result(); 
-    // Ahora obtenemos un array de objetos, no solo de números
     $tables = $result->fetch_all(MYSQLI_ASSOC);
     
     $stmt->close();

@@ -1,5 +1,5 @@
 <?php
-// order_interface.php - VERSIÓN FINAL Y ROBUSTA
+// order_interface.php - VERSIÓN FINAL Y ROBUSTA con obtención de estado de bloqueo
 
 // Quitar la visualización de errores solo si la quieres ver en el HTML,
 // pero es mejor mantenerlos en 0 para producción y usar logs.
@@ -39,7 +39,20 @@ if (!isset($conn) || $conn->connect_error) {
     die("Error fatal de conexión a la base de datos."); // Detenemos la ejecución si la conexión falló
 }
 
-// 5. Consulta de Categorías
+// 5. Consulta Estado de la Mesa (para el bloqueo)
+$mesa_estado = 'ACTIVE';
+$sql_table_status = "SELECT rt.pre_bill_status FROM restaurant_tables rt WHERE rt.table_number = ?";
+$stmt_status = $conn->prepare($sql_table_status);
+$stmt_status->bind_param("i", $table_number);
+$stmt_status->execute();
+$status_result = $stmt_status->get_result();
+if ($row_status = $status_result->fetch_assoc()) {
+    $mesa_estado = $row_status['pre_bill_status']; // 💥 OBTENEMOS EL ESTADO DE BLOQUEO
+}
+$stmt_status->close();
+
+
+// 6. Consulta de Categorías
 $categories = [];
 try {
     $sql_categories = "SELECT category_id, category_name FROM menu_categories ORDER BY display_order ASC";
@@ -52,7 +65,7 @@ try {
     error_log("DB Error fetching categories: " . $e->getMessage());
 }
 
-// 6. Consulta de items
+// 7. Consulta de items
 $existing_items = [];
 try {
     $sql_all_items = "
@@ -97,8 +110,9 @@ try {
     die("Error fatal al consultar los detalles de la orden: " . $e->getMessage());
 }
 
-// 7. Preparar JSON de datos iniciales
+// 8. Preparar JSON de datos iniciales
 $initial_data = [
+    'table_status' => $mesa_estado, // 💥 ESTADO DE BLOQUEO INYECTADO AQUÍ
     'server_time' => (new DateTime())->format(DateTime::ATOM),
     'items' => $existing_items
 ];
@@ -171,6 +185,7 @@ $initial_order_json = json_encode($initial_data);
                 <div class="order-actions">
                     <button class="btn btn-primary" id="sendOrderBtn">Enviar a Cocina</button>
                 </div>
+                <div id="lockMessageContainer"></div> 
             </aside>
         </div>
     </div>

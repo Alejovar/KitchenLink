@@ -533,3 +533,33 @@ h1 {
     opacity: 0;
     transform: translateX(100%);
 }
+
+@keyframes pulse-alert {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 170, 0, 0.7); /* Comienza invisible */
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 10px 3px rgba(255, 170, 0, 1); /* Sutil brillo amarillo/naranja */
+    }
+    100% {
+        box-shadow: 0 0 0 10px rgba(255, 170, 0, 0); /* El brillo se desvanece */
+        transform: scale(1.01);
+    }
+}
+
+.table-btn.prebill-requested {
+    background-color: #ffaa00 !important; /* Fondo naranja/amarillo sólido */
+    border: 3px solid #ff4500; /* Borde de alerta */
+    
+    /* 💥 Aplicar la animación de latido */
+    animation-name: pulse-alert;
+    animation-duration: 2s; /* Duración de la animación (2 segundos) */
+    animation-iteration-count: infinite; /* Repetir indefinidamente */
+    animation-timing-function: ease-in-out; 
+    
+    /* Asegurar que el botón se muestre sobre otros elementos */
+    position: relative;
+    z-index: 10;
+}
+

@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let paymentsRegistered = [];
     let totalDue = 0;
     let discountAmount = 0;
+    
+    const POLLING_INTERVAL_MS = 10000; // 💡 10 segundos para actualizar la lista
 
     // --- RELOJ Y UTILIDADES ---
     function updateClock() {
@@ -42,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE API ---
     async function fetchOpenAccounts() {
         try {
+            // Nota: Esta API debe incluir 'pre_bill_status' de restaurant_tables en su respuesta
             const response = await fetch('/KitchenLink/src/api/cashier/get_open_accounts.php');
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const result = await response.json();
@@ -88,13 +91,48 @@ document.addEventListener('DOMContentLoaded', () => {
             const li = document.createElement('li');
             li.className = 'account-item';
             li.dataset.orderId = account.order_id;
-            li.innerHTML = `<div class="account-info"><strong>Mesa ${account.table_number}</strong><span>Atendido por: ${account.server_name}</span></div><div class="account-total">${formatCurrency(account.total_amount)}</div>`;
+
+            // 💡 LÓGICA DE ALERTA VISUAL (Recibe pre_bill_status de la API)
+            if (account.pre_bill_status === 'REQUESTED') {
+                li.classList.add('prebill-requested'); // Estilo para cambiar el color
+            }
+
+            // 💥 CRÍTICO: Estructura simple para posicionamiento absoluto del botón
+            li.innerHTML = `
+                <div class="account-details-wrapper">
+                    <div class="account-info">
+                        <strong>Mesa ${account.table_number}</strong>
+                        <span>Atendido por: ${account.server_name}</span>
+                    </div>
+                    <div class="account-total">${formatCurrency(account.total_amount)}</div>
+                </div>
+                <div class="account-actions-box"></div> 
+            `;
+            
             li.addEventListener('click', () => {
                 document.querySelectorAll('.account-item.selected').forEach(el => el.classList.remove('selected'));
                 li.classList.add('selected');
                 selectedOrderId = account.order_id;
                 fetchAccountDetails(account.order_id);
             });
+
+            // 💡 LÓGICA DEL BOTÓN DE CANCELACIÓN DINÁMICO
+            if (account.pre_bill_status === 'REQUESTED') {
+                const actionsBox = li.querySelector('.account-actions-box'); // Buscamos el contenedor actions-box
+                const cancelButton = document.createElement('button');
+                
+                cancelButton.textContent = '❌ Cancelar Solicitud';
+                cancelButton.className = 'cancel-prebill-btn';
+                cancelButton.dataset.orderId = account.order_id;
+                
+                cancelButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Evita que se seleccione la mesa al hacer clic en el botón
+                    cancelPreBillRequest(account.order_id);
+                });
+                
+                actionsBox.appendChild(cancelButton); // Insertamos el botón en el contenedor
+            }
+
             openAccountsList.appendChild(li);
         });
     }
@@ -357,14 +395,56 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Error de conexión al finalizar el pago.');
         }
     }
+    
+    // 💡 NUEVA FUNCIÓN: Cancelar la solicitud de pre-ticket
+    async function cancelPreBillRequest(orderId) {
+        if (!confirm(`¿Estás seguro de cancelar la solicitud de cobro para la Orden #${orderId}? Esto desbloqueará al mesero para que pueda añadir más ítems.`)) {
+            return;
+        }
+        try {
+            const response = await fetch('/KitchenLink/src/api/cashier/cancel_prebill.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderId })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                alert('Solicitud de cuenta cancelada. La mesa ha sido desbloqueada.');
+                fetchOpenAccounts(); // Recarga la lista de mesas para quitar el botón y la alerta
+            } else {
+                alert('Error al cancelar: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Error de red al cancelar pre-ticket:', error);
+        }
+    }
+
 
     // --- LÓGICA DE IMPRESIÓN (PRE-TICKET) ---
-    function printTicket() {
+    async function printTicket() {
         if (!selectedOrderId) {
             alert("Por favor, seleccione una cuenta para imprimir el ticket.");
             return;
         }
+
+        // 1. 💥 Notificar al servidor que el pre-ticket fue solicitado (Bloqueo de Mesero)
+        try {
+            const response = await fetch('/KitchenLink/src/api/cashier/set_prebill_requested.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: selectedOrderId })
+            });
+            const result = await response.json();
+
+            if (!result.success) {
+                console.warn('Advertencia: No se pudo marcar la mesa como "Cuenta Solicitada" para bloquear al mesero. Imprimiendo de todos modos. Error: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Fallo de red al solicitar pre-ticket:', error);
+        }
         
+        // 2. Abrir la ventana de impresión
         const ticketUrl = `/KitchenLink/src/php/ticket_template.php?order_id=${selectedOrderId}&discount=${discountAmount}`;
 
         // Usamos un tamaño grande para asegurar la visibilidad de los botones de impresión
@@ -416,8 +496,6 @@ document.addEventListener('DOMContentLoaded', () => {
         input.value = value;
     }
 
-    // --- INICIALIZACIÓN Y EVENTOS ---
-    const POLLING_INTERVAL_MS = 10000; // 💡 10 segundos para actualizar la lista
 
     updateClock();
     setInterval(updateClock, 1000);

@@ -33,7 +33,6 @@ try {
     }
 
     // 🧩 Conexión a la base de datos
-    // Asumimos que esta ruta contiene la lógica de conexión $conn
     require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php'; 
     if (!$conn || $conn->connect_errno) {
         throw new Exception('Error de conexión a la base de datos.');
@@ -51,9 +50,9 @@ try {
 
     // 1. VERIFICACIÓN Y OBTENCIÓN DE MESA ACTIVA (BLOQUEO CRÍTICO)
     
-    // Preparamos la consulta para obtener el registro de ocupación
+    // <-- 1. MODIFICAMOS LA CONSULTA PARA INCLUIR pre_bill_status
     $stmt_check_active = $conn->prepare("
-        SELECT table_id, assigned_server_id FROM restaurant_tables WHERE table_number = ?
+        SELECT table_id, assigned_server_id, pre_bill_status FROM restaurant_tables WHERE table_number = ?
     ");
     $stmt_check_active->bind_param("i", $table_number);
     $stmt_check_active->execute();
@@ -61,10 +60,8 @@ try {
     $stmt_check_active->close();
     
     if ($active_table_res->num_rows == 0) {
-        // 🛑 BLOQUEO: La mesa no está activa en restaurant_tables. Fue pagada y eliminada.
-        // El script se termina aquí y devuelve el error al JS del mesero.
-        $conn->rollback(); // Aseguramos que no haya transacciones pendientes
-        http_response_code(410); // Código 410 GONE (El recurso ya no existe)
+        $conn->rollback();
+        http_response_code(410); 
         echo json_encode([
             'success' => false, 
             'message' => 'MESA CERRADA: El cajero ya cerró esta cuenta. Por favor, actualiza la lista de mesas.',
@@ -73,12 +70,24 @@ try {
         exit;
     }
     
-    // Si llegamos aquí, la mesa está OCUPADA.
     $active_table_row = $active_table_res->fetch_assoc();
-    $table_id = $active_table_row['table_id']; // ID de la fila en restaurant_tables (ocupación activa)
+    $table_id = $active_table_row['table_id'];
+    
+    // <-- 2. AÑADIMOS LA BARRERA DE SEGURIDAD
+    // 🛑 BLOQUEO: Si la cuenta ya fue solicitada, no se pueden agregar más ítems.
+    if ($active_table_row['pre_bill_status'] === 'REQUESTED') {
+        $conn->rollback(); // Detenemos la transacción
+        http_response_code(403); // 403 Forbidden: Tienes permiso para entrar, pero no para hacer esta acción ahora.
+        echo json_encode([
+            'success' => false, 
+            'message' => 'ACCIÓN BLOQUEADA: La cuenta ya fue solicitada al cajero y no se pueden agregar más productos.',
+            'code' => 'PRE_BILL_REQUESTED'
+        ]);
+        exit; // Detenemos el script
+    }
     
     // 2. BUSCAR O CREAR ORDEN ACTIVA
-    // La búsqueda debe ser rigurosa y excluir órdenes PAGADAS o CERRADAS (las que el cajero archivó)
+    // ... (El resto del código sigue exactamente igual)
     $stmt_order = $conn->prepare("SELECT order_id FROM orders WHERE table_id=? AND status NOT IN ('PAID', 'CLOSED') LIMIT 1");
     $stmt_order->bind_param("i", $table_id);
     $stmt_order->execute();
@@ -87,7 +96,6 @@ try {
     if ($row_order = $res_order->fetch_assoc()) {
         $order_id = $row_order['order_id'];
     } else {
-        // La mesa está ocupada, pero no hay orden activa (Error lógico o primera vez). Creamos la orden.
         $stmt_create_order = $conn->prepare("INSERT INTO orders (table_id, server_id, status, order_time) VALUES (?, ?, 'PENDING', ?)");
         $stmt_create_order->bind_param("iis", $table_id, $server_id, $now_timestamp);
         $stmt_create_order->execute();
@@ -111,7 +119,6 @@ try {
             $product_id = intval($item['id'] ?? 0);
             if ($product_id <= 0) continue; 
 
-            // Obtener el precio autoritativo
             $stmt_get_price->bind_param("i", $product_id);
             $stmt_get_price->execute();
             $price_result = $stmt_get_price->get_result();
@@ -165,3 +172,4 @@ try {
 if ($conn) $conn->close();
 echo json_encode($response, JSON_UNESCAPED_UNICODE);
 exit;
+?>

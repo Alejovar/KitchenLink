@@ -1,4 +1,4 @@
-// tpv.js - VERSIÓN FINAL CON TOTAL COMBINADO (BD + PANTALLA)
+// tpv.js - VERSIÓN FINAL CON BLOQUEO Y CÁLCULO COMBINADO
 
 // Rutas a los endpoints PHP (AJAX)
 const API_ROUTES = {
@@ -14,7 +14,7 @@ const API_ROUTES = {
 let categoryList, productGrid, orderItems, orderTotalElement, sendOrderBtn, quantitySelector, addTimeBtn,
     commentModal, commentModalItemName, commentInput, commentItemIndex, saveCommentBtn, cancelCommentBtn,
     closeCommentModalBtn, modifierModal, modalProductName, modifierGroupName, modifierOptions,
-    closeModifierModalBtn, clockContainer;
+    closeModifierModalBtn, clockContainer, lockMessageContainer;
 let searchInput, searchDropdown;
 
 const tableNumber = parseInt(new URLSearchParams(window.location.search).get('table')) || 0;
@@ -22,8 +22,54 @@ let currentOrder = [];
 let timeCounter = 1;
 let activeOrderId = 0;
 let currentProduct = null;
-// Variable para guardar el total que viene de la base de datos
 let databaseTotal = 0;
+let isInterfaceLocked = false; // Nuevo estado de bloqueo
+
+// ----------------------------------------------------
+// LÓGICA DE BLOQUEO DE INTERFAZ
+// ----------------------------------------------------
+
+function lockTpvInterface() {
+    isInterfaceLocked = true;
+    sendOrderBtn.disabled = true;
+    quantitySelector.disabled = true;
+    addTimeBtn.disabled = true;
+    document.getElementById('addModifiedItemBtn').disabled = true;
+    
+    productGrid.style.pointerEvents = 'none';
+    categoryList.style.pointerEvents = 'none';
+    document.querySelector('.btn-back').style.pointerEvents = 'auto'; // Siempre activo
+
+    if (!lockMessageContainer) {
+        // Asumiendo que lockMessageContainer se inicializó correctamente
+        lockMessageContainer = document.getElementById('lockMessageContainer');
+    }
+    
+    if (lockMessageContainer) {
+        lockMessageContainer.innerHTML = 
+            '<p class="lock-message" style="color: red; font-weight: bold; text-align: center; margin-top: 10px;">' +
+            'MESA BLOQUEADA: COBRO SOLICITADO POR CAJA.' +
+            '</p>';
+    }
+}
+
+function unlockTpvInterface() {
+    isInterfaceLocked = false;
+    sendOrderBtn.disabled = false;
+    quantitySelector.disabled = false;
+    addTimeBtn.disabled = false;
+    document.getElementById('addModifiedItemBtn').disabled = false;
+    productGrid.style.pointerEvents = 'auto';
+    categoryList.style.pointerEvents = 'auto';
+    document.querySelector('.btn-back').style.pointerEvents = 'auto'; 
+    
+    if (lockMessageContainer) {
+        lockMessageContainer.innerHTML = '';
+    }
+    // Forzar re-renderizado para re-habilitar sendOrderBtn si hay ítems nuevos
+    renderOrderSummary();
+}
+
 
 // ----------------------------------------------------
 // FUNCIONES CLAVE DE ORDEN Y TIEMPOS
@@ -58,6 +104,17 @@ function updateOrderTotal() {
 async function loadInitialOrder() {
     if (tableNumber <= 0) return;
 
+    // 1. Obtener la data inyectada en el HTML
+    const initialDataElement = document.getElementById('initialOrderData');
+    const initialData = JSON.parse(initialDataElement.textContent);
+    
+    // 💡 VERIFICACIÓN CRÍTICA DEL ESTADO DE BLOQUEO AL CARGAR
+    if (initialData.table_status === 'REQUESTED') {
+        lockTpvInterface();
+    } else {
+        unlockTpvInterface(); 
+    }
+
     try {
         const urlId = `${API_ROUTES.API_GET_ACTIVE_ORDER_ID}?table_number=${tableNumber}`;
         const orderIdResponse = await fetch(urlId);
@@ -66,7 +123,7 @@ async function loadInitialOrder() {
         if (!orderIdData.success || !orderIdData.order_id) {
             activeOrderId = 0;
             currentOrder = [];
-            databaseTotal = 0; // Si no hay orden, el total base es 0
+            databaseTotal = 0; 
             timeCounter = 1;
             renderOrderSummary();
             return;
@@ -79,7 +136,6 @@ async function loadInitialOrder() {
 
         if (!data.success) throw new Error(data.message || 'Error al obtener ítems de orden.');
 
-        // Guarda el total que viene de la base de datos
         databaseTotal = parseFloat(data.total) || 0;
         
         const times = data.times || [];
@@ -123,7 +179,7 @@ async function loadInitialOrder() {
 }
 
 // ----------------------------------------------------
-// EL RESTO DEL CÓDIGO (SIN CAMBIOS IMPORTANTES)
+// EL RESTO DEL CÓDIGO 
 // ----------------------------------------------------
 
 function getFirstPendingTimeIndex() {
@@ -131,6 +187,12 @@ function getFirstPendingTimeIndex() {
 }
 
 function addItemToOrder(item) {
+    // 💡 BLOQUEO EN EL FLUJO: Si la interfaz está bloqueada, no añade ítems.
+    if (isInterfaceLocked) {
+        alert("La mesa está bloqueada. Cobro solicitado.");
+        return;
+    }
+
     const itemToAdd = {
         ...item,
         type: 'product',
@@ -218,17 +280,30 @@ function renderOrderSummary() {
     const hasNewItems = currentOrder.some(i => i.type === 'product' && !i.sentTimestamp);
     const hasSentItems = currentOrder.some(i => i.type === 'product' && i.sentTimestamp);
 
-    sendOrderBtn.disabled = !hasNewItems;
-    sendOrderBtn.textContent = hasSentItems ? 'Actualizar Orden' : 'Enviar a Cocina';
+    // Si la interfaz no está bloqueada, controlamos los botones de envío normalmente
+    if (!isInterfaceLocked) {
+        sendOrderBtn.disabled = !hasNewItems;
+        sendOrderBtn.textContent = hasSentItems ? 'Actualizar Orden' : 'Enviar a Cocina';
+        
+        const pendingTimeIndex = getFirstPendingTimeIndex();
+        const hasProductsInActiveTime = pendingTimeIndex !== -1 && currentOrder.slice(pendingTimeIndex + 1).some(i => i.type === 'product' && !i.sentTimestamp);
+        addTimeBtn.disabled = !hasProductsInActiveTime;
+    } else {
+        // Aseguramos que el texto de envío refleje el estado bloqueado
+        sendOrderBtn.textContent = 'MESA BLOQUEADA';
+    }
 
-    const pendingTimeIndex = getFirstPendingTimeIndex();
-    const hasProductsInActiveTime = pendingTimeIndex !== -1 && currentOrder.slice(pendingTimeIndex + 1).some(i => i.type === 'product' && !i.sentTimestamp);
-    addTimeBtn.disabled = !hasProductsInActiveTime;
 
     updateOrderTotal();
 }
 
 async function sendOrderToKitchen() {
+    // 💡 BLOQUEO EN EL FLUJO: Si la interfaz está bloqueada, no envía la orden.
+    if (isInterfaceLocked) {
+        alert("No se puede enviar la orden: Cobro solicitado.");
+        return;
+    }
+    
     const timesMap = {};
     let current_service_time = 0;
 
@@ -277,10 +352,28 @@ async function sendOrderToKitchen() {
             })
         });
 
+        // 💡 Capturamos el error del servidor (por si el cajero cerró la mesa justo ahora)
+        if (response.status === 410) { 
+            const errorData = await response.json();
+            alert(errorData.message + '\nRegresando a la lista de mesas.');
+            window.location.href = '/KitchenLink/src/php/orders.php'; // Regresar a lista de mesas
+            return;
+        }
+
+        // ✨ --- INICIO DEL CÓDIGO AÑADIDO --- ✨
+        // Capturamos el error si la CUENTA FUE SOLICITADA (403 Forbidden)
+        if (response.status === 403) {
+            const errorData = await response.json();
+            alert(errorData.message); // Muestra el mensaje del servidor: "ACCIÓN BLOQUEADA..."
+            lockTpvInterface();     // Bloquea la interfaz para que coincida con el estado real
+            return;                 // Detiene la función aquí
+        }
+        // --- FIN DEL CÓDIGO AÑADIDO ---
+
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.message || 'Error desconocido.');
 
-        loadInitialOrder();
+        loadInitialOrder(); // Recargar la orden para actualizar el total y marcar ítems como enviados
 
     } catch (error) {
         console.error('Error al enviar la orden:', error);
@@ -304,9 +397,22 @@ function renderProducts(products) {
         button.innerHTML = `<span class="product-name">${product.name}</span><span class="product-price">$${parseFloat(product.price).toFixed(2)}</span>`;
         productGrid.appendChild(button);
     });
+    
+    // 💡 Bloqueo al renderizar productos si la interfaz está bloqueada
+    if (isInterfaceLocked) {
+        productGrid.style.pointerEvents = 'none';
+    } else {
+        productGrid.style.pointerEvents = 'auto';
+    }
 }
 
 async function handleCategoryClick(categoryId) {
+    // 💡 BLOQUEO EN EL FLUJO: Si la interfaz está bloqueada, no permite cambiar categorías.
+    if (isInterfaceLocked) { 
+        alert("La mesa está bloqueada. Cobro solicitado.");
+        return;
+    }
+    
     productGrid.innerHTML = '<p id="productLoading">Cargando productos...</p>';
 
     document.querySelectorAll('.category-item').forEach(item => {
@@ -370,6 +476,12 @@ function setupSearchListeners() {
     searchInput.addEventListener('input', () => {
         clearTimeout(searchTimeout);
         const query = searchInput.value.trim();
+        
+        // 💡 BLOQUEO: Prevenir búsqueda si está bloqueado
+        if (isInterfaceLocked) {
+             searchDropdown.style.display = 'none';
+             return;
+        }
 
         if (query.length < 2) {
             searchDropdown.style.display = 'none';
@@ -385,6 +497,9 @@ function setupSearchListeners() {
     });
 
     searchDropdown.addEventListener('click', (e) => {
+        // 💡 BLOQUEO: Prevenir selección de búsqueda si está bloqueado
+        if (isInterfaceLocked) return;
+        
         const item = e.target.closest('.search-result-item');
         if (item) {
             const productId = parseInt(item.dataset.productId);
@@ -428,6 +543,9 @@ function setupSearchListeners() {
 }
 
 async function executeGlobalSearch(query) {
+    // 💡 BLOQUEO: Prevenir si ya está bloqueado
+    if (isInterfaceLocked) return;
+    
     try {
         const response = await fetch(`${API_ROUTES.API_SEARCH_PRODUCT}?query=${encodeURIComponent(query)}`);
         const data = await response.json();
@@ -488,6 +606,20 @@ document.addEventListener('DOMContentLoaded', () => {
     clockContainer = document.getElementById('liveClockContainer');
     searchInput = document.getElementById('productSearchInput');
     searchDropdown = document.getElementById('searchResultsDropdown');
+    lockMessageContainer = document.getElementById('lockMessageContainer'); // Inicialización
+    
+    // Asumimos que initialData está disponible al final del DOM, antes del TPV.js
+    const initialDataElement = document.getElementById('initialOrderData');
+    if (initialDataElement) {
+        const initialData = JSON.parse(initialDataElement.textContent);
+        
+        if (initialData.table_status === 'REQUESTED') {
+            lockTpvInterface();
+        } else {
+            unlockTpvInterface();
+        }
+    }
+
 
     updateClock();
     setInterval(updateClock, 1000);
@@ -497,6 +629,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ✨ --- BLOQUE DE VALIDACIÓN AÑADIDO --- ✨
     if (quantitySelector) {
         quantitySelector.addEventListener('input', () => {
+            if (isInterfaceLocked) return; // BLOQUEO
+            
             let value = quantitySelector.value;
             // 1. Solo permite dígitos
             value = value.replace(/[^0-9]/g, '');
@@ -516,6 +650,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         quantitySelector.addEventListener('blur', () => {
+            if (isInterfaceLocked) return; // BLOQUEO
+            
             // Si el campo queda vacío o es menor a 1, lo establece en 1
             if (quantitySelector.value === '' || parseInt(quantitySelector.value, 10) < 1) {
                 quantitySelector.value = '1';
@@ -525,6 +661,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FIN DEL BLOQUE DE VALIDACIÓN ---
 
     categoryList.addEventListener('click', (e) => {
+        if (isInterfaceLocked) return; // BLOQUEO
+        
         const categoryItem = e.target.closest('.category-item');
         if (categoryItem) {
             e.preventDefault();
@@ -533,9 +671,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     productGrid.addEventListener('click', (e) => {
+        if (isInterfaceLocked) {
+            alert("La mesa está bloqueada. Cobro solicitado.");
+            return;
+        }
+
         const productBtn = e.target.closest('.product-item-btn');
         if (!productBtn) return;
-
+        
+        // ... (resto de la lógica de adición de productos) ...
         const quantity = parseInt(quantitySelector.value) || 1;
 
         currentProduct = {
@@ -564,6 +708,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearchListeners();
 
     document.getElementById('addModifiedItemBtn').addEventListener('click', () => {
+        if (isInterfaceLocked) {
+            alert("La mesa está bloqueada. Cobro solicitado.");
+            return;
+        }
+        
         if (!currentProduct) return;
         const selectedRadio = modifierOptions.querySelector('input[name="modifier-choice"]:checked');
         if (!selectedRadio) {
@@ -594,6 +743,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addTimeBtn.addEventListener('click', () => {
+        if (isInterfaceLocked) {
+            alert("La mesa está bloqueada. Cobro solicitado.");
+            return;
+        }
+        
         const pendingTimes = currentOrder.filter(i => i.type === 'time' && !i.sentTimestamp);
         if (!pendingTimes.length) return;
 
@@ -610,6 +764,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     saveCommentBtn.addEventListener('click', () => {
+        if (isInterfaceLocked) return; // BLOQUEO
+        
         const index = parseInt(commentItemIndex.value);
         if (index >= 0 && currentOrder[index]) {
             currentOrder[index].comment = commentInput.value.trim();
@@ -626,6 +782,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     orderItems.addEventListener('click', (e) => {
+        // Bloqueo de eliminación y edición de comentarios
+        if (isInterfaceLocked) {
+            const removeBtn = e.target.closest('.btn-remove');
+            const itemElement = e.target.closest('.order-item');
+            if (removeBtn || itemElement) {
+                alert("La mesa está bloqueada. Cobro solicitado.");
+                return;
+            }
+        }
+        
         const removeBtn = e.target.closest('.btn-remove');
         if (removeBtn) {
             e.stopPropagation();

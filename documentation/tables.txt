@@ -150,6 +150,10 @@ CREATE TABLE restaurant_tables (
         ON UPDATE CASCADE
 );
 
+ALTER TABLE restaurant_tables
+ADD COLUMN pre_bill_status ENUM('ACTIVE', 'REQUESTED') NOT NULL DEFAULT 'ACTIVE' 
+COMMENT 'Estado de la ocupación: ACTIVE=en curso, REQUESTED=cuenta solicitada.';
+
 
 -- ######################################################################
 -- # 2. ESTRUCTURA DE MENÚ DINÁMICO Y MODIFICADORES
