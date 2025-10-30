@@ -4,7 +4,7 @@
 
 Actualmente el sistema **ya está desplegado y en funcionamiento** en la siguiente dirección:
 
-🔗 [KitchenLink — Sistema en línea](https://kitchenlink.host.adellya.my.id/KitchenLink/login.html)
+🔗 [KitchenLink — Sistema en línea](https://kitchenlink.host.adellya.my.id/KitchenLink/index.php)
 
 > Para acceder, puedes crear un usuario desde la sección **“Registrar”**.  
 > ⚠️ **Nota:** Para registrar un nuevo usuario, se requiere la **contraseña de un gerente**.  
@@ -88,6 +88,24 @@ La interfaz de barra funciona de forma análoga a la de cocina, pero únicamente
 
 ---
 
+## 🍹👨‍🍳⏳ Comunicacion en tiempo real entre meseros con cocina y barra (YA DISPONIBLE)
+
+En la interfaz de barra y cocina al momento de poner productos como listos en la pantalla principal de los meseros **Se muestra una notificacion por platillo o bebida segun vayan estando listos**.  
+- Por que no fue suficiente con solo verlo en la pantalla de ordenes pendientes, es aun mas intuitivo poderlo seguir viendo ahi y ademas ver una notificacion 
+estetica en la pantalla principal de meseros.
+
+---
+
+## ⏳ Interfaz principal de caja ya disponible (YA DISPONIBLE)
+
+Interfaz principal de caja con opciones como
+- Imprimir preticket
+  - Al imprimir un ticket la mesa pasa a estar como bloqueada, en la interfaz del mesero cambia esteticamente y permite seguir accediendo al tpv de la mesa pero sin dejar ingresar mas productos.
+  - Si el mesero sigue en el tpv de la mesa cuando se bloquee la mesa, y el mesero intenta agregar mas productos y mandar una nueva orden el sistema lo bloquea avisando que la mesa ya solicito el ticket. 
+- Permite agregar descuentos ya sea en decimal o en porcentajes.
+- Al cobrar la cuenta permite varios metodos de pago, calculando el cambio en caso de que sean pagos en efectivo, calcular propina en caso de que se deje en tarjeta.
+- Finalmente al terminar el cobro la mesa se borra todo de las tablas principales y se mandan a tablas de historial para futuros reportes y por ultimo genera el ticket final. 
+
 ## 🛠️ Tecnologías utilizadas
 
 - **Frontend:** `HTML5`, `CSS3`, `JavaScript (Vanilla)`  
@@ -134,7 +152,7 @@ Para registrar usuarios por primera vez (modo despliegue):
 
 ### Registro de nuevos usuarios
 - Página de registro:  
-[https://tusitio.com/KitchenLink/register.html](https://tusitio.com/KitchenLink/register.html)  
+[https://tusitio.com/KitchenLink/register.php](https://tusitio.com/KitchenLink/register.html)  
 - Ingresa nombre completo, usuario, contraseña y rol.  
 - El sistema encripta la contraseña automáticamente.  
 - 🔑 Se requiere la **contraseña de gerente** para crear nuevos usuarios.
