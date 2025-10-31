@@ -1,7 +1,7 @@
 <?php
 // /KitchenLink/src/api/cashier/get_account_details.php (VERSIÓN CORREGIDA)
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $response = ['success' => false, 'data' => null, 'message' => 'An unknown error occurred.'];

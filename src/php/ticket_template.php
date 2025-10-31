@@ -10,7 +10,8 @@ header('Content-Type: text/html; charset=UTF-8');
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Ticket Orden #<?php echo htmlspecialchars($order_id); ?></title>
+    <title>Pre-Ticket #<?php echo htmlspecialchars($order_id); ?> | KitchenLink</title>
+      <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
     <link rel="stylesheet" href="/KitchenLink/src/css/cashier.css">
     <style>
         /* Estilos para que la página se vea en blanco mientras carga */

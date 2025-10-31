@@ -1,11 +1,9 @@
 <?php
 // src/api/get_current_available_tables.php
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 // Le decimos al cliente que la respuesta es JSON.
 header('Content-Type: application/json');
 // Nos conectamos a la base de datos.
-require '../php/db_connection.php';
-
 // Usamos un try-catch por si algo falla con la base de datos. Es una buena práctica.
 try {
     // Esta es una consulta súper simple:

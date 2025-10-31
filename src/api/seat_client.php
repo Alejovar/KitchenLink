@@ -1,10 +1,9 @@
 <?php
 // src/api/seat_client.php
 // Preparamos la respuesta en formato JSON.
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json');
 // Incluimos la conexión a la BD.
-require '../php/db_connection.php';
 
 // Leemos los datos que nos mandan por JSON (ID del cliente y IDs de las mesas).
 $data = json_decode(file_get_contents('php://input'), true);

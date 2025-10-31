@@ -1,9 +1,8 @@
 <?php
 // Preparamos la respuesta para que sea un JSON.
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json');
 // Nos conectamos a la base de datos.
-require __DIR__ . '/../php/db_connection.php';
 
 // Leemos el ID de la mesa que nos mandaron por JSON.
 $data = json_decode(file_get_contents('php://input'), true);

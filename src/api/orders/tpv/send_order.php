@@ -3,7 +3,7 @@
 // send_order.php - VERSIÓN FINAL CORREGIDA Y SEGURA CON BLOQUEO DE MESA CERRADA
 // ===================================================================
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0); 
 error_reporting(E_ALL);

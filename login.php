@@ -59,6 +59,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['rol_id'])) {
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <link rel="stylesheet" href="src/css/style.css" />
   <title>Login | KitchenLink</title>
+  <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
 </head>
 
 <body>

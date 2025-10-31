@@ -2,8 +2,7 @@
 // /src/api/bar/get_bar_history.php
 
 // 1. Incluye seguridad. ESTO YA ABRE Y DEFINE $conn (si la sesión es válida)
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
-
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json; charset=utf-8');
 $response = ['success' => false, 'production_items' => []];
 

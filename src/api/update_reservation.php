@@ -1,9 +1,8 @@
 <?php
 // update_reservation.php - Endpoint API para actualizar una reservación existente.
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json');
 
-require '../php/db_connection.php';
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Acceso denegado.']);

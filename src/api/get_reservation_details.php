@@ -1,7 +1,7 @@
 <?php
 // get_reservation_details.php - Endpoint API para cargar datos de una reservación para edición.
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json');
 
 // Verificar autenticación (opcional, pero buena práctica)
@@ -22,7 +22,6 @@ if (!$reservation_id) {
 }
 
 // 2. CONEXIÓN A BASE DE DATOS (Asegúrate de que este archivo carga tu $conn/MySQLi)
-require '../php/db_connection.php';
 
 // 3. CONSULTA SQL
 // Seleccionar todos los campos necesarios para rellenar el formulario.

@@ -1,6 +1,6 @@
 <?php
 // Preparamos la respuesta, será en formato JSON.
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json');
 
 // LA FORMA CORRECTA DE INCLUIR EL ARCHIVO
@@ -8,7 +8,6 @@ header('Content-Type: application/json');
 // /../ sube a la carpeta padre (.../src/)
 // /php/db_connection.php entra a la carpeta php y busca el archivo.
 // (¡Muy bien explicado aquí! 👍)
-require __DIR__ . '/../php/db_connection.php';
 
 // Hacemos una consulta para traer todas las tablas con su estado actual.
 // Como no hay datos del usuario, podemos usar query() de forma segura.

@@ -55,7 +55,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['rol_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sesión Bloqueada</title>
+    <title>Sesión Bloqueada | KitchenLink</title>
+      <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
+
     
     <style>
         * {
@@ -700,7 +702,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['rol_id'])) {
             <div class="orbit-ring"></div>
             <div class="logo-glow"></div>
             <div class="logo-container">
-                <img src="/KitchenLink/documentation/images/KitchenLink_logo.png" alt="KitchenLink Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"> 
+                <img src="/KitchenLink/src/images/logos/KitchenLink_logo.png" alt="KitchenLink Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"> 
                 <div class="lock-icon" style="display: none;">🔒</div>
             </div>
         </div>

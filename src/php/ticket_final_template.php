@@ -9,7 +9,8 @@ $change = $_GET['change'] ?? 0; // Cambio que se entregó (calculado)
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Recibo Final #<?php echo htmlspecialchars($sale_id); ?></title>
+    <title>Recibo Final #<?php echo htmlspecialchars($sale_id); | KitchenLink?></title>
+      <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
     <link rel="stylesheet" href="/KitchenLink/src/css/cashier.css">
     <style>
         body.ticket-body { visibility: hidden; }

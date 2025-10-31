@@ -123,7 +123,8 @@ $initial_order_json = json_encode($initial_data);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ordenando Mesa #<?php echo htmlspecialchars($table_number); ?></title>
+    <title>Ordenando Mesa #<?php echo htmlspecialchars($table_number); ?> | KitchenLink</title>
+      <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
     <link rel="stylesheet" href="/KitchenLink/src/css/tpv.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>

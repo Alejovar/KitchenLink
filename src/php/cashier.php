@@ -20,7 +20,8 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Usuario');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caja - Gestión de Pagos</title>
+    <title>Gestión de Pagos | KitchenLink</title>
+      <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
     <link rel="stylesheet" href="/KitchenLink/src/css/cashier.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>

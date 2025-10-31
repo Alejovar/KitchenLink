@@ -1,7 +1,7 @@
 <?php
 // /KitchenLink/src/api/cashier/set_prebill_requested.php
 
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json; charset=utf8');
 // Asegúrate de que db_connection.php crea $conn
 // Si check_session_api.php no incluye la conexión, debes incluirla aquí:

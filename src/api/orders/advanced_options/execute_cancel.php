@@ -2,7 +2,7 @@
 // =====================================================
 // EXECUTE_CANCEL.PHP - Cancela productos en order_details (MySQLi)
 // =====================================================
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json; charset=utf-8');
 
 // --- Cargar conexión ---

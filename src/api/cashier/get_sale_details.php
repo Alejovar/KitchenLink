@@ -2,8 +2,7 @@
 // /KitchenLink/src/api/cashier/get_sale_details.php
 
 // 💥 CRÍTICO: Esta línea debe asegurar que $conn esté disponible.
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php'; 
-
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $response = ['success' => false, 'data' => null, 'message' => 'An unknown error occurred.'];

@@ -1,28 +1,27 @@
 <?php
-// logout.php - VERSIÓN FINAL Y COMPLETA
-// Borra el token de la DB y destruye la sesión.
+// logout.php - VERSIÓN CORREGIDA Y SEGURA
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// 1. Obtener el ID del usuario antes de destruir la sesión PHP
+// 1. Obtener los datos ANTES de destruir la sesión
 $userId = $_SESSION['user_id'] ?? null;
+$sessionToken = $_SESSION['session_token'] ?? null; // <-- Obtenemos también el token
 
-// 2. CONEXIÓN Y BORRADO DE TOKEN EN DB (CRÍTICO)
-if ($userId) {
-    // Usamos la ruta absoluta para asegurar la inclusión de db_connection.php
+// 2. CONEXIÓN Y BORRADO CONDICIONAL DE TOKEN EN DB
+if ($userId && $sessionToken) { // <-- Nos aseguramos de tener ambos datos
     require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
     
     if (isset($conn) && $conn->connect_errno === 0) {
         try {
-            // 🔑 ELIMINACIÓN DEL TOKEN DE LA DB: Pone el token en NULL
-            $stmt = $conn->prepare("UPDATE users SET session_token = NULL WHERE id = ?");
-            $stmt->bind_param("i", $userId);
+            // 🔑 CAMBIO CLAVE: Añadimos "AND session_token = ?"
+            // Ahora, solo borramos el token si el ID y el TOKEN coinciden con
+            // los de la sesión que está intentando cerrar.
+            $stmt = $conn->prepare("UPDATE users SET session_token = NULL WHERE id = ? AND session_token = ?");
+            $stmt->bind_param("is", $userId, $sessionToken); // <-- Pasamos ambos parámetros
             $stmt->execute();
             $stmt->close();
-            
-            // Cerramos la conexión después de usarla.
             $conn->close(); 
             
         } catch (\Throwable $e) {
@@ -32,6 +31,7 @@ if ($userId) {
 }
 
 // 3. Destruir la sesión PHP (Limpieza de servidor)
+// Esto se ejecuta siempre, sin importar si el token en la DB se borró o no.
 session_unset();
 session_destroy();
 
@@ -45,6 +45,6 @@ if (ini_get("session.use_cookies")) {
 }
 
 // 5. Redirigir al inicio
-header("Location: /KitchenLink/index.php");
+header("Location: /KitchenLink/index.php?status=logout");
 exit();
 ?>

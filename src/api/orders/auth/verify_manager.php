@@ -4,8 +4,7 @@
 // =====================================================
 
 // 1. Incluimos el archivo de sesión/conexión
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
-
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 // Limpieza de buffer y headers
 ob_clean();
 header('Content-Type: application/json; charset=utf-8');

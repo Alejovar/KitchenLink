@@ -1,9 +1,8 @@
 <?php
 // Preparamos para responder en formato JSON.
-require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session_api.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json');
 // Incluimos la conexión a la base de datos.
-require __DIR__ . '/../php/db_connection.php';
 
 // Ponemos la zona horaria correcta para que no haya broncas con las horas.
 date_default_timezone_set('America/Mexico_City');

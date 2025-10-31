@@ -29,8 +29,8 @@ $rolName = htmlspecialchars($_SESSION['rol_name'] ?? 'Encargado de Barra');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Órdenes de Barra - KitchenLink</title>
-
+    <title>Órdenes de Barra | KitchenLink</title>
+  <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
     <link rel="stylesheet" href="/KitchenLink/src/css/bar_styles.css"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
