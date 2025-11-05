@@ -508,20 +508,24 @@ ADD COLUMN device_identifier VARCHAR(64) NULL DEFAULT NULL AFTER username;
 -- ========= TABLA DE HISTORIAL DE VENTAS (VERSIÓN FINAL COMPLETA) =========
 -- Almacena el resumen de cada cuenta que ha sido pagada y cerrada.
 CREATE TABLE `sales_history` (
-  `sale_id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Número de movimiento único para el ticket',
-  `original_order_id` INT NOT NULL,
-  `table_number` INT NOT NULL,
-  `client_count` INT NOT NULL COMMENT 'Número de personas en la mesa',
-  `server_name` VARCHAR(255) NOT NULL,
-  `time_occupied` TIMESTAMP NOT NULL COMMENT 'Hora en que se ocupó la mesa',
-  `payment_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Hora en que se pagó la cuenta',
-  `subtotal` DECIMAL(10, 2) NOT NULL,
-  `tax_amount` DECIMAL(10, 2) NOT NULL,
-  `discount_amount` DECIMAL(10, 2) DEFAULT 0.00,
-  `tip_amount_card` DECIMAL(10, 2) DEFAULT 0.00 COMMENT 'Propina pagada con tarjeta',
-  `grand_total` DECIMAL(10, 2) NOT NULL COMMENT 'Monto final pagado por el cliente',
-  `is_courtesy` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'TRUE si toda la venta fue una cortesía, FALSE si no.',
-  `payment_methods` JSON COMMENT 'Un JSON que describe los métodos de pago, ej: [{"method": "Cash", "amount": 500}]'
+  `sale_id` INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Número de movimiento único para el ticket',
+  `original_order_id` INT NOT NULL,
+  `table_number` INT NOT NULL,
+  `client_count` INT NOT NULL COMMENT 'Número de personas en la mesa',
+  `server_name` VARCHAR(255) NOT NULL,
+  `cashier_id` INT NULL COMMENT 'ID del usuario (cajero) que procesó el pago', -- <<< NUEVO
+  `time_occupied` TIMESTAMP NOT NULL COMMENT 'Hora en que se ocupó la mesa',
+  `payment_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Hora en que se pagó la cuenta',
+  `subtotal` DECIMAL(10, 2) NOT NULL,
+  `tax_amount` DECIMAL(10, 2) NOT NULL,
+  `discount_amount` DECIMAL(10, 2) DEFAULT 0.00,
+  `tip_amount_card` DECIMAL(10, 2) DEFAULT 0.00 COMMENT 'Propina pagada con tarjeta',
+  `grand_total` DECIMAL(10, 2) NOT NULL COMMENT 'Monto final pagado por el cliente',
+  `is_courtesy` BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'TRUE si toda la venta fue una cortesía, FALSE si no.',
+  `payment_methods` JSON COMMENT 'Un JSON que describe los métodos de pago, ej: [{"method": "Cash", "amount": 500}]',
+  
+  -- Llave foránea para el cajero
+  CONSTRAINT `fk_sales_cashier` FOREIGN KEY (`cashier_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE -- <<< NUEVO
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ========= TABLA DE DETALLES DEL HISTORIAL DE VENTAS =========

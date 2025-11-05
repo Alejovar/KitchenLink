@@ -30,12 +30,16 @@ try {
     $sale_id = (int)$_GET['sale_id'];
 
     // 2. Obtener datos generales de la venta (DE sales_history, incluyendo el JSON de pagos)
+    // <<< CAMBIO 1: Añadimos LEFT JOIN y 'u.name AS cashier_name'
     $sql_sale = "SELECT 
                     sh.original_order_id, sh.table_number, sh.server_name, sh.payment_time,
                     sh.subtotal, sh.discount_amount, sh.tax_amount, sh.tip_amount_card, sh.grand_total,
-                    sh.payment_methods 
+                    sh.payment_methods,
+                    u.name AS cashier_name 
                 FROM sales_history sh
+                LEFT JOIN users u ON sh.cashier_id = u.id
                 WHERE sh.sale_id = ?";
+    
     $stmt_sale = $conn->prepare($sql_sale);
     $stmt_sale->bind_param("i", $sale_id);
     $stmt_sale->execute();
@@ -83,7 +87,8 @@ try {
                 'order_id' => $order_id,
                 'date' => date('d/m/Y H:i:s', strtotime($sale_data['payment_time'])),
                 'table_number' => $sale_data['table_number'],
-                'server_name' => $sale_data['server_name']
+                'server_name' => $sale_data['server_name'],
+                'cashier_name' => $sale_data['cashier_name'] // <<< CAMBIO 2: Añadido el nombre del cajero
             ],
             'items' => $items,
             'totals' => [
@@ -110,3 +115,4 @@ try {
 
 echo json_encode($response, JSON_UNESCAPED_UNICODE);
 exit;
+?>

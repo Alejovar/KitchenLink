@@ -9,7 +9,7 @@ $change = $_GET['change'] ?? 0; // Cambio que se entregó (calculado)
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Recibo Final #<?php echo htmlspecialchars($sale_id); | KitchenLink?></title>
+    <title>Recibo Final #<?php echo htmlspecialchars($sale_id); ?> | KitchenLink</title>
       <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
     <link rel="stylesheet" href="/KitchenLink/src/css/cashier.css">
     <style>
@@ -112,10 +112,13 @@ $change = $_GET['change'] ?? 0; // Cambio que se entregó (calculado)
                     <p>Venta: #${sale.header.sale_id} | Orden: #${sale.header.order_id}</p>
                     <p>Fecha: ${sale.header.date}</p>
                     <p>Mesa: ${sale.header.table_number} | Atendió: ${sale.header.server_name}</p>
+                    
+                    <p>Cobró: ${sale.header.cashier_name || 'Sistema'}</p> 
+                    
                 </header>
                 <section class="ticket-items">
                     <table>
-                        <thead><tr><th class="qty">Cant.</th><th class="desc">Descripción</th><th class="price">Total</th></tr></thead>
+                        <thead><tr><th class="qty">#</th><th class="desc">Descripción</th><th class="price">Total</th></tr></thead>
                         <tbody>${itemsHtml}</tbody>
                     </table>
                 </section>

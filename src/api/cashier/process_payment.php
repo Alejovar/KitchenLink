@@ -7,11 +7,14 @@ header('Content-Type: application/json; charset=utf8');
 $response = ['success' => false, 'message' => 'An unknown error occurred.'];
 $input = json_decode(file_get_contents('php://input'), true);
 
+// Capturamos el ID del cajero desde la sesión
+$current_cashier_id = $_SESSION['user_id'] ?? null; 
+
 $conn->begin_transaction();
 
 try {
     // 1. Validación de rol y datos de entrada
-    if (!isset($_SESSION['user_id']) || !in_array($_SESSION['rol_id'], [6, 1])) {
+    if (!$current_cashier_id || !in_array($_SESSION['rol_id'], [6, 1])) { 
         throw new Exception("Unauthorized access.", 403);
     }
     
@@ -41,7 +44,7 @@ try {
         throw new Exception("Order or table occupation record not found.", 404);
     }
     
-    $rt_table_id = $order_data['table_id']; // ID de la fila en restaurant_tables
+    $rt_table_id = $order_data['table_id']; 
     
     // 3. Obtener los detalles (productos) de la orden 
     $sql_get_details = "SELECT od.*, p.name as product_name, m.modifier_name
@@ -67,25 +70,30 @@ try {
     $grand_total = ($subtotal + $tax_amount - $discount_amount) + $tip_amount_card;
 
     // 4. ✅ INSERTAR en 'sales_history' 
+    // Añadimos 'cashier_id'
     $sql_insert_sale = "INSERT INTO sales_history 
-                        (original_order_id, table_number, client_count, server_name, time_occupied, subtotal, tax_amount, discount_amount, tip_amount_card, grand_total, is_courtesy, payment_methods) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        (original_order_id, table_number, client_count, server_name, cashier_id, time_occupied, subtotal, tax_amount, discount_amount, tip_amount_card, grand_total, is_courtesy, payment_methods) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt_sale = $conn->prepare($sql_insert_sale);
     $payment_methods_json = json_encode($payments);
     
-    $stmt_sale->bind_param("iiisssddddis", 
-        $order_id, 
-        $order_data['table_number'], 
-        $order_data['client_count'], 
-        $order_data['server_name'], 
-        $order_data['occupied_at'], 
-        $subtotal, 
-        $tax_amount, 
-        $discount_amount,
-        $tip_amount_card, 
-        $grand_total,
-        $is_courtesy, 
-        $payment_methods_json
+    // <<< ¡AQUÍ ESTABA EL ERROR!
+    // El string de tipos original estaba mal (usaba 's' para decimales) y yo lo empeoré.
+    // El string correcto es "iiisisdddddis"
+    $stmt_sale->bind_param("iiisisdddddis", 
+        $order_id,                      // i
+        $order_data['table_number'],    // i
+        $order_data['client_count'],    // i
+        $order_data['server_name'],     // s  <- El nombre del mesero (string)
+        $current_cashier_id,            // i  <- El ID del cajero (integer)
+        $order_data['occupied_at'],     // s
+        $subtotal,                      // d
+        $tax_amount,                    // d
+        $discount_amount,               // d
+        $tip_amount_card,               // d
+        $grand_total,                   // d
+        $is_courtesy,                   // i
+        $payment_methods_json           // s
     );
     $stmt_sale->execute();
     $new_sale_id = $conn->insert_id;
@@ -100,18 +108,14 @@ try {
     }
     $stmt_sale_details->close();
 
-    // -----------------------------------------------------
-    // 💥 BORRADO DIRECTO DE TABLAS ACTIVAS (Limpieza total)
-    // -----------------------------------------------------
-    
-    // 6. ELIMINAR los detalles de la orden **(EXPLÍCITO y primero para evitar problemas de FK)**
+    // 6. ELIMINAR los detalles de la orden
     $sql_delete_details = "DELETE FROM order_details WHERE order_id = ?";
     $stmt_delete_details = $conn->prepare($sql_delete_details);
     $stmt_delete_details->bind_param("i", $order_id);
     $stmt_delete_details->execute();
     $stmt_delete_details->close();
 
-    // 7. ELIMINAR la orden principal de orders
+    // 7. ELIMINAR la orden principal
     $sql_delete_order = "DELETE FROM orders WHERE order_id = ?";
     $stmt_delete_order = $conn->prepare($sql_delete_order);
     $stmt_delete_order->bind_param("i", $order_id);
@@ -124,7 +128,6 @@ try {
     $stmt_delete_table->bind_param("i", $rt_table_id);
     $stmt_delete_table->execute();
     $stmt_delete_table->close();
-
 
     // 9. CONFIRMAR la transacción
     $conn->commit();
