@@ -1,7 +1,45 @@
 // /KitchenLink/src/js/cashier.js
 
-document.addEventListener('DOMContentLoaded', () => {
+// 💥 MODIFICACIÓN: Hacemos el listener principal ASÍNCRONO
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // <<<--- INICIO DE LA IMPLEMENTACIÓN NUEVA --->>>
+    
+    // 1. VERIFICACIÓN DE TURNO
+    // Primero, verificamos si el turno está abierto antes de cargar esta pantalla.
+    try {
+        const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_shift_status.php');
+        
+        if (!response.ok) {
+            throw new Error(`Error de red: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success || data.status === 'CLOSED') {
+            // 2. ¡TURNO CERRADO!
+            // Bloqueamos la carga de esta página y redirigimos.
+            alert("El turno está cerrado. Debes abrir un nuevo turno desde 'Historial y Reportes' para continuar.");
+            // Redirigimos a la pantalla de administración
+            window.location.href = '/KitchenLink/src/php/sales_history.php';
+            return; // Detenemos la ejecución de este script
+        }
+
+        // 3. TURNO ABIERTO
+        // Si llegamos aquí, el turno está 'OPEN'. El resto del script puede continuar.
+        console.log('Turno verificado. Estado: ABIERTO.');
+
+    } catch (error) {
+        console.error("Error crítico verificando el turno:", error);
+        document.body.innerHTML = `<h1><i class="fas fa-exclamation-triangle"></i> Error fatal al verificar el estado del turno.</h1><p>${error.message}. Contacte al administrador.</p>`;
+        return; // Detenemos la ejecución
+    }
+    
+    // <<<--- FIN DE LA IMPLEMENTACIÓN NUEVA --->>>
+
+
     // --- ELEMENTOS DEL DOM ---
+    // (Tu código original continúa aquí sin cambios)
     const clockContainer = document.getElementById('liveClockContainer');
     const openAccountsList = document.getElementById('openAccountsList');
     const accountDetailsContent = document.getElementById('accountDetailsContent');

@@ -540,3 +540,16 @@ CREATE TABLE `sales_history_details` (
   `was_cancelled` BOOLEAN NOT NULL DEFAULT FALSE,
   CONSTRAINT `fk_sale_history` FOREIGN KEY (`sale_id`) REFERENCES `sales_history`(`sale_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE `cash_shifts` (
+  `shift_id` INT AUTO_INCREMENT PRIMARY KEY,
+  `user_id_opened` INT NOT NULL COMMENT 'ID del cajero/gerente que abrió',
+  `start_time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Hora de apertura',
+  `end_time` TIMESTAMP NULL DEFAULT NULL COMMENT 'Hora de cierre',
+  `starting_cash` DECIMAL(10, 2) NOT NULL COMMENT 'Fondo de caja inicial',
+  `ending_cash` DECIMAL(10, 2) NULL DEFAULT NULL COMMENT 'Efectivo contado al cerrar',
+  `status` ENUM('OPEN', 'CLOSED') NOT NULL DEFAULT 'OPEN',
+  
+  CONSTRAINT `fk_shift_user` FOREIGN KEY (`user_id_opened`) REFERENCES `users`(`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

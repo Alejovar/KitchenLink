@@ -33,7 +33,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Usuario');
             <h2>Restaurante</h2>
             <ul>
                 <li><a href="#" class="active"><i class="fas fa-cash-register"></i> Gestión de Pagos</a></li>
-                <li><a href="#"><i class="fas fa-history"></i> Historial de Ventas</a></li>
+                <li><a href="sales_history.php"><i class="fas fa-history"></i> Historial de Ventas</a></li>
             </ul>
         </div>
         
