@@ -131,15 +131,23 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Usuario');
             <div class="report-section">
                 <h4>Reporte de Mesero</h4>
                 <p>Genera un reporte de ventas y propinas (especialmente de tarjeta) para un mesero específico durante el turno actual. Útil para liquidar propinas.</p>
+                
                 <div class="filter-form" style="padding:0; box-shadow:none; background:none;">
                     <div class="form-group">
                         <label for="selectServerReport">Seleccionar Mesero</label>
                         <select id="selectServerReport">
                             <option value="">Cargando meseros...</option>
-                            </select>
+                        </select>
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="serverDeductionRate">Deducción (% de Venta)</label>
+                        <input type="text" id="serverDeductionRate" placeholder="Ej: 0.10" value="0.0" style="width: 150px;">
+                    </div>
+
                     <button class="action-btn primary-btn" id="btnGenerateServerReport"><i class="fas fa-user-tag"></i> Generar Reporte</button>
                 </div>
+
             </div>
         </div>
 
@@ -175,6 +183,11 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Usuario');
                     
                     <div class="recon-section" id="manual-count">
                         <h4>Conteo Manual (Físico)</h4>
+                        
+                        <div class="recon-row">
+                            <label for="count-1000">$1000 x</label>
+                            <input type="number" id="count-1000" class="count-input recon-denom" data-value="1000" min="0">
+                        </div>
                         <div class="recon-row">
                             <label for="count-500">$500 x</label>
                             <input type="number" id="count-500" class="count-input recon-denom" data-value="500" min="0">

@@ -99,6 +99,32 @@ $stmt_delete->bind_param("s", $device_identifier);
 $stmt_delete->execute();
 $stmt_delete->close();
 
+
+// <<<--- INICIO DE LA LÓGICA NUEVA DE VERIFICACIÓN DE TURNO --- (Rol 2 = Mesero)
+$rol_id = (int)$row['rol_id'];
+
+if ($rol_id === 2) { 
+    // Es un mesero. Debemos verificar si el turno está abierto.
+    $stmt_shift = $conn->prepare("SELECT 1 FROM cash_shifts WHERE status = 'OPEN' LIMIT 1");
+    $stmt_shift->execute();
+    $shift_result = $stmt_shift->get_result();
+    
+    if ($shift_result->num_rows === 0) {
+        // TURNO CERRADO
+        $stmt_shift->close();
+        http_response_code(403); // Prohibido
+        echo json_encode([
+            'success' => false, 
+            'message' => 'El turno de caja está cerrado. El cajero o gerente debe iniciar sesión para abrir.'
+        ]);
+        exit;
+    }
+    $stmt_shift->close();
+    // Si el turno está abierto, el script simplemente continúa.
+}
+// <<<--- FIN DE LA LÓGICA NUEVA --->>>
+
+
 // ✅ Generar token único y guardar en DB (una sesión activa por usuario)
 $session_token = bin2hex(random_bytes(32));
 $stmt_update = $conn->prepare("UPDATE users SET session_token = ? WHERE id = ?");
@@ -110,14 +136,14 @@ $stmt_update->close();
 $_SESSION['loggedin'] = true;
 $_SESSION['user_id'] = $row['id'];
 $_SESSION['user_name'] = $row['name'];
-$_SESSION['rol_id'] = $row['rol_id'];
+$_SESSION['rol_id'] = $rol_id; // Usamos la variable $rol_id que ya definimos
 $_SESSION['session_token'] = $session_token;
 
 session_write_close();
 
 // 🔹 REDIRECCIÓN SEGÚN EL ROL
 $redirect_url = "/KitchenLink/dashboard.php"; // Default
-switch ($row['rol_id']) {
+switch ($rol_id) { // Usamos la variable $rol_id
     case 2: // Mesero
         $redirect_url = "/KitchenLink/src/php/orders.php";
         break;
@@ -131,6 +157,8 @@ switch ($row['rol_id']) {
         $redirect_url = "/KitchenLink/src/php/bar_orders.php";
         break;
     case 6: // Caja
+        // (La redirección a cashier.php es correcta, porque
+        // el cashier.js se encargará de re-redirigir a sales_history.php si es necesario)
         $redirect_url = "/KitchenLink/src/php/cashier.php";
         break;
 }
