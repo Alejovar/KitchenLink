@@ -1,10 +1,9 @@
-// /KitchenLink/src/js/sales_history.js
-
 let currentShiftReport = null; // Global para guardar datos del turno
+let manualCashTotal = 0; // 💡 Esta variable debe estar aquí, en el scope global
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // ... (Elementos de UI: loader, modal, tabs, clock...) ...
+    // --- (Elementos de UI: loader, modal, tabs, clock...) ---
     const loader = document.getElementById('page-loader');
     const shiftOpenModal = document.getElementById('shiftOpenModal');
     const tabContainer = document.getElementById('mainTabs');
@@ -29,9 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const reconDifferenceAmount = document.getElementById('reconDifferenceAmount');
     const reconDifferenceText = document.getElementById('reconDifferenceText');
     const manualCountInputs = document.querySelectorAll('.recon-denom');
-    let manualCashTotal = 0; 
 
-    // --- 👇 NUEVO: Elemento y Validación de Deducción ---
+    // --- Elemento y Validación de Deducción ---
     const serverDeductionRateInput = document.getElementById('serverDeductionRate');
 
     function validatePercentageInput(event) {
@@ -48,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- (Funciones de inicialización, unlockUI, openNewShift, setupTabs... van aquí) ---
+    // --- Funciones de inicialización, unlockUI, openNewShift, setupTabs ---
     async function initializePage() {
         try {
             const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_shift_status.php');
@@ -71,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         shiftOpenModal.style.display = 'none'; 
         tabContainer.querySelectorAll('button').forEach(tab => tab.disabled = false); 
         setupTabs();
-        await loadReconciliationData();
+        await loadReconciliationData(); // <-- Esta función ahora tiene la validación
         loadServerList(); 
         if (clockContainer) {
             updateClock();
@@ -117,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- (Lógica de Búsqueda de Tickets: searchTickets, renderTicketResults, reprintTicket... van aquí) ---
+    // --- Lógica de Búsqueda de Tickets ---
     async function searchTickets() {
         const folio = searchFolioInput.value.trim();
         const startDate = searchStartDateInput.value;
@@ -179,11 +177,44 @@ document.addEventListener('DOMContentLoaded', () => {
         else alert("El navegador bloqueó la ventana emergente. Por favor, habilite las ventanas emergentes.");
     }
 
-    // --- (Lógica de Arqueo y Reporte Z: loadReconciliationData, calculateReconciliation, generateShiftReportZ... van aquí) ---
+    // --- Lógica de Arqueo y Reporte Z ---
+    
+    /**
+     * Carga los datos del reporte del turno actual Y VERIFICA CUENTAS ABIERTAS.
+     */
     async function loadReconciliationData() {
         try {
+            
+            // --- VERIFICACIÓN DE CUENTAS ABIERTAS ---
+            const openAccountsResponse = await fetch('/KitchenLink/src/api/cashier/get_open_accounts.php');
+            const accountsResult = await openAccountsResponse.json();
+
+            // Limpiamos mensajes de advertencia anteriores
+            const oldWarning = document.getElementById('shift_warning_msg');
+            if (oldWarning) oldWarning.remove();
+
+            if (accountsResult.success && accountsResult.data.length > 0) {
+                // ¡HAY CUENTAS ABIERTAS!
+                btnGenerateShiftReport.disabled = true;
+                
+                // Creamos un mensaje de advertencia visual
+                const warningMsg = document.createElement('p');
+                warningMsg.id = 'shift_warning_msg'; // Para poder borrarlo después
+                warningMsg.textContent = `Aún hay ${accountsResult.data.length} cuenta(s) abierta(s). Debe cobrarlas todas antes de cerrar el turno.`;
+                warningMsg.style.color = '#d93025'; // Rojo
+                warningMsg.style.fontWeight = 'bold';
+                warningMsg.style.fontSize = '14px';
+                btnGenerateShiftReport.parentNode.insertBefore(warningMsg, btnGenerateShiftReport.nextSibling);
+
+            } else {
+                // No hay cuentas, habilitamos el botón
+                btnGenerateShiftReport.disabled = false;
+            }
+            
+            // --- Continuamos cargando el reporte ---
             const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_current_shift_report.php');
             const result = await response.json();
+            
             if (result.success) {
                 currentShiftReport = result; 
                 const report = result.cash_report;
@@ -191,17 +222,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 reconStartCash.textContent = formatCurrency(report.starting_cash);
                 reconCashSales.textContent = formatCurrency(report.total_cash_sales);
                 reconExpectedTotal.textContent = formatCurrency(report.expected_cash_total);
-                calculateReconciliation();
+                calculateReconciliation(); 
             } else {
-                alert("Error cargando el reporte del turno: " + result.message);
+                console.warn("No se pudo cargar el reporte del turno: " + result.message);
+                if (currentShiftReport == null) { 
+                     reconStartCash.textContent = "$0.00";
+                     reconCashSales.textContent = "$0.00";
+                     reconExpectedTotal.textContent = "$0.00";
+                }
             }
         } catch (error) {
             console.error('Error fatal al cargar reporte:', error);
             alert("Error de conexión al cargar el reporte del turno.");
         }
     }
+    
     function calculateReconciliation() {
-        manualCashTotal = 0; 
+        manualCashTotal = 0; // 💡 Actualizamos la variable global
         manualCountInputs.forEach(input => {
             const value = parseFloat(input.dataset.value);
             const count = parseFloat(input.value) || 0;
@@ -209,7 +246,9 @@ document.addEventListener('DOMContentLoaded', () => {
             else manualCashTotal += (value * count);
         });
         reconManualTotalEl.textContent = `$${manualCashTotal.toFixed(2)}`;
+        
         if (!currentShiftReport) return; 
+        
         const expectedTotal = currentShiftReport.cash_report.expected_cash_total;
         const difference = manualCashTotal - expectedTotal;
         reconDifferenceAmount.textContent = `$${difference.toFixed(2)}`;
@@ -255,18 +294,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     async function generateShiftReportZ() {
         if (!confirm("¿Estás seguro de que deseas cerrar el turno?\nEsta acción es IRREVERSIBLE y generará el Corte Z final.")) return;
+        
+        // 💡 Esta validación ahora usa la variable global
         if (manualCashTotal === 0) {
             if (!confirm("ADVERTENCIA: No has realizado el conteo de efectivo en la pestaña 'Arqueo de Caja'. ¿Deseas cerrar el turno con un conteo de $0.00?")) return;
         }
+
         btnGenerateShiftReport.disabled = true;
         btnGenerateShiftReport.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cerrando Turno...';
+        
         try {
             const response = await fetch('/KitchenLink/src/api/cashier/history_reports/close_shift.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ manual_cash_total: manualCashTotal }) 
+                body: JSON.stringify({ manual_cash_total: manualCashTotal }) // 💡 Aquí se envía la variable
             });
             const result = await response.json();
+            
             if (result.success) {
                 localStorage.setItem('currentShiftReportData', JSON.stringify(result));
                 const reportUrl = '/KitchenLink/src/php/ticket_shift_report_template.php';
@@ -283,13 +327,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    /**
-     * --- FUNCIÓN MODIFICADA ---
-     * Llama al API para obtener los totales de un mesero y muestra el ticket.
-     */
     async function generateServerReport() {
         const serverId = selectServerReport.value;
-        // --- 👇 NUEVO: Leer el valor del input de deducción ---
         const deductionRate = parseFloat(serverDeductionRateInput.value) || 0.0;
 
         if (!serverId) {
@@ -306,7 +345,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnGenerateServerReport.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
 
         try {
-            // --- 👇 NUEVO: Enviar la deducción al API ---
             const response = await fetch(`/KitchenLink/src/api/cashier/history_reports/get_server_report.php?server_id=${serverId}&deduction_rate=${deductionRate}`);
             const result = await response.json();
 
@@ -338,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSearchTickets) btnSearchTickets.addEventListener('click', searchTickets);
     if (btnGenerateShiftReport) btnGenerateShiftReport.addEventListener('click', generateShiftReportZ);
     if (btnGenerateServerReport) btnGenerateServerReport.addEventListener('click', generateServerReport);
-    if (serverDeductionRateInput) serverDeductionRateInput.addEventListener('input', validatePercentageInput); // <-- NUEVO
+    if (serverDeductionRateInput) serverDeductionRateInput.addEventListener('input', validatePercentageInput); 
 
     manualCountInputs.forEach(input => {
         input.addEventListener('input', calculateReconciliation);

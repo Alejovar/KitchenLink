@@ -1,6 +1,32 @@
 // /js/pending_orders.js - VERSIÓN FINAL CON TABLA DE DETALLES Y MODIFICADORES
 
-document.addEventListener('DOMContentLoaded', () => {
+// 💡 CAMBIO: La función principal ahora es 'async'
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // <<<--- INICIO DE LA VERIFICACIÓN DE TURNO (LO NUEVO) --- >>>
+    // 1. VERIFICACIÓN DE TURNO INICIAL
+    try {
+        // Reutilizamos el API que ya existe
+        const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_shift_status.php');
+        const data = await response.json();
+
+        if (!data.success || data.status === 'CLOSED') {
+            // ¡Turno cerrado!
+            alert("El turno de caja ha sido cerrado. La sesión se cerrará.");
+            // Redirigimos al logout para limpiar la sesión
+            window.location.href = '/KitchenLink/src/php/logout.php';
+            return; // Detenemos la carga del resto del script
+        }
+
+    } catch (error) {
+        // Error grave de conexión
+        document.body.innerHTML = "<h1>Error fatal al verificar el estado del turno.</h1>";
+        return; // Detenemos la carga
+    }
+    // --- 👆 FIN DE LA VERIFICACIÓN 👆 ---
+
+    
+    // --- EL RESTO DE TU CÓDIGO ORIGINAL CONTINÚA AQUÍ ---
     const ordersGrid = document.getElementById('ordersGrid');
     const clockContainer = document.getElementById('liveClockContainer');
     

@@ -2,8 +2,33 @@
 
 import { ModalAdvancedOptions } from './ModalAdvancedOptions.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // --- REFERENCIAS DEL DOM (SIN CAMBIOS) ---
+// 💡 CAMBIO: Esta es la ÚNICA función principal, y es 'async'
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // <<<--- INICIO DE LA VERIFICACIÓN DE TURNO --- >>>
+    // 1. VERIFICACIÓN DE TURNO INICIAL
+    try {
+        // Reutilizamos el API que ya existe
+        const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_shift_status.php');
+        const data = await response.json();
+
+        if (!data.success || data.status === 'CLOSED') {
+            // ¡Turno cerrado!
+            alert("El turno de caja ha sido cerrado. La sesión se cerrará.");
+            // Redirigimos al logout para limpiar la sesión
+            window.location.href = '/KitchenLink/src/php/logout.php';
+            return; // Detenemos la carga del resto del script
+        }
+
+    } catch (error) {
+        // Error grave de conexión
+        document.body.innerHTML = "<h1>Error fatal al verificar el estado del turno.</h1>";
+        return; // Detenemos la carga
+    }
+    // --- 👆 FIN DE LA VERIFICACIÓN 👆 ---
+    
+    
+    // --- EL RESTO DE TU CÓDIGO ORIGINAL VA AQUÍ ---
     const tableGridContainer = document.getElementById('tableGridContainer');
     const clockContainer = document.getElementById('liveClockContainer');
     const fab = document.getElementById('fab');
@@ -197,4 +222,5 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('table-list-update', fetchAndRenderTables);
     const optionsManager = new ModalAdvancedOptions('#btn-advanced-options');
     optionsManager.initialize();
+    
 });

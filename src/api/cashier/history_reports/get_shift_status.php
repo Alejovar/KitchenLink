@@ -4,8 +4,8 @@
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json; charset=utf-8');
 
-// Solo cajeros y gerentes pueden consultar esto
-if (!isset($_SESSION['rol_id']) || !in_array($_SESSION['rol_id'], [1, 6])) {
+// 💡 CAMBIO: Añadido rol 2 (Mesero) a la lista de roles permitidos
+if (!isset($_SESSION['rol_id']) || !in_array($_SESSION['rol_id'], [1, 6, 2])) {
     http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;

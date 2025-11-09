@@ -1,5 +1,8 @@
 <?php
 // /KitchenLink/src/api/cashier/history_reports/close_shift.php
+// 💡 VERSIÓN CORREGIDA FINAL
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json; charset=utf-8');
@@ -26,12 +29,29 @@ if ($manual_cash_total === null || !is_numeric($manual_cash_total)) {
     exit;
 }
 
-$conn->begin_transaction();
-
+// Envolvemos todo en un try/catch
 try {
-    // 3. Encontrar el turno abierto
+    
+    // 3. VERIFICACIÓN CRÍTICA: ¿Hay mesas sin pagar?
+    $sql_check = "SELECT 1 FROM restaurant_tables LIMIT 1";
+    $stmt_check = $conn->prepare($sql_check);
+    if ($stmt_check === false) throw new Exception("Error al preparar 'sql_check': " . $conn->error);
+    $stmt_check->execute();
+    $open_tables = $stmt_check->get_result();
+
+    if ($open_tables->num_rows > 0) {
+        $stmt_check->close();
+        throw new Exception("No se puede cerrar el turno. Aún hay " . $open_tables->num_rows . " cuenta(s) abierta(s) sin cobrar.", 409);
+    }
+    $stmt_check->close();
+
+    // 4. Si no hay mesas abiertas, continuamos con el cierre...
+    $conn->begin_transaction();
+
+    // 5. Encontrar el turno abierto
     $sql_shift = "SELECT * FROM cash_shifts WHERE status = 'OPEN' ORDER BY start_time DESC LIMIT 1 FOR UPDATE";
     $stmt_shift = $conn->prepare($sql_shift);
+    if ($stmt_shift === false) throw new Exception("Error al preparar 'sql_shift': " . $conn->error);
     $stmt_shift->execute();
     $shift_data = $stmt_shift->get_result()->fetch_assoc();
     $stmt_shift->close();
@@ -44,19 +64,20 @@ try {
     $start_time = $shift_data['start_time'];
     $starting_cash = (float)$shift_data['starting_cash'];
 
-    // 4. Obtener el nombre del usuario que abrió
+    // 6. Obtener el nombre del usuario que abrió
     $sql_user = "SELECT name FROM users WHERE id = ?";
     $stmt_user = $conn->prepare($sql_user);
+    if ($stmt_user === false) throw new Exception("Error al preparar 'sql_user': " . $conn->error);
     $stmt_user->bind_param("i", $shift_data['user_id_opened']);
     $stmt_user->execute();
     $user_opened_name = $stmt_user->get_result()->fetch_assoc()['name'] ?? 'Desconocido';
     $stmt_user->close();
 
-    // 5. Recalcular TODOS los totales (igual que en get_current_shift_report.php)
-    // Esto es por seguridad, para tener los datos 100% finales al momento de cerrar.
+    // 7. Recalcular TODOS los totales
     $sql_sales = "SELECT subtotal, discount_amount, tax_amount, grand_total, tip_amount_card, payment_methods 
                   FROM sales_history WHERE payment_time >= ?";
     $stmt_sales = $conn->prepare($sql_sales);
+    if ($stmt_sales === false) throw new Exception("Error al preparar 'sql_sales': " . $conn->error);
     $stmt_sales->bind_param("s", $start_time);
     $stmt_sales->execute();
     $sales_result = $stmt_sales->get_result();
@@ -89,17 +110,18 @@ try {
     }
     $stmt_sales->close();
 
-    // 6. Calcular el arqueo final
-    $expected_cash_total = $starting_cash + $total_cash_sales; // (Falta Entradas/Salidas)
+    // 8. Calcular el arqueo final
+    $expected_cash_total = $starting_cash + $total_cash_sales;
     $difference = (float)$manual_cash_total - $expected_cash_total;
 
-    // 7. 💥 ¡CERRAR EL TURNO! 💥
+    // 9. 💥 ¡CERRAR EL TURNO! 💥
     $sql_close = "UPDATE cash_shifts SET 
                     end_time = CURRENT_TIMESTAMP, 
                     status = 'CLOSED', 
                     ending_cash = ? 
                   WHERE shift_id = ?";
     $stmt_close = $conn->prepare($sql_close);
+    if ($stmt_close === false) throw new Exception("Error al preparar 'sql_close': " . $conn->error);
     $stmt_close->bind_param("di", $manual_cash_total, $shift_id);
     $stmt_close->execute();
     
@@ -108,7 +130,7 @@ try {
     }
     $stmt_close->close();
 
-    // 8. Preparar la respuesta JSON para el ticket
+    // 10. Preparar la respuesta JSON para el ticket
     $response['success'] = true;
     $response['message'] = "Turno $shift_id cerrado exitosamente.";
     $response['shift_id'] = $shift_id;
@@ -124,13 +146,19 @@ try {
         'difference' => $difference
     ];
 
-    // 9. Confirmar transacción
+    // 11. Confirmar transacción
     $conn->commit();
 
 } catch (Throwable $e) {
-    $conn->rollback();
-    http_response_code($e->getCode() ?: 500);
-    $response['message'] = $e->getMessage();
+    // 💡 CAMBIO: Reemplazamos inTransaction() por una versión compatible
+    // Simplemente llamamos a rollback(); si no hay transacción,
+    // el @ suprimirá el warning de PHP.
+    if (isset($conn)) {
+        @$conn->rollback();
+    }
+    
+    http_response_code(500); 
+    $response['message'] = "Error Fatal en close_shift.php: " . $e->getMessage() . " en la línea " . $e->getLine();
 }
 
 if(isset($conn)) $conn->close();

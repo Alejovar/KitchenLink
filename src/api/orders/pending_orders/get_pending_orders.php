@@ -13,6 +13,20 @@ try {
     if (!isset($_SESSION['user_id']) || !isset($conn) || $conn->connect_error) {
         throw new Exception("Error de conexión a la base de datos o sesión inválida.");
     }
+
+    // Verificar que el turno de caja esté abierto
+$stmt_shift = $conn->prepare("SELECT 1 FROM cash_shifts WHERE status = 'OPEN' LIMIT 1");
+$stmt_shift->execute();
+$shift_result = $stmt_shift->get_result();
+
+if ($shift_result->num_rows === 0) {
+    // ¡TURNO CERRADO! Rechazamos la acción.
+    $stmt_shift->close();
+    http_response_code(403); // Prohibido
+    echo json_encode(['success' => false, 'message' => 'El turno de caja está cerrado. No se pueden procesar nuevas acciones.']);
+    exit;
+}
+$stmt_shift->close();
     
     $server_id = $_SESSION['user_id']; // Recuperamos el filtro de mesero
 
