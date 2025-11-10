@@ -65,7 +65,8 @@ if (empty($user) || empty($password)) {
 }
 
 // --- Obtener usuario ---
-$stmt = $conn->prepare("SELECT id, password, name, rol_id FROM users WHERE user = ?");
+// <-- CAMBIO 1: Añadimos 'status' a la consulta SELECT
+$stmt = $conn->prepare("SELECT id, password, name, rol_id, status FROM users WHERE user = ?"); 
 $stmt->bind_param("s", $user);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -81,6 +82,19 @@ if ($result->num_rows !== 1) {
 }
 
 $row = $result->fetch_assoc();
+
+// <-- CAMBIO 2: Añadimos la validación del estado del usuario
+// Esto va ANTES de verificar la contraseña
+if ($row['status'] !== 'ACTIVO') {
+    http_response_code(403); // 403 Prohibido
+    echo json_encode([
+        'success' => false, 
+        'message' => 'Esta cuenta de usuario ha sido desactivada. Contacte al administrador.'
+    ]);
+    $stmt->close();
+    $conn->close();
+    exit;
+}
 
 // --- Verificar contraseña ---
 if (!password_verify($password, $row['password'])) {

@@ -57,7 +57,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['rol_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sesión Bloqueada | KitchenLink</title>
       <link rel="icon" href="/KitchenLink/src/images/logos/KitchenLink_logo.png" type="image/png" sizes="32x32">
-
+	  <link rel="manifest" href="/KitchenLink/manifest.json">
     
     <style>
         * {
