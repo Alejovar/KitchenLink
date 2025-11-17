@@ -9,7 +9,7 @@ error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 header('Content-Type: application/json; charset=utf-8');
 
 // --- Verificación de sesión y rol ---
-if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
+if (!isset($_SESSION['user_id']) || ($_SESSION['rol_id'] != 2 && $_SESSION['rol_id'] != 1)) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'No autorizado.'], JSON_UNESCAPED_UNICODE);
     exit();

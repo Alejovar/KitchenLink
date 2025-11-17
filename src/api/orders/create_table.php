@@ -1,58 +1,64 @@
 <?php
-// create_table.php - Endpoint AJAX final para crear mesas
+// /KitchenLink/src/api/orders/create_table.php
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 header('Content-Type: application/json');
+require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php'; 
 
-// CRÍTICO: Incluye tu archivo de conexión MySQLi
-require '../../php/db_connection.php'; 
-
-    // Verificar que el turno de caja esté abierto
+// 1. VERIFICACIÓN DE TURNO
 $stmt_shift = $conn->prepare("SELECT 1 FROM cash_shifts WHERE status = 'OPEN' LIMIT 1");
 $stmt_shift->execute();
-$shift_result = $stmt_shift->get_result();
-
-if ($shift_result->num_rows === 0) {
-    // ¡TURNO CERRADO! Rechazamos la acción.
+if ($stmt_shift->get_result()->num_rows === 0) {
     $stmt_shift->close();
-    http_response_code(403); // Prohibido
-    echo json_encode(['success' => false, 'message' => 'El turno de caja está cerrado. No se pueden procesar nuevas acciones.']);
+    http_response_code(403);
+    echo json_encode(['success' => false, 'message' => 'El turno de caja está cerrado.']);
     exit;
 }
 $stmt_shift->close();
 
-// 1. VERIFICAR AUTENTICACIÓN
+// 2. VERIFICAR AUTENTICACIÓN
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Error: Sesión no válida o no autenticada.']);
+    echo json_encode(['success' => false, 'message' => 'No autenticado.']);
     exit();
 }
-$server_id = $_SESSION['user_id']; 
 
-// 2. OBTENER Y VALIDAR DATOS (Ambos campos)
 $data = json_decode(file_get_contents('php://input'), true);
-
 $table_number = filter_var($data['table_number'] ?? null, FILTER_VALIDATE_INT);
 $client_count = filter_var($data['client_count'] ?? null, FILTER_VALIDATE_INT);
 
-// 3. VALIDACIÓN DE RANGOS FINALES (CRÍTICO)
+// --- 👇 LÓGICA DE ASIGNACIÓN CORREGIDA 👇 ---
+$current_user_id = $_SESSION['user_id'];
+$rol_id = $_SESSION['rol_id'];
+
+// Por defecto, la mesa se asigna a quien la crea (el Mesero se la auto-asigna)
+$target_server_id = $current_user_id; 
+
+// ÚNICAMENTE el Gerente (Rol 1) puede asignar mesas a otros.
+// La cajera ya no está incluida aquí.
+if ($rol_id == 1 && !empty($data['assigned_server_id'])) {
+    $target_server_id = intval($data['assigned_server_id']);
+}
+// --- 👆 FIN DE LA CORRECCIÓN 👆 ---
+
+
+// Validaciones
 $min_table = 1; $max_table = 9999;
 $min_client = 1; $max_client = 99;
 
-if (!is_numeric($table_number) || $table_number < $min_table || $table_number > $max_table) {
+if (!$table_number || $table_number < $min_table || $table_number > $max_table) {
     http_response_code(400); 
-    echo json_encode(['success' => false, 'message' => "Error de validación: El número de mesa debe ser entre $min_table y $max_table."]);
+    echo json_encode(['success' => false, 'message' => "Número de mesa inválido."]);
     exit();
 }
 
-if (!is_numeric($client_count) || $client_count < $min_client || $client_count > $max_client) {
+if (!$client_count || $client_count < $min_client || $client_count > $max_client) {
     http_response_code(400); 
-    echo json_encode(['success' => false, 'message' => "Error de validación: El número de personas debe ser entre $min_client y $max_client."]);
+    echo json_encode(['success' => false, 'message' => "Número de personas inválido."]);
     exit();
 }
 
-
-// 4. PASO 1: Verificar Unicidad Global
+// Verificar duplicados
 $sql_check = "SELECT COUNT(table_id) FROM restaurant_tables WHERE table_number = ?";
 $stmt_check = $conn->prepare($sql_check);
 $stmt_check->bind_param("i", $table_number);
@@ -63,27 +69,23 @@ $stmt_check->close();
 
 if ($is_duplicate > 0) {
     http_response_code(409); 
-    echo json_encode(['success' => false, 'message' => "El número de mesa {$table_number} ya está en uso."]);
+    echo json_encode(['success' => false, 'message' => "La mesa {$table_number} ya existe."]);
     exit();
 }
 
-
-// 5. PASO 2: Insertar la Mesa y Asignarla (assigned_server_id)
-$sql_insert = "INSERT INTO restaurant_tables (table_number, assigned_server_id, client_count) 
-               VALUES (?, ?, ?)";
+// Insertar
+$sql_insert = "INSERT INTO restaurant_tables (table_number, assigned_server_id, client_count) VALUES (?, ?, ?)";
 
 try {
     $stmt_insert = $conn->prepare($sql_insert);
-    // 'iii' vincula table_number, server_id, y client_count
-    $stmt_insert->bind_param("iii", $table_number, $server_id, $client_count); 
+    $stmt_insert->bind_param("iii", $table_number, $target_server_id, $client_count); 
     $stmt_insert->execute();
     $stmt_insert->close();
 
-    echo json_encode(['success' => true, 'message' => "Mesa {$table_number} creada con {$client_count} personas."]);
+    echo json_encode(['success' => true, 'message' => "Mesa creada."]);
 
 } catch (\Exception $e) {
-    error_log("DB Insertion Error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Error al guardar la mesa en la base de datos.']);
+    echo json_encode(['success' => false, 'message' => 'Error de BD.']);
 }
 ?>

@@ -35,6 +35,12 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['rol_id'])) {
         case BARRA_ROLE_ID: // 🔑 REDIRECCIÓN A BARRA
             $destination = '/KitchenLink/src/php/bar_orders.php';
             break;
+        case CASHIER_ROLE_ID:
+            $destination = '/KitchenLink/src/php/cashier.php';
+            break;
+        case MANAGER_ROLE_ID:
+            $destination = '/KitchenLink/src/php/manager_dashboard.php';
+            break;
         default:
             // Si el rol es desconocido, cerramos la sesión y dejamos que vea el login
             session_unset();

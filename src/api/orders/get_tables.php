@@ -14,42 +14,47 @@ if (!isset($_SESSION['user_id'])) {
 // CRÍTICO: Incluye tu archivo de conexión MySQLi
 require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php'; 
 
-$server_id = $_SESSION['user_id']; 
-
-// 2. CONSULTA SQL MEJORADA
-// Agregamos u.name para obtener el nombre del mesero
-$sql = "
-    SELECT 
-        rt.table_id,
-        rt.table_number,
-        rt.client_count,
-        rt.occupied_at,
-        TIMESTAMPDIFF(MINUTE, rt.occupied_at, NOW()) AS minutes_occupied,
-        rt.pre_bill_status,
-        u.name AS mesero_nombre  -- <--- 🟢 AQUÍ OBTENEMOS EL NOMBRE
-    FROM 
-        restaurant_tables rt
-    LEFT JOIN 
-        users u ON rt.assigned_server_id = u.id -- <--- 🟢 UNIMOS CON LA TABLA DE USUARIOS
-    WHERE
-        rt.assigned_server_id = ? 
-    ORDER BY 
-        rt.table_number ASC
-";
+$user_id = $_SESSION['user_id']; 
+$rol_id  = $_SESSION['rol_id']; // 🟢 Obtenemos el rol para decidir qué mostrar
 
 try {
-    // MySQLi: PREPARAR, VINCULAR y EJECUTAR
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $server_id);
+    // 2. CONSULTA SQL BASE (Igual para todos)
+    $sql_base = "
+        SELECT 
+            rt.table_id,
+            rt.table_number,
+            rt.client_count,
+            rt.occupied_at,
+            TIMESTAMPDIFF(MINUTE, rt.occupied_at, NOW()) AS minutes_occupied,
+            rt.pre_bill_status,
+            u.name AS mesero_nombre
+        FROM 
+            restaurant_tables rt
+        LEFT JOIN 
+            users u ON rt.assigned_server_id = u.id
+    ";
+
+    // 3. LÓGICA CONDICIONAL
+    if ($rol_id == 1) {
+        // --- MODO GERENTE: Ver TODAS las mesas ---
+        $sql = $sql_base . " ORDER BY rt.table_number ASC";
+        $stmt = $conn->prepare($sql);
+    } else {
+        // --- MODO MESERO: Ver SOLO sus mesas ---
+        $sql = $sql_base . " WHERE rt.assigned_server_id = ? ORDER BY rt.table_number ASC";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $user_id);
+    }
+
+    // Ejecutar
     $stmt->execute();
-    
     $result = $stmt->get_result(); 
     $tables = $result->fetch_all(MYSQLI_ASSOC);
     
     $stmt->close();
     $conn->close();
 
-    // 3. DEVOLVER RESPUESTA JSON COMPLETA
+    // 4. DEVOLVER RESPUESTA
     echo json_encode(['success' => true, 'tables' => $tables]);
 
 } catch (\Exception $e) {

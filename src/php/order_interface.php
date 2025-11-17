@@ -10,10 +10,17 @@
 require_once $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/security/check_session.php';
 
 // 2. Definición del rol
+define('MANAGER_ROLE_ID', 1);
 define('MESERO_ROLE_ID', 2);
 
+$back_url = '/KitchenLink/src/php/orders.php'; // Por defecto (Mesero)
+
+if (isset($_SESSION['rol_id']) && $_SESSION['rol_id'] == MANAGER_ROLE_ID) {
+    $back_url = '/KitchenLink/src/php/manager_dashboard.php'; 
+}
+
 // 🔑 VERIFICACIÓN DE ROL: Si no es mesero, redirige.
-if ($_SESSION['rol_id'] != MESERO_ROLE_ID) {
+if ($_SESSION['rol_id'] != MESERO_ROLE_ID && $_SESSION['rol_id'] != MANAGER_ROLE_ID) {
     
     // 💥 CORRECCIÓN CRÍTICA: Destruir la sesión para forzar el logout
     if (session_status() === PHP_SESSION_ACTIVE) {
@@ -133,8 +140,8 @@ $initial_order_json = json_encode($initial_data);
         <header class="tpv-header">
             <h2>Mesa Actual: #<?php echo htmlspecialchars($table_number); ?></h2>
             <div id="liveClockContainer"></div>
-            <button onclick="window.location.href='/KitchenLink/src/php/orders.php'" class="btn-back">
-                <i class="fas fa-arrow-left"></i> Volver a Mesas
+            <button onclick="window.location.href='<?php echo $back_url; ?>'" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Volver a Mesas
             </button>
         </header>
 
@@ -184,7 +191,7 @@ $initial_order_json = json_encode($initial_data);
                     <button id="addTimeBtn" class="btn btn-secondary"><i class="fas fa-clock"></i> Añadir Tiempo</button>
                 </div>
                 <div class="order-actions">
-                    <button class="btn btn-primary" id="sendOrderBtn">Enviar a Cocina</button>
+                    <button class="btn btn-primary" id="sendOrderBtn">Enviar</button>
                 </div>
                 <div id="lockMessageContainer"></div> 
             </aside>

@@ -1,47 +1,50 @@
-// /js/orders.js - VERSIÓN CORREGIDA PARA MOSTRAR EL NOMBRE DEL MESERO
+// /js/orders.js - VERSIÓN MAESTRA FINAL
 
 import { ModalAdvancedOptions } from './ModalAdvancedOptions.js';
 
-// 💡 CAMBIO: Esta es la ÚNICA función principal, y es 'async'
 document.addEventListener('DOMContentLoaded', async () => {
 
-    // <<<--- INICIO DE LA VERIFICACIÓN DE TURNO --- >>>
-    // 1. VERIFICACIÓN DE TURNO INICIAL
-    try {
-        const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_shift_status.php');
-        const data = await response.json();
+    // 1. VERIFICACIÓN DE TURNO (SOLO PARA MESEROS)
+    if (typeof window.isManagerMode === 'undefined' || !window.isManagerMode) {
+        try {
+            const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_shift_status.php');
+            const data = await response.json();
 
-        if (!data.success || data.status === 'CLOSED') {
-            alert("El turno de caja ha sido cerrado. La sesión se cerrará.");
-            window.location.href = '/KitchenLink/src/php/logout.php';
+            if (!data.success || data.status === 'CLOSED') {
+                alert("El turno de caja ha sido cerrado. La sesión se cerrará.");
+                window.location.href = '/KitchenLink/src/php/logout.php';
+                return; 
+            }
+        } catch (error) {
+            document.body.innerHTML = "<h1>Error fatal al verificar el estado del turno.</h1>";
             return; 
         }
-
-    } catch (error) {
-        document.body.innerHTML = "<h1>Error fatal al verificar el estado del turno.</h1>";
-        return; 
     }
-    // --- 👆 FIN DE LA VERIFICACIÓN 👆 ---
     
-    
+    // --- REFERENCIAS DEL DOM ---
     const tableGridContainer = document.getElementById('tableGridContainer');
     const clockContainer = document.getElementById('liveClockContainer');
     const fab = document.getElementById('fab');
     const modal = document.getElementById('newTableModal');
     const newTableForm = document.getElementById('newTableForm');
     const controlButtons = document.querySelectorAll('.action-btn');
-    const mainContent = document.querySelector('main');
     
     const inputTableNumber = document.getElementById('mesaNumber');
     const inputClientCount = document.getElementById('clientCount');
     const tableNumberError = document.getElementById('mesaNumberError');
     const clientCountError = document.getElementById('clientCountError');
     
+    // Elementos del modo gerente
+    const serverSelectContainer = document.getElementById('serverSelectContainer');
+    const assignedServerSelect = document.getElementById('assignedServerSelect');
+    
     let selectedTable = null;
 
     const API_ROUTES = {
         GET_TABLES: '/KitchenLink/src/api/orders/get_tables.php',
-        CREATE_TABLE: '/KitchenLink/src/api/orders/create_table.php'
+        CREATE_TABLE: '/KitchenLink/src/api/orders/create_table.php',
+        GET_SERVERS: '/KitchenLink/src/api/manager/get_active_servers.php',
+        LOCK_TABLE: '/KitchenLink/src/api/orders/lock_table.php' // 🔒 Ruta del semáforo
     };
 
     // --- FUNCIONES ---
@@ -73,6 +76,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Cargar lista de meseros (Solo para Gerente)
+    async function loadServerOptions() {
+        if (!assignedServerSelect) return;
+        if (assignedServerSelect.options.length > 1) return; 
+
+        try {
+            const response = await fetch(API_ROUTES.GET_SERVERS);
+            const result = await response.json();
+            
+            if (result.success) {
+                assignedServerSelect.innerHTML = '<option value="">-- Asignar a mí (Default) --</option>';
+                result.data.forEach(server => {
+                    const option = document.createElement('option');
+                    option.value = server.id;
+                    option.textContent = server.name;
+                    assignedServerSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error("Error cargando meseros", error);
+        }
+    }
+
     async function fetchAndRenderTables() {
         const currentSelectionNumber = selectedTable ? selectedTable.dataset.tableNumber : null; 
         selectedTable = null; 
@@ -88,28 +114,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                 data.tables.forEach(table => {
                     const tableButton = document.createElement('button');
                     tableButton.className = 'table-btn';
-                    
-                    // --- DATOS DE LA MESA ---
                     tableButton.dataset.tableNumber = table.table_number;
                     
-                    // 🟢 CORRECCIÓN CRÍTICA AQUÍ:
-                    // Asignamos el nombre del mesero al dataset para que ModalAdvancedOptions lo lea.
-                    // Nota: 'server_name' debe venir de tu API get_tables.php. 
-                    // Si tu API usa otro nombre (ej. 'mesero_nombre'), cambia 'server_name' por ese.
-                    tableButton.dataset.serverName = table.server_name || table.mesero_nombre || 'Sin Asignar'; 
-
+                    // Guardamos nombre para el modal avanzado
+                    tableButton.dataset.serverName = table.mesero_nombre || 'Sin Asignar'; 
                     
-                    // 💡 LÓGICA DE ALERTA VISUAL: Si el pre_bill_status es REQUESTED
                     if (table.pre_bill_status === 'REQUESTED') {
                         tableButton.classList.add('prebill-requested'); 
                     }
                     
+                    // ETIQUETA DE NOMBRE (Diseño Limpio)
+                    let serverLabel = '';
+                    if (window.isManagerMode && table.mesero_nombre) {
+                        let nombreMostrar = table.mesero_nombre;
+                        if (nombreMostrar.length > 15) {
+                            nombreMostrar = nombreMostrar.substring(0, 15) + '...';
+                        }
+                        serverLabel = `<div class="server-tag">${nombreMostrar}</div>`;
+                    }
+
+                    // HTML DE LA TARJETA
                     tableButton.innerHTML = `
                         <span class="table-number">${table.table_number}</span>
+                        ${serverLabel}
                         <div class="table-info">
                             <div class="timer"><i class="fas fa-clock"></i><span>${table.minutes_occupied} min</span></div>
                             <div class="client-count"><i class="fas fa-users"></i><span>${table.client_count}</span></div>
                         </div>`;
+                    
                     tableButton.addEventListener('click', () => handleTableClick(tableButton));
                     tableGridContainer.appendChild(tableButton);
 
@@ -118,62 +150,51 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
             } else {
-                tableGridContainer.innerHTML = '<p class="no-tables-msg">Aún no tienes mesas asignadas.</p>';
+                tableGridContainer.innerHTML = '<p class="no-tables-msg">No hay mesas activas.</p>';
             }
             updateControlButtons();
         } catch (error) {
             console.error('Error al cargar mesas:', error);
-            tableGridContainer.innerHTML = `<p class="error-msg">Error de conexión al cargar mesas.</p>`;
+            tableGridContainer.innerHTML = `<p class="error-msg">Error de conexión.</p>`;
         }
     }
     
     function closeModal() {
         modal.classList.remove('visible');
-        mainContent.classList.remove('blurred');
+        const main = document.querySelector('main');
+        if(main) main.classList.remove('blurred');
+        
         newTableForm.reset();
         if (tableNumberError) tableNumberError.textContent = '';
         if (clientCountError) clientCountError.textContent = '';
     }
 
-    // =======================================================
-    // LÓGICA DE VALIDACIÓN 
-    // =======================================================
-    
+    // --- VALIDACIONES ---
     function formatNumericInput(input, maxLength) {
         if (!input) return;
-        let value = input.value;
-        let numericValue = value.replace(/[^0-9]/g, '');
-
-        if (numericValue === '0') {
-            numericValue = '';
-        }
-        
-        if (numericValue.length > maxLength) {
-            numericValue = numericValue.slice(0, maxLength);
-        }
-        
-        input.value = numericValue;
+        let value = input.value.replace(/[^0-9]/g, '');
+        if (value === '0') value = '';
+        if (value.length > maxLength) value = value.slice(0, maxLength);
+        input.value = value;
     }
     
-    if (inputTableNumber) {
-        inputTableNumber.addEventListener('input', () => {
-            formatNumericInput(inputTableNumber, 4);
-        });
-    }
+    if (inputTableNumber) inputTableNumber.addEventListener('input', () => formatNumericInput(inputTableNumber, 4));
+    if (inputClientCount) inputClientCount.addEventListener('input', () => formatNumericInput(inputClientCount, 2));
 
-    if (inputClientCount) {
-        inputClientCount.addEventListener('input', () => {
-            formatNumericInput(inputClientCount, 2);
-        });
-    }
-
-    // =======================================================
-    // FIN DE LA LÓGICA DE VALIDACIÓN
-    // =======================================================
+    // --- EVENTOS ---
 
     fab.addEventListener('click', () => {
         modal.classList.add('visible');
-        mainContent.classList.add('blurred');
+        const main = document.querySelector('main');
+        if(main) main.classList.add('blurred');
+
+        // MODO GERENTE: Mostrar selector
+        if (window.isManagerMode && serverSelectContainer) {
+            serverSelectContainer.style.display = 'block';
+            loadServerOptions();
+        } else if (serverSelectContainer) {
+            serverSelectContainer.style.display = 'none';
+        }
     });
     
     document.getElementById('cancelCreate').addEventListener('click', closeModal);
@@ -182,11 +203,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
         const tableNumber = document.getElementById('mesaNumber').value;
         const clientCount = document.getElementById('clientCount').value;
+        
+        let assignedServerId = null;
+        if (assignedServerSelect && assignedServerSelect.value) {
+            assignedServerId = assignedServerSelect.value;
+        }
+
         try {
             const response = await fetch(API_ROUTES.CREATE_TABLE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ table_number: tableNumber, client_count: clientCount })
+                body: JSON.stringify({ 
+                    table_number: tableNumber, 
+                    client_count: clientCount,
+                    assigned_server_id: assignedServerId 
+                })
             });
             const data = await response.json();
             if (data.success) {
@@ -200,25 +231,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('btn-edit-order').addEventListener('click', () => {
+    // -----------------------------------------------------------
+    // 🔒 LOGICA DE ENTRADA A LA MESA (CON BLOQUEO AJAX)
+    // -----------------------------------------------------------
+    document.getElementById('btn-edit-order').addEventListener('click', async () => {
         if (!selectedTable) {
             alert('Por favor, selecciona una mesa primero.');
             return;
         }
         const tableNumber = selectedTable.dataset.tableNumber;
-        window.location.href = `order_interface.php?table=${tableNumber}`;
+        const btn = document.getElementById('btn-edit-order');
+        
+        const originalText = btn.innerHTML; 
+        btn.innerText = "Verificando...";
+        btn.disabled = true;
+
+        try {
+            // 1. Intentamos bloquear la mesa
+            const response = await fetch(API_ROUTES.LOCK_TABLE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_number: tableNumber })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // 2. ÉXITO: Entramos
+                window.location.href = `order_interface.php?table=${tableNumber}`;
+            } else {
+                // 3. ERROR: Mesa ocupada
+                alert("⚠️ ACCESO DENEGADO\n" + result.message);
+                
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                fetchAndRenderTables();
+            }
+
+        } catch (error) {
+            console.error("Error de bloqueo:", error);
+            alert("Error de conexión al intentar acceder a la mesa.");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     });
 
-    // --- INICIALIZACIÓN Y POLLING ---
-    const POLLING_INTERVAL_MS = 5000; 
-
+    // --- INICIALIZACIÓN ---
     updateClock();
     setInterval(updateClock, 1000);
     updateControlButtons();
     
     fetchAndRenderTables(); 
-    
-    setInterval(fetchAndRenderTables, POLLING_INTERVAL_MS);
+    setInterval(fetchAndRenderTables, 5000);
 
     window.addEventListener('table-list-update', fetchAndRenderTables);
     const optionsManager = new ModalAdvancedOptions('#btn-advanced-options');

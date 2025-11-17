@@ -563,3 +563,14 @@ h1 {
     z-index: 10;
 }
 
+/* Etiqueta del nombre del mesero en las mesas */
+.server-name {
+    display: block;
+    width: 100%;
+    font-size: 0.85em;
+    color: #000;           /* Color negro */
+    margin-bottom: 2px;    /* Separación con los íconos de abajo */
+    white-space: nowrap;   /* Que no baje de línea */
+    text-align: center;    /* Centrado */
+    pointer-events: none;  /* Para que el click pase directo al botón */
+}

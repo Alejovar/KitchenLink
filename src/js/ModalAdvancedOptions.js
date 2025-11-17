@@ -30,7 +30,6 @@ export class ModalAdvancedOptions {
         this._setupTabs();
     }
 
-    // NUEVO: Método para formatear la entrada de la contraseña en tiempo real.
     _formatPasswordInput() {
         // Elimina cualquier caracter de espacio en blanco.
         this.passwordInput.value = this.passwordInput.value.replace(/\s/g, '');
@@ -39,18 +38,29 @@ export class ModalAdvancedOptions {
     _setupEventListeners() {
         this.triggerButton.addEventListener('click', () => {
             this.selectedTableElement = document.querySelector('.table-btn.selected');
+            
             if (this.selectedTableElement) {
-                this.passwordInput.value = '';
-                this.passwordErrorMsg.style.display = 'none';
-                this.passwordModal.open();
-                this.passwordInput.focus();
+                
+                // 👇 CAMBIO IMPORTANTE: Verificar si ya es Gerente 👇
+                // Usamos '==' para que funcione si el 1 viene como texto ("1") o número (1)
+                if (window.currentUserRole == 1) {
+                    // ES GERENTE: Abrimos directo sin pedir contraseña
+                    this._prepareAdvancedOptions(); 
+                    this.advancedModal.open();
+                } else {
+                    // ES MESERO (o cualquier otro): Pedimos contraseña
+                    this.passwordInput.value = '';
+                    this.passwordErrorMsg.style.display = 'none';
+                    this.passwordModal.open();
+                    this.passwordInput.focus();
+                }
+                // 👆 FIN DEL CAMBIO 👆
+
             } else {
                 alert('Por favor, seleccione una mesa antes de usar las opciones avanzadas.');
             }
         });
 
-        // MODIFICADO: Añadimos un listener para el evento 'input'
-        // Esto llama a _formatPasswordInput cada vez que el usuario escribe algo.
         this.passwordInput.addEventListener('input', () => this._formatPasswordInput());
 
         this.passwordForm.addEventListener('submit', e => this._handlePasswordVerification(e));
@@ -63,14 +73,13 @@ export class ModalAdvancedOptions {
         event.preventDefault();
         this.passwordErrorMsg.style.display = 'none';
         
-        // La validación en tiempo real asegura que aquí no lleguen espacios.
         const password = this.passwordInput.value;
 
         try {
             const res = await fetch('/KitchenLink/src/api/orders/auth/verify_manager.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: password }) // Enviamos el valor ya limpio
+                body: JSON.stringify({ password: password }) 
             });
             const result = await res.json();
 
@@ -108,7 +117,6 @@ export class ModalAdvancedOptions {
     }
     
     _disposeAdvancedOptions() {
-        // Asumiendo que las clases tienen un método dispose para limpiar listeners
         if (this.tableNumberChanger.dispose) this.tableNumberChanger.dispose();
         if (this.guestCountChanger.dispose) this.guestCountChanger.dispose();
         if (this.productsMover.dispose) this.productsMover.dispose();

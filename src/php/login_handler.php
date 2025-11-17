@@ -158,6 +158,9 @@ session_write_close();
 // 🔹 REDIRECCIÓN SEGÚN EL ROL
 $redirect_url = "/KitchenLink/dashboard.php"; // Default
 switch ($rol_id) { // Usamos la variable $rol_id
+    case 1: // Gerente
+        $redirect_url = "/KitchenLink/src/php/manager_dashboard.php";
+        break;
     case 2: // Mesero
         $redirect_url = "/KitchenLink/src/php/orders.php";
         break;

@@ -874,4 +874,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (firstCategory) {
         handleCategoryClick(firstCategory.dataset.categoryId);
     }
+
+    // ----------------------------------------------------
+    // 🔒 LÓGICA DE SEMÁFORO (CONCURRENCIA)
+    // ----------------------------------------------------
+
+    // 1. El Latido (Heartbeat): Mantiene la mesa ocupada
+    // Se ejecuta cada 20 segundos para no saturar tu servidor gratuito.
+    setInterval(() => {
+        // Solo enviamos señal si hay una mesa válida y NO estamos bloqueados por la caja
+        if (typeof tableNumber !== 'undefined' && tableNumber > 0 && !isInterfaceLocked) {
+            fetch('/KitchenLink/src/api/orders/renew_lock.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ table_number: tableNumber })
+            }).catch(err => console.error("Error en heartbeat", err));
+        }
+    }, 20000); 
+
+
+    // 2. Liberación al Salir: Desbloquea la mesa si cierran la pestaña o regresan
+    window.addEventListener('beforeunload', () => {
+        if (typeof tableNumber !== 'undefined' && tableNumber > 0 && !isInterfaceLocked) {
+            const data = JSON.stringify({ table_number: tableNumber });
+            // Usamos sendBeacon para asegurar que se envíe aunque se cierre el navegador
+            const blob = new Blob([data], {type: 'application/json'});
+            navigator.sendBeacon('/KitchenLink/src/api/orders/unlock_table.php', blob);
+        }
+    });
+
 }); // <-- Este es el ÚNICO cierre del 'DOMContentLoaded'

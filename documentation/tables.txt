@@ -156,6 +156,11 @@ ALTER TABLE restaurant_tables
 ADD COLUMN pre_bill_status ENUM('ACTIVE', 'REQUESTED') NOT NULL DEFAULT 'ACTIVE' 
 COMMENT 'Estado de la ocupación: ACTIVE=en curso, REQUESTED=cuenta solicitada.';
 
+ALTER TABLE restaurant_tables
+ADD COLUMN locked_by INT NULL COMMENT 'ID del usuario que está editando actualmente la mesa',
+ADD COLUMN locked_at TIMESTAMP NULL DEFAULT NULL COMMENT 'Momento exacto en que inició la edición',
+ADD CONSTRAINT fk_table_lock_user FOREIGN KEY (locked_by) REFERENCES users(id) ON DELETE SET NULL;
+
 
 -- ######################################################################
 -- # 2. ESTRUCTURA DE MENÚ DINÁMICO Y MODIFICADORES

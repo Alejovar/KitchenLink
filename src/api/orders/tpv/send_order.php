@@ -13,8 +13,8 @@ $conn = null;
 
 try {
     // 🔒 Validar sesión y rol
-    if (!isset($_SESSION['user_id']) || $_SESSION['rol_id'] != 2) {
-        http_response_code(403);
+if (!isset($_SESSION['user_id']) || ($_SESSION['rol_id'] != 2 && $_SESSION['rol_id'] != 1)) {
+    http_response_code(403);
         throw new Exception('Acceso denegado: solo meseros pueden enviar órdenes.');
     }
     $server_id = $_SESSION['user_id'];

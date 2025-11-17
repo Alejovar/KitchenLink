@@ -18,7 +18,13 @@
                 <input type="number" id="clientCount" required min="1" max="99" maxlength="2"> 
                 <p class="validation-message" id="clientCountError"></p>
             </div>
-            
+
+            <div class="form-group" id="serverSelectContainer" style="display: none;">
+                <label for="assignedServerSelect">Asignar a Mesero:</label>
+                <select id="assignedServerSelect" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;">
+                    <option value="">-- Asignar a mí (Default) --</option>
+                    </select>
+            </div>
             <div class="control-buttonsmodal">
                 <button type="button" class="action-btnmodal secondary-btnmodal" id="cancelCreate">Cancelar</button>
                 <button type="submit" class="action-btnmodal primary-btnmodal">Crear Mesa</button>
