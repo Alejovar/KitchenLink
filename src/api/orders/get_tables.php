@@ -16,22 +16,25 @@ require $_SERVER['DOCUMENT_ROOT'] . '/KitchenLink/src/php/db_connection.php';
 
 $server_id = $_SESSION['user_id']; 
 
-// 2. CONSULTA SQL MEJORADA (Incluye el estado de pre-cuenta)
+// 2. CONSULTA SQL MEJORADA
+// Agregamos u.name para obtener el nombre del mesero
 $sql = "
     SELECT 
-        table_id,
-        table_number,
-        client_count,
-        occupied_at,
-        TIMESTAMPDIFF(MINUTE, occupied_at, NOW()) AS minutes_occupied,
-        -- 💥 CRÍTICO: Incluir el estado de la pre-cuenta
-        pre_bill_status 
+        rt.table_id,
+        rt.table_number,
+        rt.client_count,
+        rt.occupied_at,
+        TIMESTAMPDIFF(MINUTE, rt.occupied_at, NOW()) AS minutes_occupied,
+        rt.pre_bill_status,
+        u.name AS mesero_nombre  -- <--- 🟢 AQUÍ OBTENEMOS EL NOMBRE
     FROM 
-        restaurant_tables
+        restaurant_tables rt
+    LEFT JOIN 
+        users u ON rt.assigned_server_id = u.id -- <--- 🟢 UNIMOS CON LA TABLA DE USUARIOS
     WHERE
-        assigned_server_id = ? -- Solo mostrar las mesas del mesero actual
+        rt.assigned_server_id = ? 
     ORDER BY 
-        table_number ASC
+        rt.table_number ASC
 ";
 
 try {

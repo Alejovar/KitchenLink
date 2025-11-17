@@ -1,4 +1,4 @@
-// /js/orders.js - VERSIÓN FINAL INTEGRADA Y FUNCIONAL (con alerta visual)
+// /js/orders.js - VERSIÓN CORREGIDA PARA MOSTRAR EL NOMBRE DEL MESERO
 
 import { ModalAdvancedOptions } from './ModalAdvancedOptions.js';
 
@@ -8,27 +8,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     // <<<--- INICIO DE LA VERIFICACIÓN DE TURNO --- >>>
     // 1. VERIFICACIÓN DE TURNO INICIAL
     try {
-        // Reutilizamos el API que ya existe
         const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_shift_status.php');
         const data = await response.json();
 
         if (!data.success || data.status === 'CLOSED') {
-            // ¡Turno cerrado!
             alert("El turno de caja ha sido cerrado. La sesión se cerrará.");
-            // Redirigimos al logout para limpiar la sesión
             window.location.href = '/KitchenLink/src/php/logout.php';
-            return; // Detenemos la carga del resto del script
+            return; 
         }
 
     } catch (error) {
-        // Error grave de conexión
         document.body.innerHTML = "<h1>Error fatal al verificar el estado del turno.</h1>";
-        return; // Detenemos la carga
+        return; 
     }
     // --- 👆 FIN DE LA VERIFICACIÓN 👆 ---
     
     
-    // --- EL RESTO DE TU CÓDIGO ORIGINAL VA AQUÍ ---
     const tableGridContainer = document.getElementById('tableGridContainer');
     const clockContainer = document.getElementById('liveClockContainer');
     const fab = document.getElementById('fab');
@@ -93,7 +88,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 data.tables.forEach(table => {
                     const tableButton = document.createElement('button');
                     tableButton.className = 'table-btn';
+                    
+                    // --- DATOS DE LA MESA ---
                     tableButton.dataset.tableNumber = table.table_number;
+                    
+                    // 🟢 CORRECCIÓN CRÍTICA AQUÍ:
+                    // Asignamos el nombre del mesero al dataset para que ModalAdvancedOptions lo lea.
+                    // Nota: 'server_name' debe venir de tu API get_tables.php. 
+                    // Si tu API usa otro nombre (ej. 'mesero_nombre'), cambia 'server_name' por ese.
+                    tableButton.dataset.serverName = table.server_name || table.mesero_nombre || 'Sin Asignar'; 
+
                     
                     // 💡 LÓGICA DE ALERTA VISUAL: Si el pre_bill_status es REQUESTED
                     if (table.pre_bill_status === 'REQUESTED') {
@@ -140,7 +144,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let value = input.value;
         let numericValue = value.replace(/[^0-9]/g, '');
 
-        // Si el valor después de limpiar es exactamente "0", lo borramos.
         if (numericValue === '0') {
             numericValue = '';
         }
@@ -207,16 +210,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // --- INICIALIZACIÓN Y POLLING ---
-    const POLLING_INTERVAL_MS = 5000; // Intervalo de 5 segundos para actualización rápida
+    const POLLING_INTERVAL_MS = 5000; 
 
     updateClock();
     setInterval(updateClock, 1000);
     updateControlButtons();
     
-    // 1. Carga inicial
     fetchAndRenderTables(); 
     
-    // 2. Polling (Actualización automática)
     setInterval(fetchAndRenderTables, POLLING_INTERVAL_MS);
 
     window.addEventListener('table-list-update', fetchAndRenderTables);

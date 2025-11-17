@@ -206,7 +206,7 @@ $initial_order_json = json_encode($initial_data);
             <span class="close-btn">&times;</span>
             <h3>Añadir Comentario</h3>
             <p id="commentModalItemName"></p>
-            <textarea id="commentInput" placeholder="Ej: Sin cebolla, término medio..." rows="4"></textarea>
+            <textarea id="commentInput" placeholder="Ej: Sin cebolla, término medio..." rows="4" maxlength="255"></textarea>
             <input type="hidden" id="commentItemIndex">
             <div class="modal-actions">
                 <button id="cancelCommentBtn" class="btn btn-secondary">Cancelar</button>

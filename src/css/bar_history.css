@@ -834,23 +834,6 @@ h1 {
     border-color: #5D3FD3; /* Un morado elegante */
 }
 
-/* Oculta el icono de calendario por defecto del navegador */
-#historyDate::-webkit-calendar-picker-indicator {
-    opacity: 0;
-    cursor: pointer;
-}
-
-/* Añadimos nuestro propio icono de calendario con FontAwesome */
-.date-selector-wrapper::after {
-    font-family: "Font Awesome 6 Free";
-    content: '\f073'; /* Código del icono de calendario */
-    font-weight: 900;
-    color: #5D3FD3;
-    position: absolute;
-    right: 12px;
-    pointer-events: none; /* Esto permite que el clic llegue al input de abajo */
-}
-
 /* Estilo para el modificador del producto en la comanda */
 .item-modifier {
     color: #8A2BE2; /* Un color morado para que destaque */
@@ -861,4 +844,10 @@ h1 {
 /* Ajuste para que las notas no se peguen al modificador */
 .item-notes {
     margin-left: 5px;
+    /* 1. Permite que el elemento se encoja si es necesario (Flexbox) */
+    min-width: 0; 
+    flex-shrink: 1; 
+
+    /* 2. Corta el texto de forma inteligente */
+    overflow-wrap: anywhere; 
 }

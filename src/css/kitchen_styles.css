@@ -814,4 +814,10 @@ h1 {
 /* Ajuste para que las notas no se peguen al modificador */
 .item-notes {
     margin-left: 5px;
+    /* 1. Permite que el elemento se encoja si es necesario (Flexbox) */
+    min-width: 0; 
+    flex-shrink: 1; 
+
+    /* 2. Corta el texto de forma inteligente */
+    overflow-wrap: anywhere; 
 }
