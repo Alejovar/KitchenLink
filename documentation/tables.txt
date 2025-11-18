@@ -199,6 +199,12 @@ CREATE TABLE IF NOT EXISTS modifiers (
         ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
+ALTER TABLE modifiers
+ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1 COMMENT '1=Disponible, 0=Agotado';
+
+ALTER TABLE modifiers
+ADD COLUMN stock_quantity INT NULL DEFAULT NULL COMMENT 'NULL=Infinito, Número=Cuenta regresiva';
+
 -- 2.4. Tabla de Productos (Catálogo)
 CREATE TABLE IF NOT EXISTS products (
     product_id INT NOT NULL AUTO_INCREMENT,
@@ -214,6 +220,10 @@ CREATE TABLE IF NOT EXISTS products (
     CONSTRAINT FK_ProductModifierGroup FOREIGN KEY (modifier_group_id) REFERENCES modifier_groups(group_id)
         ON DELETE SET NULL ON UPDATE CASCADE
 );
+
+ALTER TABLE products
+ADD COLUMN stock_quantity INT NULL DEFAULT NULL COMMENT 'NULL = Infinito, Número = Cantidad disponible';
+
 
 -- ######################################################################
 -- # 3. ESTRUCTURA DE ÓRDENES Y DETALLES

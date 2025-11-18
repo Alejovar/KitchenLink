@@ -532,3 +532,95 @@ body {
    Para bloqueo estricto, el "pointer-events: none" es la mejor opción.
 */
 
+/* =========================================
+   ESTILOS PARA PRODUCTOS EN TPV (STOCK 85/86)
+   ========================================= */
+
+/* 1. Producto Agotado (86) - Tarjeta */
+.product-item-btn.product-agotado {
+    background-color: #f0f0f0; /* Fondo muy claro */
+    color: #999; /* Texto gris */
+    cursor: not-allowed;
+    position: relative;
+    border: 1px dashed #ccc; /* Borde punteado para indicar agotado */
+    opacity: 0.7;
+    overflow: hidden;
+}
+
+/* Overlay de "AGOTADO" */
+.agotado-overlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg); /* Texto rotado */
+    color: #c0392b; /* Rojo oscuro */
+    font-weight: 900;
+    font-size: 1.2rem;
+    border: 2px solid #c0392b;
+    padding: 5px 10px;
+    border-radius: 8px;
+    opacity: 0.8;
+    pointer-events: none; /* No interceptar el clic */
+    z-index: 50;
+}
+
+/* 2. Badge de Stock (85) */
+.tpv-stock-badge {
+    display: block;
+    background-color: #fef9e7; /* Amarillo suave */
+    color: #927e1f; /* Texto café/mostaza */
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin: 4px auto 0; /* Centrado */
+    width: fit-content;
+    font-weight: bold;
+    border: 1px solid #f9e29f;
+}
+
+/* 3. Modificadores Agotados (Modal de selección) */
+.modifier-option.agotado {
+    cursor: not-allowed;
+    background-color: #f5f5f5;
+    color: #888;
+    border: 1px solid #eee;
+    padding-left: 10px;
+}
+
+.modifier-option.agotado input[type="radio"] {
+    /* Aseguramos que el radio button esté visible pero inactivo */
+    /* El atributo 'disabled' en el HTML es el que realmente bloquea la selección. */
+}
+
+.modifier-stock-info {
+    font-style: italic;
+    color: #747474;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
+/* --- Estilos para Productos en TPV (86: Bloqueo) --- */
+
+.product-item-btn.product-agotado {
+    background-color: #f0f0f0;
+    color: #999;
+    cursor: not-allowed;
+    position: relative;
+    border: 1px dashed #ddd; 
+    opacity: 0.7;
+    overflow: hidden;
+}
+
+.agotado-overlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    color: #c0392b;
+    font-weight: 900;
+    font-size: 1.2rem;
+    border: 2px solid #c0392b;
+    padding: 5px 10px;
+    border-radius: 8px;
+    opacity: 0.8;
+    pointer-events: none;
+    z-index: 50;
+}

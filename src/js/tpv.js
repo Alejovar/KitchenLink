@@ -1,4 +1,4 @@
-// tpv.js - VERSIÓN FINAL CON BLOQUEO Y CÁLCULO COMBINADO
+// tpv.js - VERSIÓN FINAL ESTABLE Y CORREGIDA
 
 // Rutas a los endpoints PHP (AJAX)
 const API_ROUTES = {
@@ -20,40 +20,63 @@ let searchInput, searchDropdown;
 const tableNumber = parseInt(new URLSearchParams(window.location.search).get('table')) || 0;
 let currentOrder = [];
 let timeCounter = 1;
-let activeOrderId = 0;
+let activeOrderId = 0; // CRÍTICO: ID de la orden actual
 let currentProduct = null;
 let databaseTotal = 0;
 let isInterfaceLocked = false; // Nuevo estado de bloqueo
+let activeCategoryId = null; // Variable para polling
 
+// Eliminamos la definición global de Polling (se define y usa localmente)
+const PRODUCT_POLLING_INTERVAL = 5000; 
 
-// 💡 CAMBIO: Esta es la ÚNICA función principal, y es 'async'
+// CAMBIO: Esta es la ÚNICA función principal, y es 'async'
 document.addEventListener('DOMContentLoaded', async () => {
+    
+    // --- NUEVAS VARIABLES LOCALES DE POLLING ---
+    let productPollingId = null;
 
-    // <<<--- INICIO DE LA VERIFICACIÓN DE TURNO (LO NUEVO) --- >>>
+    // <<<--- INICIO DE LA VERIFICACIÓN DE TURNO --- >>>
     // 1. VERIFICACIÓN DE TURNO INICIAL
     try {
-        // Reutilizamos el API que ya existe
         const response = await fetch('/KitchenLink/src/api/cashier/history_reports/get_shift_status.php');
         const data = await response.json();
 
         if (!data.success || data.status === 'CLOSED') {
-            // ¡Turno cerrado!
             alert("El turno de caja ha sido cerrado. La sesión se cerrará.");
-            // Redirigimos al logout para limpiar la sesión
             window.location.href = '/KitchenLink/src/php/logout.php';
             return; // Detenemos la carga del resto del script
         }
 
     } catch (error) {
-        // Error grave de conexión
         document.body.innerHTML = "<h1>Error fatal al verificar el estado del turno.</h1>";
         return; // Detenemos la carga
     }
     // --- 👆 FIN DE LA VERIFICACIÓN 👆 ---
 
-
-    // --- 💡 ELIMINAMOS EL SEGUNDO 'DOMContentLoaded' QUE ESTABA AQUÍ ---
-
+    // --- Inicialización de elementos del DOM ---
+    categoryList = document.getElementById('categoryList');
+    productGrid = document.getElementById('productGrid');
+    orderItems = document.getElementById('orderItems');
+    orderTotalElement = document.getElementById('orderTotal');
+    sendOrderBtn = document.getElementById('sendOrderBtn');
+    quantitySelector = document.getElementById('quantitySelector');
+    addTimeBtn = document.getElementById('addTimeBtn');
+    commentModal = document.getElementById('commentModal');
+    commentModalItemName = document.getElementById('commentModalItemName');
+    commentInput = document.getElementById('commentInput');
+    commentItemIndex = document.getElementById('commentItemIndex');
+    saveCommentBtn = document.getElementById('saveCommentBtn');
+    cancelCommentBtn = document.getElementById('cancelCommentBtn');
+    closeCommentModalBtn = commentModal.querySelector('.close-btn');
+    modifierModal = document.getElementById('modifierModal');
+    modalProductName = document.getElementById('modalProductName');
+    modifierGroupName = document.getElementById('modifierGroupName');
+    modifierOptions = document.getElementById('modifierOptions');
+    closeModifierModalBtn = modifierModal.querySelector('.close-btn');
+    clockContainer = document.getElementById('liveClockContainer');
+    searchInput = document.getElementById('productSearchInput');
+    searchDropdown = document.getElementById('searchResultsDropdown');
+    lockMessageContainer = document.getElementById('lockMessageContainer');
 
     // ----------------------------------------------------
     // LÓGICA DE BLOQUEO DE INTERFAZ
@@ -65,14 +88,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         quantitySelector.disabled = true;
         addTimeBtn.disabled = true;
         
-        // Asegurarse de que el botón exista antes de deshabilitarlo
         const addModifiedBtn = document.getElementById('addModifiedItemBtn');
         if (addModifiedBtn) addModifiedBtn.disabled = true;
         
         productGrid.style.pointerEvents = 'none';
         categoryList.style.pointerEvents = 'none';
         
-        // El botón de volver siempre debe estar activo
         const btnBack = document.querySelector('.btn-back');
         if(btnBack) btnBack.style.pointerEvents = 'auto'; 
 
@@ -106,7 +127,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (lockMessageContainer) {
             lockMessageContainer.innerHTML = '';
         }
-        // Forzar re-renderizado para re-habilitar sendOrderBtn si hay ítems nuevos
         renderOrderSummary();
     }
 
@@ -129,24 +149,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // FUNCIÓN CORREGIDA PARA EL CÁLCULO COMBINADO
     function updateOrderTotal() {
-        // 1. Calcula el subtotal de los productos NUEVOS en pantalla (no enviados)
         const newItemsSubtotal = currentOrder
             .filter(item => item.type === 'product' && !item.sentTimestamp)
             .reduce((sum, item) => sum + (item.price || 0), 0);
 
-        // 2. Suma el total de la base de datos con el subtotal de los nuevos productos
         const grandTotal = databaseTotal + newItemsSubtotal;
 
-        // 3. Muestra el resultado
         orderTotalElement.textContent = `$${grandTotal.toFixed(2)}`;
     }
+
+    // 💡 NUEVA FUNCIÓN: Iniciar el Polling (se define aquí para ver loadProducts)
+    function startProductPolling() {
+        if (productPollingId) clearInterval(productPollingId);
+        
+        productPollingId = setInterval(() => {
+            if (activeCategoryId) {
+                loadProducts(activeCategoryId); 
+            }
+        }, PRODUCT_POLLING_INTERVAL);
+    }
+
 
     async function loadInitialOrder() {
         if (tableNumber <= 0) return;
 
         // 1. Obtener la data inyectada en el HTML
         const initialDataElement = document.getElementById('initialOrderData');
-        // Si no existe el elemento, salimos (ya que la verificación de bloqueo depende de él)
         if (!initialDataElement) {
              console.error("No se encontró #initialOrderData. La interfaz no puede cargar.");
              return;
@@ -185,33 +213,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             databaseTotal = parseFloat(data.total) || 0;
             
             const times = data.times || [];
-            currentOrder = [];
+            currentOrder = []; // Limpieza para evitar la duplicación de ítems enviados
             let maxTime = 0;
 
             times.forEach(timeBatch => {
                 const displayTime = timeBatch.service_time;
-                // Usamos batch_timestamp como fallback si added_at no está (aunque debería)
-                const sentTimestamp = timeBatch.items[0]?.added_at || timeBatch.items[0]?.batch_timestamp;
+                
+                // ✅ CORRECCIÓN CRÍTICA PARA EL DESBLOQUEO/DUPLICACIÓN
+                const batchTimestamp = timeBatch.items[0]?.added_at || timeBatch.items[0]?.batch_timestamp;
+                // Si el batchTimestamp es nulo/inválido, asignamos '1' para que evalúe a true y mantenga el ítem bloqueado.
+                const timestampMs = batchTimestamp ? new Date(batchTimestamp).getTime() : 1; 
+
                 maxTime = Math.max(maxTime, displayTime);
 
                 if (timeBatch.items && timeBatch.items.length > 0) {
                     currentOrder.push({
                         type: 'time',
                         name: `--- Tiempo ${displayTime} ---`,
-                        sentTimestamp: new Date(sentTimestamp).getTime()
+                        // CRÍTICO: Usar el timestamp convertido para bloquear el tiempo.
+                        sentTimestamp: timestampMs
                     });
                     timeBatch.items.forEach(item => {
                         currentOrder.push({
                             type: 'product',
                             id: item.id, name: item.name, price: item.price,
                             quantity: 1, comment: item.comment, modifier_id: item.modifier_id,
-                            sentTimestamp: new Date(sentTimestamp).getTime()
+                            // CRÍTICO: Asignar el timestamp VÁLIDO del lote a cada producto.
+                            sentTimestamp: timestampMs
                         });
                     });
                 }
             });
 
-            timeCounter = maxTime > 0 ? maxTime : 1;
+            timeCounter = maxTime > 0 ? maxTime : 1; // Lógica de contador original
 
         } catch (error) {
             console.error('Error al cargar la orden inicial:', error);
@@ -226,7 +260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ----------------------------------------------------
-    // EL RESTO DEL CÓDIGO 
+    // FUNCIONES AUXILIARES
     // ----------------------------------------------------
 
     function getFirstPendingTimeIndex() {
@@ -234,7 +268,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function addItemToOrder(item) {
-        // 💡 BLOQUEO EN EL FLUJO: Si la interfaz está bloqueada, no añade ítems.
         if (isInterfaceLocked) {
             alert("La mesa está bloqueada. Cobro solicitado.");
             return;
@@ -395,11 +428,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 body: JSON.stringify({
                     table_number: tableNumber,
                     times: finalTimesToSend,
-                    order_id: activeOrderId
+                    // ✅ CRÍTICO: Enviar el ID para que el servidor sepa si debe crear o actualizar.
+                    order_id: activeOrderId 
                 })
             });
 
-            // 💡 Capturamos el error del servidor (por si el cajero cerró la mesa justo ahora)
+            // Capturamos el error si la MESA FUE CERRADA (410 Gone)
             if (response.status === 410) { 
                 const errorData = await response.json();
                 alert(errorData.message + '\nRegresando a la lista de mesas.');
@@ -407,45 +441,87 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            // ✨ --- INICIO DEL CÓDIGO AÑADIDO --- ✨
             // Capturamos el error si la CUENTA FUE SOLICITADA (403 Forbidden)
             if (response.status === 403) {
                 const errorData = await response.json();
-                alert(errorData.message); // Muestra el mensaje del servidor: "ACCIÓN BLOQUEADA..."
-                lockTpvInterface();     // Bloquea la interfaz para que coincida con el estado real
-                return;                 // Detiene la función aquí
+                alert(errorData.message); 
+                lockTpvInterface();     
+                return;                 
             }
-            // --- FIN DEL CÓDIGO AÑADIDO ---
-
+            
+            // 💡 Capturamos la respuesta del servidor (incluyendo errores de Stock 86)
             const result = await response.json();
-            if (!response.ok || !result.success) throw new Error(result.message || 'Error desconocido.');
+            
+            if (!result.success) {
+                // Si el servidor falla (ej: stock insuficiente), alerta y recarga (para reflejar 86)
+                throw new Error(result.message || 'Error desconocido.');
+            }
 
-            loadInitialOrder(); // Recargar la orden para actualizar el total y marcar ítems como enviados
+            // ✅ CRÍTICO: Actualizar activeOrderId si el servidor devuelve el ID (primera orden).
+            if (result.order_id && activeOrderId === 0) {
+                 activeOrderId = result.order_id;
+            }
+
+            // ✅ CRÍTICO: Usar await. Esperar a la recarga de la orden para que el estado local se sincronice con el servidor.
+            await loadInitialOrder(); 
 
         } catch (error) {
             console.error('Error al enviar la orden:', error);
             alert(`Error al enviar la comanda: ${error.message}`);
+            // Forzamos la recarga de productos si hay error (para ver el 86 aplicado)
+            if (activeCategoryId) loadProducts(activeCategoryId);
             renderOrderSummary();
         }
     }
 
+    // 💡 MODIFICADO: FUNCIÓN PARA MOSTRAR PRODUCTOS CON LÓGICA DE STOCK (85/86)
     function renderProducts(products) {
         productGrid.innerHTML = '';
         if (products.length === 0) {
             productGrid.innerHTML = '<p>No hay productos en esta categoría.</p>';
             return;
         }
+        
         products.forEach(product => {
             const button = document.createElement('button');
-            button.className = 'product-item-btn';
+            
+            // 1. Lógica de Bloqueo (86): Comprobamos disponibilidad (is_available) y stock (stock_quantity = 0)
+            const isAgotado = product.is_available == 0 || (product.stock_quantity !== null && product.stock_quantity == 0);
+            
+            let className = 'product-item-btn';
+            
+            // Si está agotado, añadimos clase especial y deshabilitamos
+            if (isAgotado) {
+                className += ' product-agotado';
+                button.disabled = true; // 🛑 BLOQUEO FUNCIONAL
+            }
+
+            button.className = className;
             button.dataset.productId = product.product_id;
             button.dataset.price = product.price;
             button.dataset.modifierGroupId = product.modifier_group_id;
-            button.innerHTML = `<span class="product-name">${product.name}</span><span class="product-price">$${parseFloat(product.price).toFixed(2)}</span>`;
+            
+            // 2. Lógica de Badge de Stock (85)
+            let stockBadge = '';
+            // Si tiene conteo (no es NULL) y no está agotado
+            if (product.stock_quantity !== null && !isAgotado) {
+                stockBadge = `<span class="tpv-stock-badge">Quedan: ${product.stock_quantity}</span>`;
+            }
+            
+            // 3. Etiqueta de Agotado (Visual)
+            let agotadoLabel = isAgotado ? '<div class="agotado-overlay">AGOTADO</div>' : '';
+
+            button.innerHTML = `
+                ${agotadoLabel}
+                <span class="product-name">${product.name}</span>
+                ${stockBadge}
+                <span class="product-price">$${parseFloat(product.price).toFixed(2)}</span>
+            `;
+            
             productGrid.appendChild(button);
         });
         
-        // 💡 Bloqueo al renderizar productos si la interfaz está bloqueada
+        // Bloqueo general de interfaz (por caja, no por stock)
         if (isInterfaceLocked) {
             productGrid.style.pointerEvents = 'none';
         } else {
@@ -460,6 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
+        activeCategoryId = categoryId; // Guardar la categoría activa para el Polling
         productGrid.innerHTML = '<p id="productLoading">Cargando productos...</p>';
 
         document.querySelectorAll('.category-item').forEach(item => {
@@ -470,11 +547,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
+        loadProducts(categoryId);
+    }
+    
+    async function loadProducts(categoryId) {
         try {
             const response = await fetch(`${API_ROUTES.API_PRODUCT_URL}?category_id=${categoryId}`);
             const data = await response.json();
             if (data.success) {
                 renderProducts(data.products);
+                startProductPolling(); // 💡 Reiniciar el polling después de cada carga exitosa
             } else {
                 productGrid.innerHTML = `<p class="error">Error: ${data.message}</p>`;
             }
@@ -507,15 +589,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // 💡 MODIFICADO: FUNCIÓN PARA MOSTRAR MODIFICADORES CON LÓGICA DE STOCK (85/86)
     function renderModifiers(modifiers) {
         modifierOptions.innerHTML = '';
         modifiers.forEach(mod => {
+            // Lógica de Bloqueo (86) para modificadores
+            const isAgotado = mod.is_active == 0 || (mod.stock_quantity !== null && mod.stock_quantity == 0);
+            const isDisabled = isAgotado;
+            
+            // Lógica de Stock (85)
+            let stockInfo = '';
+            if (mod.stock_quantity !== null) {
+                stockInfo = `(Quedan: ${mod.stock_quantity})`;
+            }
+
             const label = document.createElement('label');
-            label.className = 'modifier-option';
-            label.innerHTML = `<input type="radio" name="modifier-choice" value="${mod.modifier_id}" data-price="${mod.modifier_price}">${mod.modifier_name} ${parseFloat(mod.modifier_price).toFixed(2) > 0 ? `(+$${parseFloat(mod.modifier_price).toFixed(2)})` : ''}`;
+            // Añadir clase 'option-agotada' si está agotado (para CSS)
+            label.className = `modifier-option ${isAgotado ? 'option-agotada' : ''}`;
+            
+            const priceHtml = parseFloat(mod.modifier_price).toFixed(2) > 0 ? `(+$${parseFloat(mod.modifier_price).toFixed(2)})` : '';
+            
+            label.innerHTML = `
+                <input type="radio" name="modifier-choice" value="${mod.modifier_id}" data-price="${mod.modifier_price}" ${isDisabled ? 'disabled' : ''}>
+                <span class="modifier-name">${mod.modifier_name}</span>
+                <span class="modifier-price">${priceHtml}</span>
+                <span class="modifier-stock-info">${stockInfo}</span>
+                ${isAgotado ? '<span class="agotado-label">AGOTADO</span>' : ''}
+            `;
             modifierOptions.appendChild(label);
         });
+
+        // 💡 Bloquear el botón de añadir si no hay modificadores disponibles
+        const addModifiedBtn = document.getElementById('addModifiedItemBtn');
+        const availableModifiers = modifiers.some(mod => mod.is_active == 1 && (mod.stock_quantity === null || mod.stock_quantity > 0));
+        if (addModifiedBtn) {
+            addModifiedBtn.disabled = !availableModifiers;
+        }
     }
+
 
     let searchTimeout;
 
@@ -556,7 +667,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const rawModId = item.dataset.modifierGroupId;
                 const modifierGroupId = (rawModId && rawModId !== 'null' && rawModId !== '0') ? parseInt(rawModId) : null;
 
-                const name = item.querySelector('.result-name').textContent;
+                const name = item.querySelector('.result-name').textContent.replace(/AGOTADO/, '').trim(); // Limpiar la etiqueta de agotado
                 const quantity = parseInt(quantitySelector.value) || 1;
 
                 currentProduct = {
@@ -566,6 +677,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     modifierGroupId: modifierGroupId,
                     quantity: quantity
                 };
+                
+                // 💡 Asegurarse de que el producto encontrado no esté agotado (86)
+                if (item.classList.contains('product-agotado')) {
+                     alert("Este producto está agotado (86) y no puede ser añadido.");
+                     searchInput.value = '';
+                     searchDropdown.style.display = 'none';
+                     return;
+                }
 
                 handleCategoryClick(categoryId);
 
@@ -613,16 +732,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchDropdown.innerHTML = '';
         products.forEach(product => {
             const item = document.createElement('div');
-            item.className = 'search-result-item';
+            
+            // 💡 Lógica de stock para búsqueda (85/86)
+            const isAgotado = product.is_available == 0 || (product.stock_quantity !== null && product.stock_quantity == 0);
+            
+            item.className = `search-result-item ${isAgotado ? 'product-agotado' : ''}`;
 
-            item.dataset.productId = product.id;
+            item.dataset.productId = product.product_id;
             item.dataset.price = product.price;
             item.dataset.categoryId = product.category_id;
             item.dataset.modifierGroupId = product.modifier_group_id || '';
+            
+            const stockInfo = product.stock_quantity !== null ? `(Quedan: ${product.stock_quantity})` : '';
+            const agotadoLabel = isAgotado ? '<span class="agotado-label">AGOTADO</span>' : '';
+
 
             item.innerHTML = `
-                <span class="result-name">${product.name}</span>
-                <span class="result-price">$${product.price.toFixed(2)}</span>
+                <span class="result-name">${product.name} ${agotadoLabel}</span>
+                <span class="result-price">$${product.price.toFixed(2)} ${stockInfo}</span>
             `;
             searchDropdown.appendChild(item);
         });
@@ -630,32 +757,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         searchDropdown.style.display = 'block';
     }
 
-    // --- Inicialización de elementos del DOM (movido de la línea 266) ---
-    categoryList = document.getElementById('categoryList');
-    productGrid = document.getElementById('productGrid');
-    orderItems = document.getElementById('orderItems');
-    orderTotalElement = document.getElementById('orderTotal');
-    sendOrderBtn = document.getElementById('sendOrderBtn');
-    quantitySelector = document.getElementById('quantitySelector');
-    addTimeBtn = document.getElementById('addTimeBtn');
-    commentModal = document.getElementById('commentModal');
-    commentModalItemName = document.getElementById('commentModalItemName');
-    commentInput = document.getElementById('commentInput');
-    commentItemIndex = document.getElementById('commentItemIndex');
-    saveCommentBtn = document.getElementById('saveCommentBtn');
-    cancelCommentBtn = document.getElementById('cancelCommentBtn');
-    closeCommentModalBtn = commentModal.querySelector('.close-btn');
-    modifierModal = document.getElementById('modifierModal');
-    modalProductName = document.getElementById('modalProductName');
-    modifierGroupName = document.getElementById('modifierGroupName');
-    modifierOptions = document.getElementById('modifierOptions');
-    closeModifierModalBtn = modifierModal.querySelector('.close-btn');
-    clockContainer = document.getElementById('liveClockContainer');
-    searchInput = document.getElementById('productSearchInput');
-    searchDropdown = document.getElementById('searchResultsDropdown');
-    lockMessageContainer = document.getElementById('lockMessageContainer');
-    
-    // Asumimos que initialData está disponible al final del DOM, antes del TPV.js
+    // --- Inicialización de elementos del DOM ---
     const initialDataElement = document.getElementById('initialOrderData');
     if (initialDataElement) {
         const initialData = JSON.parse(initialDataElement.textContent);
@@ -726,12 +828,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const productBtn = e.target.closest('.product-item-btn');
         if (!productBtn) return;
         
+        // 💡 Bloquear si el producto está agotado (la tarjeta tiene la clase 'product-agotado')
+        if (productBtn.classList.contains('product-agotado')) {
+            // El botón ya debería estar deshabilitado, pero esta es una capa de seguridad extra.
+            alert("Producto agotado (86).");
+            return;
+        }
+        
         // ... (resto de la lógica de adición de productos) ...
         const quantity = parseInt(quantitySelector.value) || 1;
 
         currentProduct = {
             id: parseInt(productBtn.dataset.productId),
-            name: productBtn.querySelector('.product-name').textContent,
+            name: productBtn.querySelector('.product-name').textContent.replace(/Quedan:\s\d+/, '').trim(), // Limpiar badge de stock del nombre
             price: parseFloat(productBtn.dataset.price),
             modifierGroupId: parseInt(productBtn.dataset.modifierGroupId) || null,
             quantity: quantity
@@ -763,13 +872,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!currentProduct) return;
         const selectedRadio = modifierOptions.querySelector('input[name="modifier-choice"]:checked');
         if (!selectedRadio) {
+            alert("Por favor, selecciona una opción.");
             return;
         }
+        
+        // 💡 Bloqueo final si el modificador seleccionado está agotado
+        if (selectedRadio.disabled) {
+            alert("La opción seleccionada está agotada (86).");
+            return;
+        }
+
 
         const quantity = currentProduct.quantity;
         const modifier = {
             id: parseInt(selectedRadio.value),
-            name: selectedRadio.parentNode.textContent.trim().split('(')[0].trim(),
+            name: selectedRadio.closest('label').querySelector('.modifier-name').textContent.trim(),
             price: parseFloat(selectedRadio.dataset.price)
         };
         const unitPrice = currentProduct.price + modifier.price;
@@ -874,6 +991,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (firstCategory) {
         handleCategoryClick(firstCategory.dataset.categoryId);
     }
+    
+    // ----------------------------------------------------
+    // 🔄 INICIO DEL POLLING (REFRESCO DE STOCK)
+    // ----------------------------------------------------
+    startProductPolling();
 
     // ----------------------------------------------------
     // 🔒 LÓGICA DE SEMÁFORO (CONCURRENCIA)
@@ -895,6 +1017,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. Liberación al Salir: Desbloquea la mesa si cierran la pestaña o regresan
     window.addEventListener('beforeunload', () => {
+        if (productPollingId) clearInterval(productPollingId); // Detiene el polling
+        
         if (typeof tableNumber !== 'undefined' && tableNumber > 0 && !isInterfaceLocked) {
             const data = JSON.stringify({ table_number: tableNumber });
             // Usamos sendBeacon para asegurar que se envíe aunque se cierre el navegador

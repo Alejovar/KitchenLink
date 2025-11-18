@@ -4,13 +4,13 @@
 class MenuModel {
     private $conn; // Conexión a la base de datos (MySQLi)
 
-    public function __construct($db_connection) {
-        $this->conn = $db_connection;
+    public function __construct(mysqli $conn) {
+        $this->conn = $conn;
     }
 
     /**
      * Obtiene los productos disponibles para una categoría específica,
-     * incluyendo el área de preparación.
+     * incluyendo el área de preparación y la información de stock.
      */
     public function getProductsByCategory($categoryId) {
         $sql = "
@@ -19,6 +19,8 @@ class MenuModel {
                 p.name, 
                 p.price, 
                 p.modifier_group_id,
+                p.is_available,       /* <-- NUEVO: Estado de disponibilidad */
+                p.stock_quantity,     /* <-- NUEVO: Conteo de Stock (85) */
                 mc.preparation_area 
             FROM 
                 products p
@@ -26,7 +28,6 @@ class MenuModel {
                 menu_categories mc ON mc.category_id = p.category_id
             WHERE 
                 p.category_id = ?
-                AND p.is_available = TRUE 
             ORDER BY 
                 p.name ASC
         ";
@@ -52,43 +53,16 @@ class MenuModel {
     }
 
     /**
-     * Obtiene el área de preparación para un producto específico.
-     */
-    public function getPreparationAreaByProductId($productId) {
-        $sql = "
-            SELECT 
-                mc.preparation_area 
-            FROM 
-                products p
-            JOIN 
-                menu_categories mc ON mc.category_id = p.category_id
-            WHERE 
-                p.product_id = ?
-        ";
-        $stmt = null;
-        try {
-            $stmt = $this->conn->prepare($sql);
-            if ($stmt === false) throw new Exception("Error al preparar SQL de área: " . $this->conn->error);
-            
-            $stmt->bind_param("i", $productId);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            $area = $result->fetch_assoc()['preparation_area'] ?? 'COCINA'; 
-            $stmt->close();
-            return $area;
-        } catch (\Exception $e) {
-            error_log("DB Error getting product area: " . $e->getMessage());
-            if ($stmt) $stmt->close();
-            throw new \Exception("Error al consultar área de preparación: " . $e->getMessage()); 
-        }
-    }
-
-    /**
-     * Obtiene los modificadores (guisos/sabores) para un grupo dado.
+     * Obtiene los modificadores (guisos/sabores) para un grupo dado,
+     * incluyendo la información de stock y disponibilidad.
      */
     public function getModifiersByGroup($groupId) {
-        $sql_options = "SELECT modifier_id, modifier_name, modifier_price FROM modifiers WHERE group_id = ? ORDER BY modifier_price ASC, modifier_name ASC";
+        // 💡 MODIFICADO: Añadimos 'is_active' y 'stock_quantity' a la consulta
+        $sql_options = "SELECT modifier_id, modifier_name, modifier_price, is_active, stock_quantity 
+                        FROM modifiers 
+                        WHERE group_id = ? 
+                        ORDER BY modifier_price ASC, modifier_name ASC";
+                        
         $sql_name = "SELECT group_name FROM modifier_groups WHERE group_id = ?";
         
         $output = ['modifiers' => [], 'group_name' => 'Opción Requerida'];
@@ -125,6 +99,40 @@ class MenuModel {
             if ($stmt_options) $stmt_options->close();
             if ($stmt_name) $stmt_name->close();
             return ['modifiers' => [], 'group_name' => 'Error de Conexión'];
+        }
+    }
+
+    /**
+     * Obtiene el área de preparación para un producto específico.
+     * (Esta función no necesita stock y se mantiene igual)
+     */
+    public function getPreparationAreaByProductId($productId) {
+        $sql = "
+            SELECT 
+                mc.preparation_area 
+            FROM 
+                products p
+            JOIN 
+                menu_categories mc ON mc.category_id = p.category_id
+            WHERE 
+                p.product_id = ?
+        ";
+        $stmt = null;
+        try {
+            $stmt = $this->conn->prepare($sql);
+            if ($stmt === false) throw new Exception("Error al preparar SQL de área: " . $this->conn->error);
+            
+            $stmt->bind_param("i", $productId);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            $area = $result->fetch_assoc()['preparation_area'] ?? 'COCINA'; 
+            $stmt->close();
+            return $area;
+        } catch (\Exception $e) {
+            error_log("DB Error getting product area: " . $e->getMessage());
+            if ($stmt) $stmt->close();
+            throw new \Exception("Error al consultar área de preparación: " . $e->getMessage()); 
         }
     }
 }
