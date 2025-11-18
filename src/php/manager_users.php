@@ -58,7 +58,7 @@ $userName = htmlspecialchars($_SESSION['user_name'] ?? 'Gerente');
                 
                 <li><a href="manager_menu.php"><i class="fas fa-utensils"></i> Menú y Productos</a></li>
                 
-                <li><a href="sales_history.php"><i class="fas fa-chart-line"></i> Gestión de Reportes</a></li>
+                <li><a href="manager_reports.php"><i class="fas fa-chart-line"></i> Gestión de Reportes</a></li>
             </ul>
         </div>
         
