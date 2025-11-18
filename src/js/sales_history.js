@@ -285,13 +285,18 @@ document.addEventListener('DOMContentLoaded', () => {
             selectServerReport.innerHTML = `<option value="">Error al cargar</option>`;
         }
     }
-    function updateClock() {
-        if (!clockContainer) return;
+    
+ function updateClock() {
         const now = new Date();
-        const dateString = now.toLocaleDateString('es-MX', { month: 'short', day: '2-digit' });
-        const timeString = now.toLocaleTimeString('en-US');
-        clockContainer.textContent = `${dateString} ${timeString}`;
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const month = months[now.getMonth()];
+        const day = now.getDate();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        if (clockContainer) clockContainer.textContent = `${month} ${day} ${hours}:${minutes}:${seconds}`;
     }
+
     async function generateShiftReportZ() {
         if (!confirm("¿Estás seguro de que deseas cerrar el turno?\nEsta acción es IRREVERSIBLE y generará el Corte Z final.")) return;
         

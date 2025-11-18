@@ -73,9 +73,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateClock() {
         if (!clockContainer) return;
         const now = new Date();
-        const dateString = now.toLocaleDateString('es-MX', { month: 'short', day: '2-digit' });
-        const timeString = now.toLocaleTimeString('en-US');
-        clockContainer.textContent = `${dateString} ${timeString}`;
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        // Formato: "Nov 08 21:45:12"
+        clockContainer.textContent = now.toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }) + ` ${hours}:${minutes}:${seconds}`;
     }
     const formatCurrency = (amount) => `$${parseFloat(amount).toFixed(2)}`;
 

@@ -21,13 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return isNaN(date.getTime()) ? new Date(NaN) : date;
     }
 
-    function updateClock() {
-        if (!clockContainer) return;
+     function updateClock() {
         const now = new Date();
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const month = months[now.getMonth()];
+        const day = now.getDate();
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
-        clockContainer.textContent = now.toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }) + ` ${hours}:${minutes}:${seconds}`;
+        if (clockContainer) clockContainer.textContent = `${month} ${day} ${hours}:${minutes}:${seconds}`;
     }
 
     async function updateItemStatus(detailId, newStatus) {

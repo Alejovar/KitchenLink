@@ -23,14 +23,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateClock() {
-        if (!clockContainer) return;
         const now = new Date();
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const month = months[now.getMonth()];
+        const day = now.getDate();
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
-        clockContainer.textContent = now.toLocaleDateString('es-MX', { month: 'short', day: '2-digit' }) + ` ${hours}:${minutes}:${seconds}`;
+        if (clockContainer) clockContainer.textContent = `${month} ${day} ${hours}:${minutes}:${seconds}`;
     }
-
     async function fetchAndDisplayHistory(date) {
         historyGrid.innerHTML = '<p class="loading-msg">Cargando historial...</p>';
         try {
