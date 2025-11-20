@@ -1,21 +1,26 @@
 // /KitchenLink/src/js/manager_reports.js
+// VERSIÓN FINAL COMPLETA CON LÓGICA DE REPORTES Y MANEJO DE ERRORES.
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Inicialización y Funciones de Utilidad
+    
+    // 1. Inicialización de Elementos y Variables
     const productMixResults = document.getElementById('productMixResults');
     const serviceMetricsResults = document.getElementById('serviceMetricsResults');
-    const reservationMetricsResults = document.getElementById('reservationMetricsResults');
     const serviceServerSelect = document.getElementById('serviceServerSelect');
-    const clockContainer = document.getElementById('liveClockContainer'); // Clock element
-
-    // Botones
+    const cancellationResults = document.getElementById('cancellationResults'); 
+    const rotationResults = document.getElementById('rotationResults');
+    
+    const clockContainer = document.getElementById('liveClockContainer');
+    
+    // Botones (Asegurarse que los IDs coincidan en el HTML)
     const btnRunProductMix = document.getElementById('btnRunProductMix');
     const btnRunServiceMetrics = document.getElementById('btnRunServiceMetrics');
-    const btnRunReservationMetrics = document.getElementById('btnRunReservationMetrics');
     const btnRunCancellationReport = document.getElementById('btnRunCancellationReport');
+    const btnRunRotationReport = document.getElementById('btnRunRotationReport');
     
-    // URLs API
-    const API_ENDPOINT = '/KitchenLink/src/php/reports_api.php';
+    // URL APIs
+    const API_ENDPOINT = '/KitchenLink/src/api/manager/reports/reports_api.php';
+    const SERVERS_ENDPOINT = '/KitchenLink/src/api/manager/get_active_servers.php'; 
     
     // Función para obtener fechas en formato YYYY-MM-DD
     const formatToDateInput = (dateObj) => {
@@ -40,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else input.value = lastWeekStr;
     });
 
-    // 💡 FUNCIÓN DE RELOJ SOLICITADA (Mes/Día Hora:Min:Seg)
+    // Función de Reloj
     function updateClock() {
         if (!clockContainer) return;
         const now = new Date();
@@ -54,34 +59,95 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // ------------------------------------------------------------------
-    // 💡 INICIO DE LÓGICA PRINCIPAL (AJAX y Renderizado)
+    // FUNCIÓN AJAX GENÉRICA (fetchReport)
     // ------------------------------------------------------------------
     
-    // Función AJAX genérica
     const fetchReport = async (action, data, resultElement) => {
         resultElement.innerHTML = '<p class="loading-message" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Cargando reporte...</p>';
+        
+        let rawResponseText = '';
+
         try {
             const response = await fetch(API_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: action, ...data })
             });
-            const result = await response.json();
+
+            // Leer la respuesta como texto plano para capturar cualquier carácter oculto.
+            rawResponseText = await response.text();
+            
+            // Intentar decodificar el JSON.
+            const result = JSON.parse(rawResponseText); 
 
             if (result.success) {
                 return result.data;
             } else {
-                resultElement.innerHTML = `<p class="no-results" style="color:red;"><i class="fas fa-exclamation-circle"></i> Error: ${result.message || 'Error al procesar el reporte.'}</p>`;
+                resultElement.innerHTML = `<p class="no-results" style="color:red;"><i class="fas fa-exclamation-circle"></i> Error de API: ${result.message || 'Error desconocido.'}</p>`;
                 return null;
             }
         } catch (error) {
             console.error('Fetch error:', error);
-            resultElement.innerHTML = `<p class="no-results" style="color:red;"><i class="fas fa-network-wired"></i> Error de red o servidor: ${error.message}</p>`;
+            
+            // Muestra el texto que causó el error de JSON
+            let debugMessage = `Error de JSON/Red: ${error.message}`;
+            if (rawResponseText) {
+                debugMessage += `<br>El servidor respondió con (inicio): 
+                    <strong style="color: black; background-color: #ffcdd2; padding: 5px; word-break: break-all;">
+                    ${rawResponseText.substring(0, 100)}...
+                    </strong>`;
+            }
+
+            resultElement.innerHTML = `<p class="no-results" style="color:red;"><i class="fas fa-network-wired"></i> ${debugMessage}</p>`;
             return null;
         }
     };
 
-    // --- 2. Control de Pestañas ---
+    // ------------------------------------------------------------------
+    // 💡 FUNCIÓN CORREGIDA: Llenar Select de Meseros (Llama al nuevo Endpoint)
+    // ------------------------------------------------------------------
+    
+    const loadServers = async () => {
+        if(!serviceServerSelect || serviceServerSelect.options.length > 1) return;
+        
+        try {
+            // Muestra el spinner
+            serviceMetricsResults.innerHTML = '<p class="loading-message" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Cargando meseros...</p>';
+            
+            // Llama directamente al nuevo endpoint con GET
+            const response = await fetch(SERVERS_ENDPOINT); 
+            const result = await response.json();
+            
+            if (result.success && result.data.length > 0) {
+                // Añadir la opción 'Todos los Meseros'
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Todos los Meseros';
+                serviceServerSelect.appendChild(defaultOption);
+                
+                // Añadir los meseros obtenidos
+                result.data.forEach(server => {
+                    const option = document.createElement('option');
+                    option.value = server.id; 
+                    option.textContent = server.name; 
+                    serviceServerSelect.appendChild(option);
+                });
+                
+                // Limpiar el mensaje de carga o dejar que el reporte lo reemplace
+                serviceMetricsResults.innerHTML = '';
+            } else {
+                serviceMetricsResults.innerHTML = `<p class="no-results" style="color:red;"><i class="fas fa-exclamation-circle"></i> Error al cargar meseros: ${result.message || 'No se encontraron meseros.'}</p>`;
+            }
+        } catch (error) {
+            console.error('Error loading servers:', error);
+            serviceMetricsResults.innerHTML = `<p class="no-results" style="color:red;"><i class="fas fa-network-wired"></i> Error de conexión al cargar meseros.</p>`;
+        }
+    };
+    
+    // ------------------------------------------------------------------
+    // 2. Control de Pestañas y Carga
+    // ------------------------------------------------------------------
+    
     const tabsContainer = document.getElementById('reportTabs');
     const tabContents = document.querySelectorAll('.report-tab-content');
 
@@ -102,23 +168,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- 3. Llenar Select de Meseros ---
-    const loadServers = async () => {
-        if(serviceServerSelect.options.length > 1) return;
-        
-        // Usamos el contenedor de métricas para mostrar spinner/error
-        const servers = await fetchReport('get_servers', {}, serviceMetricsResults); 
-        if (servers) {
-            servers.forEach(server => {
-                const option = document.createElement('option');
-                option.value = server.user_id;
-                option.textContent = server.user_name;
-                serviceServerSelect.appendChild(option);
-            });
-        }
-    };
-
-    // --- 4. Reporte de Productos Más Vendidos (Product Mix) ---
+    // ------------------------------------------------------------------
+    // 3. RENDERING DE REPORTES
+    // ------------------------------------------------------------------
+    
+    // Reporte 1: Productos Más Vendidos (Product Mix)
     const renderProductMixTable = (data) => {
         if (!data || data.length === 0) {
             return '<p class="no-results"><i class="fas fa-box-open"></i> No se encontraron productos vendidos en el rango seleccionado.</p>';
@@ -142,23 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     };
 
-    btnRunProductMix.addEventListener('click', async () => {
-        const start_date = document.getElementById('productMixStartDate').value;
-        const end_date = document.getElementById('productMixEndDate').value;
-        
-        if (!start_date || !end_date) {
-            productMixResults.innerHTML = '<p class="no-results" style="color: orange;"><i class="fas fa-exclamation-triangle"></i> Por favor, selecciona ambas fechas.</p>';
-            return;
-        }
-
-        const data = await fetchReport('get_product_mix', { start_date, end_date }, productMixResults);
-        if (data) {
-            // Aquí iría el drawBarChart(data) si lo tuvieras implementado
-            productMixResults.innerHTML = renderProductMixTable(data);
-        }
-    });
-
-    // --- 5. Reporte de Cancelaciones ---
+    // Reporte 2: Cancelaciones
     const renderCancellationTable = (data) => {
         const totalLost = data.reduce((sum, item) => sum + parseFloat(item.lost_revenue), 0);
         if (!data || data.length === 0) {
@@ -194,23 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     };
 
-    document.getElementById('btnRunCancellationReport').addEventListener('click', async () => {
-        const start_date = document.getElementById('cancellationStartDate').value;
-        const end_date = document.getElementById('cancellationEndDate').value;
-        
-        if (!start_date || !end_date) {
-            productMixResults.innerHTML = '<p class="no-results" style="color: orange;"><i class="fas fa-exclamation-triangle"></i> Selecciona ambas fechas.</p>';
-            return;
-        }
-
-        const data = await fetchReport('get_cancellation_report', { start_date, end_date }, productMixResults);
-        if (data) {
-            productMixResults.innerHTML = renderCancellationTable(data);
-        }
-    });
-
-
-    // --- 6. Reporte de Métricas de Servicio (Personas Atendidas) ---
+    // Reporte 3: Métricas de Servicio (Personas Atendidas)
     const renderServiceMetricsTable = (data, totalServed) => {
         if (!data || data.length === 0 || totalServed === 0) {
              return `<p class="no-results"><i class="fas fa-user-slash"></i> No se registraron clientes atendidos en el rango seleccionado.</p>`;
@@ -243,30 +265,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     };
     
-    document.getElementById('btnRunServiceMetrics').addEventListener('click', async () => {
-        const start_date = document.getElementById('serviceStartDate').value;
-        const end_date = document.getElementById('serviceEndDate').value;
-        const server_id = document.getElementById('serviceServerSelect').value || null; 
-        
-        if (!start_date || !end_date) {
-            serviceMetricsResults.innerHTML = '<p class="no-results" style="color: orange;"><i class="fas fa-exclamation-triangle"></i> Por favor, selecciona ambas fechas.</p>';
-            return;
-        }
-
-        const data = await fetchReport('get_service_metrics', { start_date, end_date, server_id }, serviceMetricsResults);
-        
-        if (data && data.metrics) {
-             const totalServed = data.total_served;
-             // Aquí iría el drawDoughnutChart(data.metrics, totalServed)
-             serviceMetricsResults.innerHTML = renderServiceMetricsTable(data.metrics, totalServed);
-        } else if (data) {
-             serviceMetricsResults.innerHTML = `<p class="no-results"><i class="fas fa-user-slash"></i> No se registraron clientes atendidos en el rango seleccionado.</p>`;
-        }
-    });
-
-    // --- 7. Reporte de Rotación y Ocupación (NUEVO) ---
+    // Reporte 4: Rotación (Tiempo promedio ocupado)
     const renderRotationTable = (data) => {
-        if (data.total_closed_tables === 0) {
+        if (data.total_tables_closed === 0) {
             return `<p class="no-results"><i class="fas fa-clock"></i> No hay mesas cerradas en este período para calcular rotación.</p>`;
         }
 
@@ -284,33 +285,91 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tbody>`;
         
         html += `<tr class="highlight-row"><td>Tiempo Promedio de Ocupación por Mesa</td><td class="numeric">${data.avg_minutes_occupied} minutos</td></tr>`;
-        html += `<tr><td>Total de Mesas Cerradas (Muestra)</td><td class="numeric">${data.total_closed_tables}</td></tr>`;
+        html += `<tr><td>Total de Mesas Cerradas (Muestra)</td><td class="numeric">${data.total_tables_closed}</td></tr>`;
 
         html += '</tbody></table>';
         return html;
     };
 
 
-    // Evento para el Reporte de Rotación (Se usará el mismo botón)
+    // ------------------------------------------------------------------
+    // 4. EVENT LISTENERS
+    // ------------------------------------------------------------------
+
+    // Evento Productos Mix
+    document.getElementById('btnRunProductMix').addEventListener('click', async () => {
+        const start_date = document.getElementById('productMixStartDate').value;
+        const end_date = document.getElementById('productMixEndDate').value;
+        
+        if (!start_date || !end_date) {
+            productMixResults.innerHTML = '<p class="no-results" style="color: orange;"><i class="fas fa-exclamation-triangle"></i> Por favor, selecciona ambas fechas.</p>';
+            return;
+        }
+
+        const data = await fetchReport('get_product_mix', { start_date, end_date }, productMixResults);
+        if (data) {
+            productMixResults.innerHTML = renderProductMixTable(data);
+        }
+    });
+
+    // Evento Cancelaciones
+    document.getElementById('btnRunCancellationReport').addEventListener('click', async () => {
+        const start_date = document.getElementById('cancellationStartDate').value;
+        const end_date = document.getElementById('cancellationEndDate').value;
+        
+        if (!start_date || !end_date) {
+            cancellationResults.innerHTML = '<p class="no-results" style="color: orange;"><i class="fas fa-exclamation-triangle"></i> Selecciona ambas fechas.</p>';
+            return;
+        }
+
+        const data = await fetchReport('get_cancellation_report', { start_date, end_date }, cancellationResults);
+        if (data) {
+            cancellationResults.innerHTML = renderCancellationTable(data);
+        }
+    });
+
+    // Evento Métricas de Servicio
+    document.getElementById('btnRunServiceMetrics').addEventListener('click', async () => {
+        const start_date = document.getElementById('serviceStartDate').value;
+        const end_date = document.getElementById('serviceEndDate').value;
+        const server_id = document.getElementById('serviceServerSelect').value || null; 
+        
+        if (!start_date || !end_date) {
+            serviceMetricsResults.innerHTML = '<p class="no-results" style="color: orange;"><i class="fas fa-exclamation-triangle"></i> Por favor, selecciona ambas fechas.</p>';
+            return;
+        }
+
+        const data = await fetchReport('get_service_metrics', { start_date, end_date, server_id }, serviceMetricsResults);
+        
+        if (data && data.metrics) {
+             const totalServed = data.total_served;
+             serviceMetricsResults.innerHTML = renderServiceMetricsTable(data.metrics, totalServed);
+        } else if (data) {
+             serviceMetricsResults.innerHTML = `<p class="no-results"><i class="fas fa-user-slash"></i> No se registraron clientes atendidos en el rango seleccionado.</p>`;
+        }
+    });
+
+    // Evento Rotación
     document.getElementById('btnRunRotationReport').addEventListener('click', async () => {
         const start_date = document.getElementById('rotationStartDate').value;
         const end_date = document.getElementById('rotationEndDate').value;
         
         if (!start_date || !end_date) {
-            document.getElementById('rotationResults').innerHTML = '<p class="no-results" style="color: orange;"><i class="fas fa-exclamation-triangle"></i> Por favor, selecciona ambas fechas.</p>';
+            rotationResults.innerHTML = '<p class="no-results" style="color: orange;"><i class="fas fa-exclamation-triangle"></i> Por favor, selecciona ambas fechas.</p>';
             return;
         }
         
-        const data = await fetchReport('get_table_rotation', { start_date, end_date }, document.getElementById('rotationResults'));
+        const data = await fetchReport('get_table_rotation', { start_date, end_date }, rotationResults);
         
         if (data) {
-             document.getElementById('rotationResults').innerHTML = renderRotationTable(data);
+             rotationResults.innerHTML = renderRotationTable(data);
         }
     });
 
 
-    // --- 9. Inicialización de Eventos ---
-    // Aseguramos que la pestaña inicial esté marcada como activa en el JS
+    // ------------------------------------------------------------------
+    // 5. Inicialización
+    // ------------------------------------------------------------------
     const initialTab = document.querySelector('.report-tab-link.active');
     if (initialTab) {
         const tabId = initialTab.dataset.tab;
@@ -318,4 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if(contentElement) contentElement.style.display = 'block';
         if (tabId === 'service-metrics') loadServers();
     }
+    
+    // Inicialización del reloj
+    updateClock();
+    setInterval(updateClock, 1000);
 });
