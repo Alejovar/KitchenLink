@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Definiciones de Roles (IDs según tu DB)
+// Definiciones de Roles (IDs según tu DB) .
 define('MESERO_ROLE_ID', 2);
 define('COCINA_ROLE_ID', 3);
 define('HOSTESS_ROLE_ID', 4);
