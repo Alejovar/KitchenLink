@@ -6,3 +6,6 @@
 Thumbs.db
 *.log
 .env
+
+id_rsa_kitchen
+id_rsa_kitchen.pub
